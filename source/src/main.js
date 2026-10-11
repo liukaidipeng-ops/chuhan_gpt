@@ -1628,6 +1628,47 @@
     }
     return out;
   }
+  // ---------- 观战实时局势条（Ham 10-11：观众只给局势条、不给走法；样子美术总监 V17，Ham 审批台 ad-039 甲）----------
+  //   观众每看到一步（技能模式每一个行动）就把当前局面交给电脑算一遍，分数换成 -1～+1（汉方看）。收起时不算，省电；揭棋不显示
+  //   技能模式默认不算（手机吃力），面板里勾「技能模式也显示」才算
+  let lbKey = null, lbBusy = false;
+  const LB = { std: 300, bf: 6 };   // 分数 → 条：tanh(分 / 这个)。标准象棋车约 200 → 大优；技能模式车 9 → 胜势
+  function lbSet(v, txt) {
+    const el = $('liveBar');
+    if (v != null) { el.querySelector('.trk').style.setProperty('--p', ((v + 1) * 50).toFixed(1) + '%'); const a = Math.abs(v); txt = a < 0.1 ? '均势' : `<b>${v > 0 ? '汉' : '楚'}</b> ${a < 0.3 ? '小优' : a < 0.6 ? '大优' : '胜势'}`; }
+    el.querySelector('.lb').innerHTML = txt;
+  }
+  async function liveBarTick() {
+    const el = $('liveBar'), show = watching() && !!game && !game.jq && !RP;
+    el.classList.toggle('hidden', !show);
+    if (!show) { lbKey = null; return; }
+    el.classList.toggle('bf', !!game.bf);
+    const st = $('status').getBoundingClientRect(); el.style.top = Math.round(st.bottom + 8) + 'px';
+    if (game.bf && !el.querySelector('.sw input').checked) { el.classList.remove('busy'); lbSet(null, '已关'); lbKey = null; return; }
+    if (!el.classList.contains('open') || lbBusy || busy) return;
+    const key = game.bf ? 'b' + game.entries.length : 's' + game.history.length;
+    if (key === lbKey) return;
+    lbBusy = true; el.classList.add('busy'); lbSet(null, '分析中');
+    try {
+      let v;
+      if (game.bf) {
+        const S = BF.cloneState(game.S), g = new BF.Game(); g.reset(BF.cloneState(S));
+        if (g.status.result) v = g.status.result.winner === 'r' ? 1 : g.status.result.winner === 'b' ? -1 : 0;
+        else { await bfThink(S, 'ana', async () => { }); v = (S.turn === 'r' ? 1 : -1) * Math.tanh(((bfThink.last || {}).v || 0) / LB.bf); }
+      } else {
+        const r = await AI.analyzePos(game.history.map(h => ({ from: h.from, to: h.to })), 450);
+        const sc = !r ? 0 : r.over ? -1e5 : r.score;
+        v = (game.turn === 'r' ? 1 : -1) * Math.tanh(sc / LB.std);
+      }
+      const now = game.bf ? 'b' + game.entries.length : 's' + game.history.length;
+      if (watching() && now === key) { lbKey = key; lbSet(v); }   // 算的时候又走了一步：这次的不用，下一轮重算
+    } catch (e) { console.warn('局势条', e); lbKey = key; }
+    finally { lbBusy = false; el.classList.remove('busy'); }
+  }
+  $('liveBar').querySelector('.seal').onclick = () => { const el = $('liveBar'), on = !el.classList.contains('open'); el.classList.toggle('open', on); store.set('liveBarOpen', on ? 1 : 0); lbKey = null; liveBarTick(); };
+  $('liveBar').querySelector('.sw input').onchange = () => { lbKey = null; liveBarTick(); };
+  if (store.get('liveBarOpen', 0)) $('liveBar').classList.add('open');
+  setInterval(() => { liveBarTick().catch(() => { }); }, 700);
   // 算一个局面：{ v（轮到的一方看）, best（主行动 from/to）, bestNote }
   async function anaPos(real, steps, i) {
     if (real.bf) {
