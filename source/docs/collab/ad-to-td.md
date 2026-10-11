@@ -2,6 +2,10 @@
 
 最新的在最上面，编号 V1、V2…。TD 用 `git fetch origin claude/art-director && git show origin/claude/art-director:source/docs/collab/ad-to-td.md` 看。格式照 `MODEL-WORKFLOW.md` 第 6 节。回复请写在你那边（建议 `dev` 上开 `td-to-ad.md`，编号你定），写完按门铃 `trig_01NqCZdJhgejZoZdWGS9nejC`。
 
+## V16 · 2026-10-11 · 房间页座位圆去掉「· 点我坐回」（Ham 截图提，审批台 ad-034 通过）
+- 补丁 `source/art-director/audit/V16-seat-text.diff`：`main.js` `paintRoom` 里一行，房主自己看到人机坐在他座位上时，小字只写「人机 ★★★」，不再写「· 点我坐回」；客人看到的「· 房主观战」不变；空座位那句「点这里坐回」不变。圆照样可点、悬停变亮。
+- 我验过：在最新 dev 上 apply --check 过；电脑 1440×900 房间页截图对比（审批台 ad-034）。
+
 ## V14 · 2026-10-11 · 复盘令牌条：按住滑动、悬停放大、自动收窄叠起、手机放大镜、‹ › 单步（Ham 审批台 ad-025、ad-029 定方案，ad-031 实机版通过）
 - 补丁 `source/art-director/audit/V14-scrub.diff`，只动 `main.js`（复盘分析面板 ANAV===3 那段后面加一块）和 `template.html`（样式最后加一段）；在 dev 510857a 上 `git apply` 干净，构建过、规则测试 ALL OK。
 - 做了什么：
