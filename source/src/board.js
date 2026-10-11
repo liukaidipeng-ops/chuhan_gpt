@@ -809,13 +809,14 @@ const Board = (() => {
   // ---------- 棋身按等级换装：一级木 · 二级「乌银错花」· 三级「錾金」· 四级「羊脂白玉 · 金丝嵌」 ----------
   // 金属与玉要有真实反光：先做一张 HDR 影棚环境光（四面对称，换边、转视角都一样好看）
   //   天顶大柔光箱；四盏斜上方柔光箱（顶面映出大片渐变高光）；一圈竖条灯（侧壁上的竖向高光）；暗暖底（金属有深浅对比）
-  let envTex = null, skins = null, lastGame = null;
+  let envTex = null, envTop = null, skins = null, lastGame = null;
   const LOWQ = () => Core.quality === 'low';
   // 质感参数（Board.skinTune(补丁) 可以现场改了重建）：
   //   boxAz / boxEl / boxI / zen = 斜上方柔光箱的方位半宽、仰角范围、亮度，天顶灯亮度（决定金属顶面那块高光有多大、多亮）
   //   domeM = 金属顶面的弧度（略微隆起，高光才是一块有形状的光斑，而不是整面发白）
   //   jade = 玉面纹理：gu 谷纹 / pu 蒲纹 / yun 云纹 / su 素面
   const SK = { boxAz: [5.5, 8.5], boxEl: [33, 39, 51, 56], boxI: [0.9, 2.3], zen: 2.0, domeM: 0.5, anisoTop: 0.16, envS: 0.9, envG: 0.82, jade: 'yun' };   // 顶面高光占比：银约 35%、金约 25%；白玉用云纹
+  const ZEN_TOP = 0.25;   // 正上方看时天顶灯留几成
   try { const o = JSON.parse(localStorage.getItem('xq3d-sk') || 'null'); if (o) Object.assign(SK, o); } catch (e) { }
   function studioEnv() {
     const W = 512, H = 256, lin = new Float32Array(W * H * 3);
@@ -1187,6 +1188,7 @@ const Board = (() => {
   function levelSkins() {
     if (skins) return skins;
     envTex = studioEnv();
+    { const z = SK.zen; SK.zen = z * ZEN_TOP; envTop = studioEnv(); SK.zen = z; }   // 正上方看时用：天顶灯调暗（金属、玉的顶面正对天顶，原样会整片映白）
     const E = envTex ? { envMap: envTex } : {};
     const sb = silverBand(), gb = goldBand(), jb = jadeBand(), st = topSet('silver'), gt = topSet('gold');
     const MET = envTex ? 1 : 0.55;
@@ -1445,8 +1447,8 @@ const Board = (() => {
         for (const key of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'alphaMap', 'anisotropyMap']) if (m[key] && !seen.has(m[key])) { seen.add(m[key]); m[key].dispose(); }
         m.dispose();
       }
-      if (envTex) envTex.dispose();
-      skins = null; envTex = null;
+      if (envTex) envTex.dispose(); if (envTop) envTop.dispose();
+      skins = null; envTex = null; envTop = null;
     }
     if (lastGame) setPosition(lastGame);
     return SK;
@@ -2137,11 +2139,20 @@ const Board = (() => {
   // 俯瞰 / 定盘（镜头正对下方）时棋盘顶面会把太阳和天顶灯直接反进镜头，整块泛白：镜头越朝正下，顶面越哑光、环境反光越弱；沙盘斜看不变
   (function topDownMatte() {
     const base = boardTops.map(m => [m.roughness, m.clearcoat || 0]), dir = new THREE.Vector3();
+    // 太阳几乎在头顶（仰角约 78°），正上方看时它在棋子平顶上的高光正好反进镜头，金属、玉、字面都发白：正上方看时把太阳压低到 SUN_EL 度（方位不变），沙盘不变
+    const sun = Core.sun, sun0 = sun.position.clone(), mine = sun0.clone(), SUN_EL = 55;
+    const h0 = Math.hypot(sun0.x, sun0.z), R0 = sun0.length(), el = SUN_EL * Math.PI / 180;
+    const sunTop = new THREE.Vector3(sun0.x / h0 * Math.cos(el) * R0, Math.sin(el) * R0, sun0.z / h0 * Math.cos(el) * R0);
     let last = -1;
     Core.onFrame(() => {
       Core.camera.getWorldDirection(dir);
       const t = Math.min(1, Math.max(0, (-dir.y - 0.86) / 0.1)), k = t * t * (3 - 2 * t);
+      if (envTex && envTop) {   // 金属、玉、珐琅字面：k 过半就换环境图（两张同尺寸，只换贴图不重编着色器）；新升级的子也在这里换上
+        const want = k > 0.5 ? envTop : envTex, from = k > 0.5 ? envTex : envTop;
+        piecesRoot.traverse(o => { const ms = o.material; if (!ms) return; for (const m of Array.isArray(ms) ? ms : [ms]) if (m.envMap === from) m.envMap = want; });
+      }
       if (Math.abs(k - last) < 0.004) return; last = k;
+      if (sun.position.distanceTo(mine) < 1e-4) { sun.position.lerpVectors(sun0, sunTop, k); mine.copy(sun.position); }   // 结局等别处动过太阳就不管
       boardTops.forEach((m, i) => {
         m.roughness = base[i][0] + (0.9 - base[i][0]) * k;
         if (base[i][1]) m.clearcoat = base[i][1] * (1 - 0.75 * k);
