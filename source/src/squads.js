@@ -1566,7 +1566,7 @@ const Squads = (() => {
       if (sq.riders) { const h = sq.riders[0].group; return { p: h.position, yaw: sq.yaw, h: 0.3, back: 0.05 }; }
       if (sq.crew) { const u = sq.crew.units[0]; return { p: u.p, yaw: u.yaw, h: 0.95 * sq.crew.scale, back: 0.035 }; }
       const g = sq.m ? sq.m.group : sq.group, el = sq instanceof Elephant, tg = sq instanceof TigerRider;
-      if (el && sq.m.topY) return { p: g.position, yaw: sq.yaw, h: sq.m.topY * EL * (sq.m.lvScale || 1) + 0.15, back: 0 };   // 火象：旗插在整只象最高点上方 0.15 格，不穿进塔里（角色部 M32，Ham char-020）
+      if (el && sq.m.topY) return { p: g.position, yaw: sq.yaw, h: sq.m.topY * EL * (sq.m.lvScale || 1) - 0.28, back: 0 };   // 火象：旗杆根插进塔顶 0.28 格，旗面下沿仍在塔顶上方一点、不穿进塔里（角色部 M32，Ham char-020）；原来整根悬在塔顶上方，像浮在空中（Ham 10-11）
       return { p: g.position, yaw: sq.yaw, h: el ? 0.42 : tg ? 0.36 : 0.24, back: el ? 0.12 : tg ? 0.24 : 0.02 };
     }
     const vis = (st, k) => { st.sq.setVis(k); if (st.sq.guard) st.sq.guard.setVis(k); };
