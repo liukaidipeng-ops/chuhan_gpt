@@ -98,3 +98,16 @@ if (!(window.EndTunes && EndTunes.open(openSide))) { Sfx.B.gong(0, 0.9); Sfx.B.t
 观战（`watch`）建议也按 `mySide` 或直接放汉的，你定。
 
 **交之前查过**：合了最新 main；`node source/build.js` 不报错；用原版渲染脚本把游戏里的三首各出一遍，和试听台上的一致；`source/test/` 全过。
+
+## S6 · 10-11 · 交付：兵卒对打的声音（接角色部 M34 的 Duel.play onEvent）
+
+**动了哪些文件**：只有 `source/src/audio.js`，`Sfx.B` 加 `duel(kind, { v, pan })`。没有新素材、没有新署名。
+- 声音和 Ham 10-10 试听台第四十批（b43）通过的对打配音一样：`parry` 拨开 = 木杆相碰；`block` 碰盾 = 盾挡声（S2 那 15 条）；`hit` 扎中 = 入肉 + 七成概率痛叫；`kill` 扎死 = 劈开 + 入肉 + 八成概率惨叫；`thud` 踏地 = 闷木；`dust` 扬尘 = 很轻的一下脚步。
+- `clank` 盾撞盾是新的组合（盾挡声 + 一层闷撞），用的都是已通过的素材。
+- 同一种声音 60 毫秒内只响一次（3v3 一帧可能碰好几下）。
+
+**要 TD 接的**：调 `Duel.play` 时 `onEvent: (kind) => Sfx.B.duel(kind)`。时间由 Duel 在真碰上那一帧叫，不用另算倍速。吃子后的得胜齐吼照旧（S2 的 `Sfx.B.victory`）。
+- 接上后，原来挂在“持盾的子挨打没死”那一下的 `Sfx.B.block`（H2）在兵卒对打里别重复放。
+
+**交之前查过**：合了最新 main；打包不报错；页面里七种 kind 各调一遍没报错；`source/test/` 全过。
+**另外发现**：main 上 `main.js` 3808 行有语法错误（行尾注释吞了 `cls = ...; attr = back; }`），已单独发消息给 TD。
