@@ -588,6 +588,9 @@
     // 看钟（C71）：opt.maxMs = 这一步最多能用多少毫秒（房间计时剩下的，由界面算好传进来）。最坏情况约是预算的 3.5 倍
     //   （难走时放宽 dyn 倍、第 3 层兜底两倍、最后补算破釜 / 一步杀），所以预算按 1/3.5 缩；不传就和原来一样
     if (opt && opt.maxMs > 0 && !L.nodes && !L.fixedDepth) { const b = Math.max(150, Math.min(L.budget, opt.maxMs / 3.5)); if (b < L.budget) L = { ...L, budget: b, minNodes: Math.round((L.minNodes || 0) * b / L.budget) }; }
+    //   硬截止（C72）：到点不管算到哪一层都交出已有最好的那步（第 1～2 层、破釜补算也管），一步杀保险最多用到 maxMs 的九成。
+    //   手机比电脑慢几倍，不受时限管的那几段（第 1～2 层、一步杀保险最多换 80 步）在手机上会拖到超时（Ham 10-11：兵仙还是会超时）
+    const hardEnd = opt && opt.maxMs > 0 && !L.nodes && !L.fixedDepth ? t0 + opt.maxMs * 0.75 : Infinity, hardEnd2 = hardEnd === Infinity ? Infinity : t0 + opt.maxMs * 0.9;
     const TR = BFAI.trace ? { v: 1, level, side: me, round: { ...S0.cnt }, iter: [] } : null;   // 思考记录（C62 A）
     upAll = !!L.upAll;
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
@@ -670,6 +673,7 @@
     const dynX = L.depth > 3 && L.dyn > 1 ? L.dyn : 0;
     // 逐层加深：每一层都把上一层最好的着法排在最前面先算
     for (let d = 1; d <= L.depth; d++) {
+      if (d > 1 && now() > hardEnd) { why = 'time'; break; }
       let soft = t0 + dynB;
       if (L.fixedDepth) { deadline = Infinity; nodeCap = Infinity; }
       else if (byNodes) {
@@ -682,7 +686,7 @@
         const thin = L.minNodes > 0 && nodes - n0 < L.minNodes;
         if (dynX && !dynOn && d > 3 && now() - t0 > L.budget * 0.3 && (crit || depthDone <= 3)) { dynOn = true; dynB = L.budget * dynX; soft = t0 + dynB; if (TR) TR.dyn = d; }   // 难走：放宽预算
         if (d > 3 && !thin && now() - t0 > dynB * 0.3) { why = 'time'; break; }       // 剩下的时间不够再深一层了
-        deadline = d < 3 ? Infinity : d === 3 ? t0 + L.budget * 2 : thin ? t0 + L.budget * 1.5 : soft + L.budget * 0.3;   // 第 3 层也设个兜底（两倍预算）：个别局面枚举破釜组合特别慢，慢手机上别让一步拖到十秒
+        deadline = Math.min(hardEnd, d < 3 ? Infinity : d === 3 ? t0 + L.budget * 2 : thin ? t0 + L.budget * 1.5 : soft + L.budget * 0.3);   // 第 3 层也设个兜底（两倍预算）：个别局面枚举破釜组合特别慢，慢手机上别让一步拖到十秒
       }
       let alpha = -INF, n = 0, cut = false;
       const M = L.noise * 1.6 + 0.02;                          // 比当前最好的差不到 M 的着法也算出准确分数（最后要在它们之间挑）；更差的只要个上界
@@ -753,7 +757,7 @@
     if (pofu.length && bestV < WIN / 2) {
       const PF_MIN = bsOn() ? BSMIN : 5, need = bestV + PF_MIN, d1 = Math.max(1, depthDone) - 1;
       let bp = null;
-      if (byNodes) nodeCap = nodes + Math.round(L.nodes * 0.4); else deadline = now() + Math.max(400, L.budget * 0.4);
+      if (byNodes) nodeCap = nodes + Math.round(L.nodes * 0.4); else deadline = Math.min(hardEnd2, now() + Math.max(400, L.budget * 0.4));
       try {
         for (const k of pofu) {
           const w = decided(k.S, k.ev);
@@ -781,7 +785,8 @@
       };
       try {
         if (mate1(pick.S)) {
-          const alt = pool.filter(k => k !== pick && k.S && !k.done).slice(0, 80).concat(artOff.filter(k => k.S)).find(k => !mate1(k.S));
+          let alt = null;
+          for (const k of pool.filter(k => k !== pick && k.S && !k.done).slice(0, 80).concat(artOff.filter(k => k.S))) { if (now() > hardEnd2) break; if (!mate1(k.S)) { alt = k; break; } }   // 到了硬截止就不再换（C72）
           if (alt) { if (TR) TR.mateGuard = { from: actOf(pick), to: actOf(alt) }; pick = alt; think.mateGuard = (think.mateGuard || 0) + 1; }
         }
       } catch (e) { }

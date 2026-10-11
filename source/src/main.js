@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '技能模式的电脑在慢手机上也守时了：给了时限就一定在时限内走；电脑线程没回话时自动重来；页面切到后台时电脑的钟暂停（数值部）',
       '技能模式的电脑偶尔给不出能走的一步时，原来会一直不走直到超时，现在会改走一步能走的（并记下来发给数值部查）',
       '房主坐到观战席看电脑下时，也有局势条（点状态栏下的「势」展开）',
       '观战电脑对电脑的局，结束后也能「保存」、发给数值部；标题写明两边各是哪一档（数值部）',
@@ -885,7 +886,7 @@
     const s = game.turn;
     const mine = mode === 'local' || vsAI() || mode === 'watch' || s === mySide;
     if (pause) { if (pause.until && t > pause.until) { if (myPause()) resumeGame(); else setPause(null); } else paintPause(); return; }
-    const paused = busy || Ending.running || netDown();
+    const paused = busy || Ending.running || netDown() || (document.hidden && isAI(s));   // 页面在后台时电脑那一步作废了（见 visibilitychange），它的钟也停（数值部 C72）
     if (mine && !paused) {
       if (opts.total) clock[s] -= dt;
       if (opts.step) clock.step -= dt;
@@ -958,7 +959,10 @@
     }
     if (!bfW) return local();
     // 试验性的规则开关（背水一战等）也带给电脑线程：它那边有自己的一份配置
-    return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej }); bfW.postMessage({ id, S, level, trace: !!trace, opt: opt || null, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
+    return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej });
+      // 看门狗（数值部 C72）：电脑线程超过时限 + 3 秒（没开计时就 45 秒）还没回话，多半被手机悄悄掐了：关掉线程，这一步交给兜底（aiRescue）
+      setTimeout(() => { if (bfWait.has(id)) { console.warn('电脑线程没回话，关掉重来'); killBfWorker(); } }, opt && opt.maxMs ? opt.maxMs + 3000 : 45000);
+      bfW.postMessage({ id, S, level, trace: !!trace, opt: opt || null, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
   }
   // 技能模式的电脑线程：作废正在算的那一步（悔棋、认输、退出、切到后台时用）。按时间收手的思考不能暂停续算，回来对同一局面重新算（数值部 C70 提醒）
   function killBfWorker() { if (!bfW) return; try { bfW.terminate(); } catch (e) { } bfW = null; for (const w of bfWait.values()) w.res(null); bfWait.clear(); }
