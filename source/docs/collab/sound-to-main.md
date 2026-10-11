@@ -93,7 +93,7 @@ Sfx.B.gong(0, 0.9); Sfx.B.taiko(0.5, 0.8); Sfx.B.taiko(0.8, 0.8); Sfx.B.taiko(1.
 改成按玩家所执一方放（本地双人放汉的），没有就照旧：
 ```js
 const openSide = mode === 'local' ? 'r' : mySide;
-if (!(window.EndTunes && EndTunes.open(openSide))) { Sfx.B.gong(0, 0.9); Sfx.B.taiko(0.5, 0.8); Sfx.B.taiko(0.8, 0.8); Sfx.B.taiko(1.05, 0.9); }
+if (!(typeof EndTunes !== 'undefined' && EndTunes.open(openSide)))   // 10-11 更正：原写 window.EndTunes，EndTunes 是 const 全局不挂 window，永远走兜底（TD 已改，163d1f） { Sfx.B.gong(0, 0.9); Sfx.B.taiko(0.5, 0.8); Sfx.B.taiko(0.8, 0.8); Sfx.B.taiko(1.05, 0.9); }
 ```
 观战（`watch`）建议也按 `mySide` 或直接放汉的，你定。
 
