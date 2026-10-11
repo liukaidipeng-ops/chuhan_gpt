@@ -1,0 +1,34 @@
+diff --git a/source/src/bfai.js b/source/src/bfai.js
+index 00a7732..114ad63 100644
+--- a/source/src/bfai.js
++++ b/source/src/bfai.js
+@@ -375,6 +375,20 @@
+     // 查表——同一局面、同样剩余层数、同样的延伸次数和“这层要不要考虑对方升级 / 破釜”
+     const tkey = fp(S) + ':' + depth + ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), tte = TTB.get(tkey), a0 = alpha;
+     if (tte) { const v = fromTT(tte.v, ply); if (tte.f === 0 || (tte.f === 1 && v >= beta) || (tte.f === 2 && v <= alpha)) return v; }
++    // 困毙（TD 10-11，Ham：“兵仙还是会把自己困毙”）：规则里轮到的一方没被将军、却没有一步“不是攻击”的走子（空格、或一下打得死的敌子）就判负。
++    //   原来只在自己剩 ≤4 个子时才查（上面 stuck），子多时看不见，会把自己走进去。这里每个回合开头都查：先按形状挑出“不是攻击”的走子、
++    //   试走一步合法就不是困毙（通常第一两步就找到）；一步都没有时交给规则的 evaluate 判（四面楚歌等能停着的情况不算困毙）
++    let gl = null;
++    if (ply >= 1 && !inChk && !S.upgraded && !S.freeUsed) {
++      gl = A.gen(S, false); let plain = false;
++      for (const it of gl) {
++        const a = it.a; if (a.k !== 'mv') continue;
++        const q = S.board[a.to[1]][a.to[0]], p = S.board[a.from[1]][a.from[0]];
++        if (q && (q.s === side || q.hp > A.atk(p))) continue;
++        if (BF.attempt(S, a)) { plain = true; break; }
++      }
++      if (!plain) { const ev = BF.evaluate(S); if (ev && ev.result) return ev.result.winner === side ? WIN - ply : -WIN + ply; }
++    }
+     // 让一步试试（只在霸王，C65）：没被将军、还剩至少 3 层、自己还有车马炮时，先假装停一手让对方连走，少算 3 层；这样对方都翻不过来，这条线就不细算了。
+     //   本回合升过级、决战里不试（升级不换手、决战规则不同）；连着两手都“停”也不试
+     if (lmrOn && ply >= 1 && depth >= 3 && !inChk && !wasNull[ply] && beta < WIN / 2 && !S.upgraded && !S.final) {
+@@ -394,7 +408,7 @@
+         if (alpha >= beta) { if (TTB.size < 300000) TTB.set(tkey, { v: toTT(best, ply), f: 1, m: null }); return best; }
+       }
+     }
+-    const list = order(A.gen(S, false), killers[ply]); let mi = 0;
++    const list = order(gl || A.gen(S, false), killers[ply]); let mi = 0;
+     if (tte && tte.m != null) { const i = list.findIndex(it => mkey(it.a) === tte.m); if (i > 0) { const x = list[i]; list.splice(i, 1); list.unshift(x); } }   // 上次最好的一步先算
+     for (const it of list) {
+       const r = BF.attempt(S, it.a); if (!r || r.free) continue;
