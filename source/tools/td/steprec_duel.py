@@ -17,7 +17,7 @@ try:
         pg = c.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
         pg.goto(f'http://127.0.0.1:{port}/?nopaper&nobd', wait_until='commit', timeout=180000); t0 = time.time()
-        while time.time() - t0 < 150 and not pg.evaluate("!!window.__xq && !document.getElementById('loading')"): time.sleep(0.3)
+        while time.time() - t0 < 500 and not pg.evaluate("!!window.__xq && !document.getElementById('loading')"): time.sleep(0.3)
         pg.evaluate("window.__xq.startGame('local','r',{undo:99,total:0,step:0,hints:1,bf:1},{intro:false})"); time.sleep(5)
         pg.evaluate("(() => { const o = document.getElementById('bfTipOk'); if (o && !document.getElementById('bfTip').classList.contains('hidden')) o.click(); })()")
         print('setup', pg.evaluate("""(() => { const X = __xq, g = X.game, S = g.S, BF = X.BF, lv = %s, kill = %s;
