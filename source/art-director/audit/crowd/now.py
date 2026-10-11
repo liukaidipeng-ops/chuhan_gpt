@@ -1,11 +1,11 @@
 # 手机技能模式现状：和电脑下几步，跳过按钮、对话气泡出现时各截一张
-import glob, pathlib, time, sys, json
+import os, glob, pathlib, time, sys, json
 from playwright.sync_api import sync_playwright
 SRC, OUT = sys.argv[1], sys.argv[2]
 url = pathlib.Path(SRC + '/dist/site/index.html').resolve().as_uri()
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=glob.glob('/opt/pw-browsers/chromium*/chrome-linux/chrome')[0], args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
-    ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, has_touch=True, is_mobile=True)
+    ctx = b.new_context(viewport=dict(zip(('width','height'),map(int,os.environ.get('WH','390x844').split('x')))), device_scale_factor=2, has_touch=True, is_mobile=True)
     pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.add_init_script("localStorage.setItem('xq3d-noaudio','1');localStorage.setItem('xq3d-quality',JSON.stringify('low'))")
     pg.goto(url); pg.wait_for_function("()=>window.__xq&&!document.getElementById('loading')", timeout=180000); time.sleep(2)

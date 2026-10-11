@@ -1,0 +1,23 @@
+/* V17 观战局势条（T17，Ham 审批台 ad-039 选甲）：默认收起只露「势」印；点开是一根横条，挂在状态栏下面。汉在左（朱）、楚在右（米白） */
+#liveBar{position:fixed;z-index:9;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--es);--w:300px}
+#liveBar.hidden{display:none}
+#liveBar .seal{width:30px;height:30px;display:grid;place-items:center;background:var(--k);color:var(--c);border:2px solid var(--c);font:900 16px/1 var(--ef);cursor:pointer;padding:0}
+#liveBar.open .seal{background:var(--c);color:var(--k)}
+#liveBar .lbx{display:none;flex-direction:column;align-items:center;gap:4px;background:rgba(20,19,17,.82);padding:6px 10px 7px;border:2px solid var(--c);box-shadow:inset 0 0 0 3px var(--k),inset 0 0 0 4px rgba(240,231,210,.4)}
+#liveBar.open .lbx{display:flex}
+#liveBar .lb{font-size:12px;color:var(--c);letter-spacing:.12em;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#liveBar .lb b{font-family:var(--ef);font-weight:900;letter-spacing:.2em}
+#liveBar .ends{display:flex;justify-content:space-between;width:var(--w);font:900 11px/1 var(--ef);color:var(--c);letter-spacing:.2em}
+#liveBar .trk{position:relative;width:var(--w);height:8px;background:var(--c);box-shadow:0 0 0 2px var(--k),0 0 0 3px rgba(240,231,210,.55)}
+#liveBar .r{position:absolute;left:0;top:0;bottom:0;width:var(--p,50%);background:var(--g);transition:width .5s ease}
+#liveBar .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:rgba(20,19,17,.35)}
+#liveBar .mk{position:absolute;top:-5px;bottom:-5px;width:4px;left:calc(var(--p,50%) - 2px);background:var(--k);box-shadow:0 0 0 1.5px var(--c);transition:left .5s ease}
+/* 分析中：分界线轻闪，条保持上一次的位置 */
+#liveBar.busy .mk{animation:lbPulse 1s ease-in-out infinite}
+@keyframes lbPulse{50%{opacity:.3}}
+/* 技能模式开关（默认关），只在技能模式时显示，放在展开面板最下面 */
+#liveBar .sw{display:none;align-items:center;gap:6px;font-size:11px;color:var(--c);letter-spacing:.08em;cursor:pointer;user-select:none}
+#liveBar.bf .sw{display:flex}
+#liveBar .sw input{appearance:none;width:12px;height:12px;margin:0;border:1.5px solid var(--c);background:transparent;cursor:pointer}
+#liveBar .sw input:checked{background:var(--g);box-shadow:inset 0 0 0 2px var(--k)}
+@media (max-width:640px){ #liveBar{--w:200px} }
