@@ -528,7 +528,7 @@ h2{margin:0 0 6px;font:900 18px/1.3 var(--ef);letter-spacing:.1em}
     }
     // 整个人被击飞：顺着矛的方向往后仰倒，力度带一点随机
     const rest = Object.keys(def.p).filter(k => !def.gone.has(k)), axis = new THREE.Vector3().crossVectors(V(0, 1, 0), d).normalize();
-    sever(def, rest, d.clone().multiplyScalar((1.0 + rng() * 0.6) * power).add(V((rng() - 0.5) * 0.4, 1.1 + rng() * 0.7, 0)), axis.multiplyScalar(5 + rng() * 2.5).add(V(0, (rng() - 0.5) * 2.5, 0)), { bk: 'pelvis', floor: 0.16, maxAng: 1.45 + rng() * 0.2 });
+    sever(def, rest, d.clone().multiplyScalar((1.3 + rng() * 0.7) * power).add(V((rng() - 0.5) * 0.4, 1.25 + rng() * 0.7, 0))   /* Ham char-024：再打远一点 */, axis.multiplyScalar(5 + rng() * 2.5).add(V(0, (rng() - 0.5) * 2.5, 0)), { bk: 'pelvis', floor: 0.16, maxAng: 1.45 + rng() * 0.2 });
     puff(p, 6, 0.6, 0x9e180c, d); spray(p, 40, 1.3, d); shake = Math.max(shake, 0.25); slow = 0.5; slowUntil = t + 0.05;
     return cut ? cut.l.j : null;
   }
