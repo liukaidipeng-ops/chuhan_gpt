@@ -1,0 +1,97 @@
+# h1-t6-hard（GitHub Actions 运行 38100890941）
+# 请求：{"args":"--games 600 --seed 400000 --level hard --nodes hard=100000 --open 10 --open-ai tools/variants/bfai_t3p.js --open-nodes 60000 --ai tools/variants/bfai_next.js","env":{"BFAI_NEXT_BASE":"54ba8bc","BFAI_TUNE_W":"tools/tune/w_t6.json","BFAI_TUNE_FAST":"1"},"chunks":96,"note":"平衡要用多强的电脑量：w_t6 用霸王（10 万节点，真的算得更深）自对打，开局和 c2-t6 / o1 完全相同（开局电脑按 6 万节点挑）。和 c2-t6（校尉，汉 66.3%）逐局比：看算得深以后汉胜率变不变、楚能不能防住“先升中兵再炮打中卒”"}
+# 收到 60/60 段
+== current | hard vs hard  [汉 tools/variants/bfai_next.js | 楚 tools/variants/bfai_next.js] | 600 局 | 0s ==
+胜负：汉 399  楚 201  和/超时 0   汉方胜率（分胜负的局）66.5%  95%CI 63–70%
+结局：r:checkmate 399  b:checkmate 201
+回合：平均 44.1  中位 44  P90 64  60 回合内结束 85.3%  进入决战 0.0%
+将死 600 局：将军的子有 2 血以上 90.8%（其中贴在帅将身边 77.8%），双将 4.0%
+攻防指标：车参与的将死 72.7%（三级以上的车 56.3%）；贴脸将死 80.3%；被将死的一方开局 4 个士象，终局平均丢 1.66 个（丢 0/1/2/3/4 个的局：126/161/155/110/48）
+士象技能（两方合计，每局平均次数）：护驾 1.51，铁甲禁卫 0.75，飞越 0.00，齐射 0.02，践踏打中 0.01，反击 0.00
+行动（用过的局占比 / 每局平均次数）  汉 | 楚
+  破釜沉舟         0.0%   0.00 |  50.3%   0.50
+  召回良将        34.3%   0.34 |   0.0%   0.00
+  召回后马上升级     26.3%   0.26 |   0.0%   0.00
+  普通走子       100.0%  40.96 | 100.0%  39.80
+  停着           0.2%   0.00 |   0.2%   0.00
+  冲阵          31.3%   0.46 |  15.5%   0.23
+  护驾          34.0%   0.60 |  48.5%   0.91
+  拒马          68.7%   2.12 |  58.5%   1.83
+  霹雳          30.8%   0.47 |  27.3%   0.41
+  齐射           2.0%   0.02 |   0.0%   0.00
+  终极兵法         0.3%   0.00 |   6.2%   0.06
+  via_feiyue   3.8%   0.04 |   6.7%   0.07
+  回防(被动)       3.7%   0.06 |   4.5%   0.06
+  铁甲禁卫(被动)    19.8%   0.29 |  29.7%   0.46
+  神速营(被动)     20.7%   0.37 |  20.7%   0.41
+  via_taying   9.0%   0.14 |  12.8%   0.18
+升级（* = 甲片自动晋升）  汉 | 楚 （用过的局占比 / 每局平均）
+  a2     85.0%  1.50 |  91.3%  1.63
+  a3     62.0%  0.92 |  73.2%  1.15
+  a4     35.3%  0.48 |  48.3%  0.65
+  c2     85.8%  1.11 |  78.5%  1.06
+  c3     46.3%  0.51 |  44.8%  0.50
+  e2     69.3%  0.84 |  73.0%  0.95
+  e2*     0.2%  0.00 |   0.5%  0.01
+  e3     48.2%  0.55 |  57.5%  0.69
+  e4     12.3%  0.13 |  16.8%  0.18
+  n2     81.8%  1.20 |  84.5%  1.29
+  n3     48.0%  0.63 |  51.3%  0.68
+  p2     96.5%  2.23 |  83.0%  1.77
+  p3     66.0%  1.23 |  59.2%  1.03
+  p4     27.3%  0.46 |  28.7%  0.47
+  r2     89.7%  1.30 |  63.3%  0.76
+  r3     64.0%  0.79 |  35.3%  0.38
+  r4     13.7%  0.14 |   5.8%  0.06
+击杀来源（每局平均）  汉 | 楚
+  普通吃子         6.60 |   5.52
+  冲阵           0.23 |   0.11
+  践踏           0.00 |   0.00
+  拒马反伤         0.00 |   0.01
+  霹雳           0.34 |   0.26
+  齐射           0.01 |   0.00
+  via_feiyue   0.00 |   0.01
+  回防(被动)       0.01 |   0.01
+  铁甲禁卫(被动)     0.04 |   0.08
+  via_taying   0.03 |   0.04
+造成伤害但没打死（每局平均）  汉 | 楚
+  强攻           3.63 |   3.40
+  冲阵           0.30 |   0.17
+  践踏           0.00 |   0.01
+  霹雳           0.29 |   0.32
+  齐射           0.01 |   0.00
+军功来源（每局平均）  汉 | 楚
+  击杀       22.1 |   19.3
+  哀兵        6.0 |    7.2
+  回合       35.8 |   35.4
+  将军        8.6 |    3.9
+  过河        1.0 |    0.8
+终极兵法：汉用 2 局（平均第 63.0 回合，用了的局胜 100.0%）  楚用 37 局（第 59.3 回合，胜 89.2%）  护驾破鸿门宴 4 局
+主帅兵法：汉召回 206 局（第 29.6 回合，胜 45.6%）  楚背水 302 局（第 35.4 回合，胜 20.2%）
+召回的子（206 次）：炮 6、马 3、兵 1、车 196；死时 1 级 107、2 级 80、3 级 19；回来 1 级 107、2 级 99；召回的子第一次升级：当场 158 次（平均花 5.4）、之后手动 37 次（召回后平均 4.0 回合、平均花 5.4）、甲片自动 0 次；没升过 11 次；死时一级的那些局汉胜 38.3%（107 局），二级以上 53.5%（99 局）
+少子才能用的主帅兵法（汉召回）：轮到自己时满足用的条件（车马炮比对方少；第三版还要至少丢了一半）过 276 局，第一次平均第 27.0 回合；真用了 206 局（胜 45.6%）
+少子才能用的主帅兵法（楚背水）：轮到自己时满足用的条件（车马炮比对方少；第三版还要至少丢了一半）过 386 局，第一次平均第 26.7 回合；真用了 302 局（胜 20.2%）
+车马炮持续落后（自己走完还少、到下回合还少）：汉 260 局（43.3%，第一次平均第 23.9 回合、平均落后 11.0 回合；这些局汉胜 51.9%；其中用了主帅兵法 172 局、胜 45.9%） | 楚 442 局（73.7%，第一次平均第 19.7 回合、平均落后 17.9 回合；这些局楚胜 26.7%；其中用了主帅兵法 294 局、胜 19.7%）
+手动升级时的血量（升级回满血，掉了血再升更划算）：汉 满血 89.5%、掉过血 10.5%（只剩 1 血 9.5%），共 8254 次 | 楚 满血 89.1%、掉过血 10.9%（只剩 1 血 9.8%），共 7956 次
+先有二级车的一方：两边都有的 326 局里先到的胜 61.3%；只有一方有的 216 局里有的一方胜 90.3%
+背水前后（302 局，分数 + 汉优；背水没有封锁期，这里的“之后”只是汉方紧接着的一手）：背水那一手汉方 -7.34 分（子力 -4.41）；汉方随后一手 +1.84 分；这些局汉胜 79.8%
+首次升到 N 级（平均回合 / 出现的局占比）  汉 | 楚
+  2 级  第 3.5 回合 100.0% | 第 7.5 回合 99.7%
+  3 级  第 19.6 回合 92.0% | 第 18.9 回合 91.5%
+  4 级  第 40.2 回合 50.0% | 第 35.2 回合 59.2%
+局面分随回合（汉方视角，正 = 汉优）/ 军功 / 等级总和
+  R5（600 局在下）分 0.49  军功 汉 2.3 楚 3.7  等级 汉 0.8 楚 0.1
+  R10（600 局在下）分 2.64  军功 汉 4.5 楚 3.6  等级 汉 1.4 楚 1.1
+  R15（584 局在下）分 3.62  军功 汉 5.1 楚 4.1  等级 汉 2.4 楚 2.2
+  R20（559 局在下）分 4.75  军功 汉 5.5 楚 4.7  等级 汉 4.2 楚 4.1
+  R30（478 局在下）分 6.89  军功 汉 5.7 楚 5.2  等级 汉 7.2 楚 7.2
+  R40（374 局在下）分 7.34  军功 汉 6.5 楚 5.6  等级 汉 9.5 楚 9.4
+翻盘（某回合落后 ≥ T 分的一方最后赢了）
+  R10≥2：288 局，落后方赢 103（35.8%），和 0
+  R10≥4：179 局，落后方赢 44（24.6%），和 0
+  R20≥2：448 局，落后方赢 132（29.5%），和 0
+  R20≥4：368 局，落后方赢 104（28.3%），和 0
+  R30≥2：409 局，落后方赢 107（26.2%），和 0
+  R30≥4：348 局，落后方赢 75（21.6%），和 0
+每步平均 4824ms
+（合并 60 份：/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-0.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-1.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-2.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-3.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-4.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-5.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-6.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-7.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-8.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-9.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-10.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-11.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-12.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-13.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-14.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-15.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-16.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-17.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-18.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-19.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-20.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-21.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-22.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-23.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-24.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-25.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-26.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-27.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-28.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-29.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-30.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-31.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-32.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-33.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-34.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-35.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-36.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-37.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-38.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-39.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-40.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-41.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-42.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-43.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-44.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-45.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-46.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-47.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-48.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-49.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-50.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-51.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-52.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-53.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-54.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-55.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-56.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-57.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-58.json、/home/runner/work/chuhan_v01/chuhan_v01/parts/h1-t6-hard-59.json）
