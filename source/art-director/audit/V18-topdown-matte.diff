@@ -1,0 +1,26 @@
+diff --git a/source/src/board.js b/source/src/board.js
+index 7554793..3631bc6 100644
+--- a/source/src/board.js
++++ b/source/src/board.js
+@@ -2134,6 +2134,21 @@ const Board = (() => {
+       for (const m of boardTops) { m.normalMap = nm; m.normalScale = new THREE.Vector2(0.32, 0.32); if (env) { m.envMap = env; m.envMapIntensity = 0.3; } m.needsUpdate = true; }
+     } catch (e) { console.warn('polishBoard', e); }
+   })();
++  // 俯瞰 / 定盘（镜头正对下方）时棋盘顶面会把太阳和天顶灯直接反进镜头，整块泛白：镜头越朝正下，顶面越哑光、环境反光越弱；沙盘斜看不变
++  (function topDownMatte() {
++    const base = boardTops.map(m => [m.roughness, m.clearcoat || 0]), dir = new THREE.Vector3();
++    let last = -1;
++    Core.onFrame(() => {
++      Core.camera.getWorldDirection(dir);
++      const t = Math.min(1, Math.max(0, (-dir.y - 0.86) / 0.1)), k = t * t * (3 - 2 * t);
++      if (Math.abs(k - last) < 0.004) return; last = k;
++      boardTops.forEach((m, i) => {
++        m.roughness = base[i][0] + (0.9 - base[i][0]) * k;
++        if (base[i][1]) m.clearcoat = base[i][1] * (1 - 0.75 * k);
++        if (m.envMap) m.envMapIntensity = 0.3 * (1 - 0.7 * k);
++      });
++    });
++  })();
+   return {
+     root, TOP, PH, HALF, X, Z, pos, setPosition, syncPosition, pieces, piecesRoot, makePiece, faceViewer,
+     showMoves, clearMoves, flashBad, hoverMark, showZone, showBad, showStep, setGlow, showLast, pick, meshAt, get hovered() { return hovered; }, ringTex, glowTex, wakes, water, waterMat, decal, flatGeo, pine, deco, FONT, footRing,
