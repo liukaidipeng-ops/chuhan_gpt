@@ -32,7 +32,7 @@ SCN.update({
  # 汉兵二级 (4,3) 架拒马
  'juma': """const q = S.board[3][4]; q.lv = 2; q.hp = BF.hpOf('p', 2); S.turn = 'r';""" + SK(4, 3, 'juma'),
 })
-SHOT = """() => { """ + CAMJS + """ const r = Core.renderer; r.render(Core.scene, Core.camera); return r.domElement.toDataURL('image/jpeg', 0.85); }"""
+SHOT = """() => { """ + ("" if os.environ.get("CAM") == "game" else CAMJS) + """ const r = Core.renderer; r.render(Core.scene, Core.camera); return r.domElement.toDataURL('image/jpeg', 0.85); }"""
 STEP = """(dt) => new Promise(res => { window.__dt = dt; requestAnimationFrame(() => { window.__dt = 0; res(); }); })"""
 PROBE = """() => { const o = []; Core.scene.traverse(n => { if (n.isGroup && n.userData.jmGhost) o.push('矛影 k=' + n.userData.k.toFixed(2) + ' vis=' + n.visible + ' 透明=' + n.userData.pole.opacity.toFixed(2) + ' 大小=' + (n.children[0] ? n.children[0].scale.x.toFixed(2) : '-'));
   if (n.name === 'jumaWall') o.push('木拒马 大小=' + n.scale.x.toFixed(2) + ' 段=' + n.children.filter(c => c.visible).map(c => c.scale.x.toFixed(2)).join('/'));
