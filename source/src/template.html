@@ -1425,6 +1425,29 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
 #ana.v3 #anaList:empty{min-height:0;padding:4px 0}
 #ana.v3 #anaList:empty::before{content:"这局没有走子，没有可分析的。";font-size:13px;color:rgba(240,231,210,.75)}
 .lv button:disabled,#lobby .lv button:disabled{opacity:.38;cursor:not-allowed;filter:grayscale(1)}
+/* V17 观战局势条（T17，Ham 审批台 ad-039 选甲）：默认收起只露「势」印；点开是一根横条，挂在状态栏下面。汉在左（朱）、楚在右（米白） */
+#liveBar{position:fixed;z-index:9;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--es);--w:300px}
+#liveBar.hidden{display:none}
+#liveBar .seal{width:30px;height:30px;display:grid;place-items:center;background:var(--k);color:var(--c);border:2px solid var(--c);font:900 16px/1 var(--ef);cursor:pointer;padding:0}
+#liveBar.open .seal{background:var(--c);color:var(--k)}
+#liveBar .lbx{display:none;flex-direction:column;align-items:center;gap:4px;background:rgba(20,19,17,.82);padding:6px 10px 7px;border:2px solid var(--c);box-shadow:inset 0 0 0 3px var(--k),inset 0 0 0 4px rgba(240,231,210,.4)}
+#liveBar.open .lbx{display:flex}
+#liveBar .lb{font-size:12px;color:var(--c);letter-spacing:.12em;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#liveBar .lb b{font-family:var(--ef);font-weight:900;letter-spacing:.2em}
+#liveBar .ends{display:flex;justify-content:space-between;width:var(--w);font:900 11px/1 var(--ef);color:var(--c);letter-spacing:.2em}
+#liveBar .trk{position:relative;width:var(--w);height:8px;background:var(--c);box-shadow:0 0 0 2px var(--k),0 0 0 3px rgba(240,231,210,.55)}
+#liveBar .r{position:absolute;left:0;top:0;bottom:0;width:var(--p,50%);background:var(--g);transition:width .5s ease}
+#liveBar .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:rgba(20,19,17,.35)}
+#liveBar .mk{position:absolute;top:-5px;bottom:-5px;width:4px;left:calc(var(--p,50%) - 2px);background:var(--k);box-shadow:0 0 0 1.5px var(--c);transition:left .5s ease}
+/* 分析中：分界线轻闪，条保持上一次的位置 */
+#liveBar.busy .mk{animation:lbPulse 1s ease-in-out infinite}
+@keyframes lbPulse{50%{opacity:.3}}
+/* 技能模式开关（默认关），只在技能模式时显示，放在展开面板最下面 */
+#liveBar .sw{display:none;align-items:center;gap:6px;font-size:11px;color:var(--c);letter-spacing:.08em;cursor:pointer;user-select:none}
+#liveBar.bf .sw{display:flex}
+#liveBar .sw input{appearance:none;width:12px;height:12px;margin:0;border:1.5px solid var(--c);background:transparent;cursor:pointer}
+#liveBar .sw input:checked{background:var(--g);box-shadow:inset 0 0 0 2px var(--k)}
+@media (max-width:640px){ #liveBar{--w:200px} }
 </style>
 </head>
 <body>
@@ -1443,6 +1466,7 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
   <div class="pcard r" id="cardMe"><div class="por"><svg viewBox="0 0 80 80"><circle class="trk" cx="40" cy="40" r="36"/><circle class="arc" cx="40" cy="40" r="36"/></svg><img class="face" alt=""><div class="seal">漢</div></div><div class="info"><div class="nm"><span class="who">刘邦</span><span class="tag">你</span></div><div class="clk">--:--</div><div class="meta"><div class="caps"></div><span class="undo"></span></div><div class="bfm hidden"><span class="mer" title="军功"><span class="mseal"><i>3</i><s class="rp"></s></span><span class="mtx"><b>军功</b><small>满 30</small></span></span><span class="fxs"></span></div></div></div>
   <div class="bubble" id="bubOpp"><b></b><span></span></div>
   <div class="bubble" id="bubMe"><b></b><span></span></div>
+  <div id="liveBar" class="hidden"><button class="seal" type="button" title="局势">势</button><div class="lbx"><div class="lb">均势</div><div class="ends"><span>汉</span><span>楚</span></div><div class="trk" style="--p:50%"><i class="r"></i><i class="mid"></i><i class="mk"></i></div><label class="sw"><input type="checkbox">技能模式也显示</label></div></div>
   <div id="status"><i class="sig hidden" id="netSig" role="img" aria-label="网络信号弱"><b></b><b></b><b></b><b></b></i><i class="dot hidden" id="netDot"></i><span id="statusT"></span><span id="specN"></span></div>
   <div id="netbadge" class="hidden"></div>
   <div id="log" class="hidden"><div class="lh">棋 譜<button id="logExport" title="把整局导成一段文本，可以贴给别人或贴给 Claude 分析" style="float:right;font:inherit;font-size:12px;letter-spacing:0;border:1px solid rgba(60,50,40,.35);background:rgba(255,255,255,.4);border-radius:3px;padding:0 6px;cursor:pointer;color:inherit">导出</button></div><ol id="logList"></ol><div id="specBox" class="hidden"><div class="lh lh2">觀 戰 席</div><ol id="specFeed"></ol></div></div>
