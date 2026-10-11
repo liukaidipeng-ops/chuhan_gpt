@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '技能模式的电脑会看钟了：房间里开了计时，时间不多时想得快些，「兵仙」不会再下到后面超时判负（数值部）',
       '观战时顶上状态栏下多了一个「势」字，点开是实时局势条，看谁占优（只显示局势，不提示走法；技能模式要在面板里勾上才算，手机会比较热）（美术总监、TD）',
       '电脑自言自语配上了刘邦、项羽的原声（声音部）',
       '人机对局里电脑想得久时偶尔自言自语（想满 3 秒起，每 5 秒有三成机会说一句；刘邦、项羽各三句）',
@@ -942,11 +943,11 @@
   let bfW = null, bfWSeq = 0;
   const bfWait = new Map();
   // trace：要不要电脑的思考记录（C62 A：对局里的电脑都记，导出时带上；分析不记）
-  function bfThink(S, level, waitIdle, trace) {
-    const local = async () => { await waitIdle(); BFAI.trace = !!trace; try { const seq = await BFAI.think(S, level, () => new Promise(r => setTimeout(r, 0))); bfThink.last = BFAI.think.last; return seq; } finally { BFAI.trace = false; } };
+  function bfThink(S, level, waitIdle, trace, opt) {
+    const local = async () => { await waitIdle(); BFAI.trace = !!trace; try { const seq = await BFAI.think(S, level, () => new Promise(r => setTimeout(r, 0)), opt); bfThink.last = BFAI.think.last; return seq; } finally { BFAI.trace = false; } };
     if (bfW === null) {
       try {
-        const src = document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;try{BFAI.trace=!!d.trace;if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}const seq=await BFAI.think(d.S,d.level);postMessage({id:d.id,seq:seq,stat:BFAI.think.last});}catch(err){postMessage({id:d.id,err:String(err&&err.stack||err)});}};';
+        const src = document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;try{BFAI.trace=!!d.trace;if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}const seq=await BFAI.think(d.S,d.level,undefined,d.opt);postMessage({id:d.id,seq:seq,stat:BFAI.think.last});}catch(err){postMessage({id:d.id,err:String(err&&err.stack||err)});}};';
         bfW = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
         bfW.onmessage = e => { const w = bfWait.get(e.data.id); if (!w) return; bfWait.delete(e.data.id); if (e.data.err) w.rej(new Error(e.data.err)); else { bfThink.last = e.data.stat; w.res(e.data.seq); } };
         bfW.onerror = () => { bfW = false; for (const w of bfWait.values()) w.rej(new Error('worker')); bfWait.clear(); };
@@ -954,7 +955,7 @@
     }
     if (!bfW) return local();
     // 试验性的规则开关（背水一战等）也带给电脑线程：它那边有自己的一份配置
-    return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej }); bfW.postMessage({ id, S, level, trace: !!trace, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
+    return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej }); bfW.postMessage({ id, S, level, trace: !!trace, opt: opt || null, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
   }
   // 技能模式的电脑线程：作废正在算的那一步（悔棋、认输、退出、切到后台时用）。按时间收手的思考不能暂停续算，回来对同一局面重新算（数值部 C70 提醒）
   function killBfWorker() { if (!bfW) return; try { bfW.terminate(); } catch (e) { } bfW = null; for (const w of bfWait.values()) w.res(null); bfWait.clear(); }
@@ -977,7 +978,9 @@
       const waitIdle = async () => { await anim; while (busy) await Core.sleep(0.1); };
       (async () => {
         if (game.mustPass && game.mustPass()) return [{ k: 'pass' }];
-        return bfThink(BF.cloneState(game.S), lvl, waitIdle, true);
+        // 电脑看钟（数值部 C71）：房间开了计时就告诉电脑这一步最多能想多久（每步剩的减 3 秒、总时间剩的 1/8，取小，至少 0.3 秒），免得兵仙下到后面超时判负
+        const lim = Math.min(opts.step ? clock.step - 3000 : Infinity, opts.total ? clock[side] / 8 : Infinity);
+        return bfThink(BF.cloneState(game.S), lvl, waitIdle, true, isFinite(lim) ? { maxMs: Math.max(300, lim) } : undefined);
       })().then(async seq => {
         if (id !== aiSeq || !seq) { if (id === aiSeq) { aiThinking = false; updateHud(); } return; }
         // 思考记录按这一回合第一条行动的序号存（导出里的 think）

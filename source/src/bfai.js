@@ -582,9 +582,12 @@
   }
   const actOf = k => JSON.parse(JSON.stringify(k.up ? { up: k.up.at, ...k.a } : k.a));
   // 根节点：返回一串要依次执行的行动（升级 → 拒马 → 主行动）
-  async function think(S0, level, tick) {
+  async function think(S0, level, tick, opt) {
     const L0 = LEVELS[level] || LEVELS.mid, t0 = now(), me = S0.turn, seq = [];
     let L = tick ? { ...L0, budget: Math.min(L0.budget, 1400) } : L0;   // 在主线程里算（开不了 Worker）时少想一会儿，免得卡画面
+    // 看钟（C71）：opt.maxMs = 这一步最多能用多少毫秒（房间计时剩下的，由界面算好传进来）。最坏情况约是预算的 3.5 倍
+    //   （难走时放宽 dyn 倍、第 3 层兜底两倍、最后补算破釜 / 一步杀），所以预算按 1/3.5 缩；不传就和原来一样
+    if (opt && opt.maxMs > 0 && !L.nodes && !L.fixedDepth) { const b = Math.max(150, Math.min(L.budget, opt.maxMs / 3.5)); if (b < L.budget) L = { ...L, budget: b, minNodes: Math.round((L.minNodes || 0) * b / L.budget) }; }
     const TR = BFAI.trace ? { v: 1, level, side: me, round: { ...S0.cnt }, iter: [] } : null;   // 思考记录（C62 A）
     upAll = !!L.upAll;
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
