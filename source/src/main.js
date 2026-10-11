@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '技能模式人机新增最强一档「兵仙」：比霸王还强，每步想得更久（约九秒，难处最多二十多秒）；电脑想的时候随时能悔棋、认输，切到后台不再偷偷算（数值部）',
       '复盘分析的步数条：按住左右滑就能一步步看，电脑上鼠标悬停放大，手机上手指上方浮出放大镜，右头加了上一步 / 下一步按钮（美术总监）',
       '技能模式：楚战象升级换成「火象」，一到四级越来越大、越来越威风（四级金鳞甲、大象牙、背上火鬃），每级一只、不再叠影（角色部）',
       '界面小修：对方喊话时提示条让到气泡下面；弹出确认框时暂停卡先收起来；加载页的字不再忽明忽暗；电脑上技能按钮放大；没走子的复盘写明“没有可分析的”（美术总监）',
@@ -157,7 +158,7 @@
     ['第一版', '', ['三维水墨棋盘、兵种战斗演出、联机对战']],
   ];
   const REASON = { checkmate: '将死', stalemate: '困毙', kingdead: '主帅阵亡', occupy: '夺营', resign: '认输', timeout: '超时', draw: '四十回合无吃子' };
-  const LV = { easy: '新兵', mid: '校尉', hard: '霸王' };
+  const LV = { easy: '新兵', mid: '校尉', hard: '霸王', xhard: '兵仙' };   // 兵仙：只有技能模式有（数值部 C70，Ham 审批台 td-031）
   const VIS = ['cine', 'std', 'low'], VISNAME = { cine: '完整电影镜头', std: '精简特效', low: '低特效' }, VISBADGE = { cine: '影', std: '简', low: '低' };
 
   // ---------- 本地存储与设置 ----------
@@ -934,7 +935,14 @@
     // 试验性的规则开关（背水一战等）也带给电脑线程：它那边有自己的一份配置
     return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej }); bfW.postMessage({ id, S, level, trace: !!trace, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
   }
-  function cancelAI() { aiSeq++; if (aiThinking) { try { AI.cancel(); } catch (e) { } } aiThinking = false; }
+  // 技能模式的电脑线程：作废正在算的那一步（悔棋、认输、退出、切到后台时用）。按时间收手的思考不能暂停续算，回来对同一局面重新算（数值部 C70 提醒）
+  function killBfWorker() { if (!bfW) return; try { bfW.terminate(); } catch (e) { } bfW = null; for (const w of bfWait.values()) w.res(null); bfWait.clear(); }
+  function cancelAI() { aiSeq++; if (aiThinking) { try { AI.cancel(); } catch (e) { } if (game && game.bf) killBfWorker(); } aiThinking = false; }
+  // 页面切到后台 / 锁屏：电脑别在后台烧电（优化部建议）；回来接着想
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (aiThinking && game && game.bf) { cancelAI(); updateHud(); } }
+    else setTimeout(() => { try { maybeAI(); } catch (e) { } }, 300);
+  });
   function maybeAI() {
     if (!(vsAI() || hostBot()) || ended || game.result || !started || !isAI(game.turn) || pendingUndo) return;
     if (aiThinking) return;
@@ -3729,8 +3737,9 @@
   const paintVar = () => { $('varNote').textContent = VAR_NOTE[ropts.v] || ''; $('optSkin').classList.toggle('hidden', ropts.v === 'bf'); };
   bindSeg($('pCreate'), 'data-k', k => ropts[k], (k, v) => { ropts[k] = k === 'side' || k === 'v' ? v : +v; store.set('ropts', ropts); if (k === 'v') paintVar(); });
   paintVar();
-  bindSeg($('pAI'), 'data-a', k => aopts[k], (k, v) => { aopts[k] = k === 'side' ? v : +v; store.set('aopts', aopts); });
-  const paintLv = () => $('aiLv').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === aopts.level));
+  bindSeg($('pAI'), 'data-a', k => aopts[k], (k, v) => { aopts[k] = k === 'side' ? v : +v; store.set('aopts', aopts); if (k === 'bf') paintLv(); });
+  // 兵仙只有技能模式有：选普通象棋时灰掉；已选兵仙又切回象棋，就退到霸王
+  const paintLv = () => { if (!aopts.bf && aopts.level === 'xhard') aopts.level = 'hard'; $('aiLv').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.v === aopts.level); if (b.dataset.v === 'xhard') b.disabled = !aopts.bf; }); };
   $('aiLv').querySelectorAll('button').forEach(b => b.onclick = () => { aopts.level = b.dataset.v; store.set('aopts', aopts); paintLv(); Sfx.select && Sfx.select(); });
   paintLv();
   let createFor = 'host';
