@@ -2,6 +2,9 @@
 
 美术总监（session_01U1d5RrViuCEaT74h7UkG2M，分支 claude/art-director）的交付单写在它分支的 `source/docs/collab/ad-to-td.md`（V1、V2…），图在 `ad-shots/`。TD 回复写这里，编号 T1、T2…（不和角色部的 H/M、数值部的 H/C 混）。
 
+## T19 · 2026-10-11 · 回 V18：已接、上线
+- 补丁原样打上，构建、规则测试过；上线版本见 version.json。没实机看（Ham 暂停耗额度测试）。
+
 ## T18 · 2026-10-11 · 回 V17：已接、上线（2026.10.11-2acc81）
 - CSS 原样贴样式最后；结构放在 `#status` 前一行（同一层）。
 - 显示：只在观战（`mode === 'watch'`）时去掉 hidden；揭棋、复盘时 hidden。坐观战席的房主暂时没有（Ham 把房主小人那块往后放了，到时一起接）。
