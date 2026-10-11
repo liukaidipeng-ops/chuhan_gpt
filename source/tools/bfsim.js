@@ -12,6 +12,7 @@
 //   --open N         开局多样化：前 N 步（双方合计）在“差不到约 1.5 分”的着法里随机挑（默认 6；0 = 关）
 //   --open-ai FILE   开局那 N 步统一由这个电脑挑（不设就由各自的电脑挑）。比两版电脑时用：同一个种子 → 完全相同的开局局面，
 //                    不会因为两版估值不同挑出不同的开局（N9：w_t5 / w_t6 的汉胜率差 9.5 点，多半来自各自挑的开局）
+//   --open-nodes N   开局那几步按 N 个节点算（不跟 --nodes 变），比“算多深”时开局保持同一批
 //   --seed N         起始随机种子（第 i 局用 seed + i，可复现）
 //   --preset NAME    预设配置（见下方 PRESETS；可多个，逗号分隔）：baseline（普通象棋对照）、no-pofu / no-revive / no-simian / no-hongmen
 //                    （关掉某个兵法）、no-<技能>（如 no-chongzhen，关掉某个兵种技能）、
@@ -352,6 +353,7 @@ function parseArgs(argv) {
     else if (k === '--max-rounds') o.maxRounds = +v();
     else if (k === '--open') o.open = +v();
     else if (k === '--open-ai') o.openAI = v();
+    else if (k === '--open-nodes') o.openNodes = +v();
     else if (k === '--seed') o.seed = +v();
     else if (k === '--preset') o.presets.push(...v().split(',').filter(Boolean));
     else if (k === '--set') o.sets.push(v());
@@ -509,6 +511,7 @@ function worker() {
       for (const a of seq) {
         // 升级会回满血：掉了血再升更划算（用户问的“极限升级”）。记下升级前的血量
         const up0 = a.k === 'up' ? g.at(a.at[0], a.at[1]) : null, hp0 = up0 && { hp: up0.hp, max: BF.hpOf(up0.t, up0.lv) };
+        if (R.plies < job.open) { const at = a.at || a.from, p0 = at && g.at(at[0], at[1]); (R.openSeq = R.openSeq || []).push(side + ':' + a.k + (p0 ? ':' + p0.t + (p0.lv || 1) : '') + (at ? '@' + at.join(',') : '') + (a.to ? '>' + a.to.join(',') : '')); }   // 开局那几步走了什么（看“汉开局升级”这类）
         const info = g.apply(a);
         if (info && hp0) { const H = R.upHp[side]; if (hp0.hp >= hp0.max) H.full++; else { H.hurt++; if (hp0.hp === 1) H.last++; } }
         if (!info) throw new Error('非法行动 ' + JSON.stringify(a) + ' seed=' + job.seed);
@@ -570,6 +573,7 @@ function worker() {
         applyNodes(X.LEVELS, parseNodes(m.nodes), { open: 'mid' });   // 开局多样化那几步按校尉算
         // 开局多样化用：校尉的搜索深度，但在分差不大的着法里随机挑
         X.LEVELS.open = { ...X.LEVELS.mid, noise: 0.9, top: 3 };
+        if (m.openNodes > 0) X.LEVELS.open.nodes = m.openNodes;
         // 攒终极兵法：这一步不升级
         for (const k of ['easy', 'mid', 'open']) X.LEVELS[k + 'Save'] = { ...X.LEVELS[k], up: -1 };
       }
@@ -653,7 +657,7 @@ async function run(o) {
         feed();
       });
       c.on('exit', () => { if (--alive === 0) resolve(); });
-      c.send({ init: ov, budget: o.budget, ais, nodes: o.nodes });
+      c.send({ init: ov, budget: o.budget, ais, nodes: o.nodes, openNodes: o.openNodes });
     }
   });
   if (!o.quiet && process.stderr.isTTY) process.stderr.write('\n');
@@ -679,6 +683,7 @@ async function run(o) {
   sum.label = [o.presets.join('+'), ...o.sets, o.saveUlt ? 'save-ult' : ''].filter(Boolean).join(' ') || 'current';
   sum.level = (o.red || o.level) + ' vs ' + (o.black || o.level) + ((o.aiR || o.aiB || o.ai !== 'src/bfai.js') ? `  [汉 ${o.aiR || o.ai} | 楚 ${o.aiB || o.ai}]` : '');
   if (o.openAI) sum.level += `  [开局 ${o.open} 步由 ${o.openAI} 挑]`;
+  if (o.openNodes) sum.level += `  [开局按 ${o.openNodes} 节点]`;
   print(sum, o);
   if (errors.length) console.log(`✗ 出错的局 ${errors.length} 个（没算进胜负；出错的局往往不是随便哪局，结果可能有偏差）：`, errors.slice(0, 3).map(e => e.seed + ' ' + e.error.split('\n')[0]).join(' | '));
   return sum;

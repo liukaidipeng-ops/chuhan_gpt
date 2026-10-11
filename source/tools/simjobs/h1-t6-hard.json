@@ -1,0 +1,3 @@
+{ "args": "--games 600 --seed 400000 --level hard --nodes hard=100000 --open 10 --open-ai tools/variants/bfai_t3p.js --open-nodes 60000 --ai tools/variants/bfai_next.js",
+  "env": { "BFAI_NEXT_BASE": "54ba8bc", "BFAI_TUNE_W": "tools/tune/w_t6.json", "BFAI_TUNE_FAST": "1" }, "chunks": 96,
+  "note": "平衡要用多强的电脑量：w_t6 用霸王（10 万节点，真的算得更深）自对打，开局和 c2-t6 / o1 完全相同（开局电脑按 6 万节点挑）。和 c2-t6（校尉，汉 66.3%）逐局比：看算得深以后汉胜率变不变、楚能不能防住“先升中兵再炮打中卒”" }
