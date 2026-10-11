@@ -16,9 +16,10 @@ with sync_playwright() as p:
     pg.route('https://fonts.googleapis.com/**', lambda r: r.fulfill(body='', content_type='text/css'))
     pg.goto(pathlib.Path(H + '/_t.html').as_uri() + os.environ.get('Q', '')); time.sleep(2.5)
     pg.click('[data-r="0"]'); time.sleep(0.3); pg.evaluate(f"()=>window.__scen('{scen}')"); pg.evaluate("()=>window.__reset()")
-    n = int(T * 30)
+    SPD = float(os.environ.get('SPD', 1)); PACE = float(os.environ.get('PACE', 1.25))   # SPD：按游戏播放倍速出片（默认 1.5）
+    n = int(T * 30 / (SPD * PACE)) + 8
     for i in range(n):
-        pg.evaluate("()=>window.__step(1/30)")
+        pg.evaluate(f"()=>window.__step({SPD}/30)")
         pg.locator('canvas').screenshot(path=f'{fr}/{i:04d}.png')
     b.close()
 subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', '30', '-i', f'{fr}/%04d.png', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p', '-c:v', 'libx264', '-crf', '22', f'{H}/v_{scen}.mp4'], check=True)

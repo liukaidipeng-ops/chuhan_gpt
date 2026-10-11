@@ -369,16 +369,16 @@ h2{margin:0 0 6px;font:900 18px/1.3 var(--ef);letter-spacing:.1em}
     const [, kind] = ev;
     if (kind === 'clank' || kind === 'block') {   // 盾挡：一大蓬火星 + 一下亮光 + 顿一下（085「格挡的火花再大一点，明显一点」）
       const p = ev[3] || D.shC.clone().applyMatrix4(D.root.matrixWorld), n = D.shN.clone().transformDirection(D.root.matrixWorld);
-      spray(p, 46, 1.9, n, 2.2, true); flash(p, 0.9); flash(p, 0.45, 0xffffff); shake = Math.max(shake, 0.1); slow = 0.3; slowUntil = t + 0.07;
+      spray(p, 46, 1.9, n, 2.2, true); flash(p, 0.9); flash(p, 0.45, 0xffffff); shake = Math.max(shake, 0.1); slow = 0.5; slowUntil = t + 0.03;
     }
     if (kind === 'thud') { const p = W(A, A.hW.clone().addScaledVector(A.wdir, -(A.hW.y))); p.y = 0.02; puff(p, 3, 0.28, 0xc9b896); shake = Math.max(shake, 0.025); }
-    if (kind === 'tap') { const p = ev[3] || A.shC.clone().applyMatrix4(A.root.matrixWorld), n = A.shN.clone().transformDirection(A.root.matrixWorld); spray(p, 34, 1.7, n, 2, true); flash(p, 0.75); flash(p, 0.35, 0xffffff); shake = Math.max(shake, 0.07); slow = 0.35; slowUntil = t + 0.05; }
+    if (kind === 'tap') { const p = ev[3] || A.shC.clone().applyMatrix4(A.root.matrixWorld), n = A.shN.clone().transformDirection(A.root.matrixWorld); spray(p, 34, 1.7, n, 2, true); flash(p, 0.75); flash(p, 0.35, 0xffffff); shake = Math.max(shake, 0.07); slow = 0.5; slowUntil = t + 0.03; }
     if (kind === 'parry') { const p = W(A, A.hW.clone().addScaledVector(A.wdir, 0.9)); spray(p, 26, 1.5, null, 1.8, true); flash(p, 0.6); shake = Math.max(shake, 0.05); }
-    if (kind === 'hit') { puff(W(D, V(0.24, 0.38, 0).applyMatrix4(D.M.upper)), 4, 0.45, 0x9e180c, V(0.6, 0, 0)); spray(W(D, V(0.24, 1.36 - 0.98, 0).applyMatrix4(D.M.upper)), 26, 1.1, V(1, 0, 0)); shake = Math.max(shake, 0.12); slow = 0.45; slowUntil = t + 0.12; }
+    if (kind === 'hit') { puff(W(D, V(0.24, 0.38, 0).applyMatrix4(D.M.upper)), 4, 0.45, 0x9e180c, V(0.6, 0, 0)); spray(W(D, V(0.24, 1.36 - 0.98, 0).applyMatrix4(D.M.upper)), 26, 1.1, V(1, 0, 0)); shake = Math.max(shake, 0.12); slow = 0.5; slowUntil = t + 0.04; }
     if (kind === 'cut') {
       const waist = W(D, V(0, 0.02, 0).applyMatrix4(D.M.upper));
       sever(D, ['upper', 'head', 'uarmW', 'farmW', 'uarmS', 'farmS', 'weapon', 'shield'], V(1.4, 3.4, 2.4), V(7, 3, -4));
-      spray(waist, 70, 1.6, V(0.3, 0.6, 1)); puff(waist, 10, 0.9, 0x9e180c, V(0.2, 0.2, 0.6)); shake = Math.max(shake, 0.3); slow = 0.35; slowUntil = t + 0.3; sc.fountain = { p: waist, until: t + 0.9 };
+      spray(waist, 70, 1.6, V(0.3, 0.6, 1)); puff(waist, 10, 0.9, 0x9e180c, V(0.2, 0.2, 0.6)); shake = Math.max(shake, 0.3); slow = 0.5; slowUntil = t + 0.06; sc.fountain = { p: waist, until: t + 0.9 };
     }
   }
   // ---------- 主循环 ----------
@@ -390,10 +390,12 @@ h2{margin:0 0 6px;font:900 18px/1.3 var(--ef);letter-spacing:.1em}
     for (const f of flying) { for (const k of f.keys) { const o = f.sol.p[k]; f.g.remove(o); f.sol.root.add(o); f.sol.gone.delete(k); } S.remove(f.g); } flying.length = 0;
     for (const q of mists) S.remove(q.m); mists.length = 0; for (const f of flashes) S.remove(f.m); flashes.length = 0; delete SCEN[scen].fountain;
   }
+  // Ham char-023：「打斗感觉很卡，很慢」→ 整段快 1.25 倍、顿帧只顿 1～2 帧；游戏里再乘播放倍速（默认 1.5）
+  const PACE = +(new URLSearchParams(location.search).get('pace') ?? 1.25);
   function step(dt) {
     const sc = SCEN[scen];
     if (t > slowUntil) slow = 1;
-    const gdt = dt * slow; t += gdt;
+    const gdt = dt * slow * PACE; t += gdt;
     if (t >= sc.T) reset();
     const ja = at(sc.tA, RA, t), jd = at(sc.tD, RD, t);
     if (scen === 'hurt' && t > 3.0) jd.crouch += Math.sin(t * 3.4) * 0.012;   // 防守时喘气
