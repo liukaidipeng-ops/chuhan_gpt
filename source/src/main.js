@@ -8,6 +8,8 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '观战时顶上状态栏下多了一个「势」字，点开是实时局势条，看谁占优（只显示局势，不提示走法；技能模式要在面板里勾上才算，手机会比较热）（美术总监、TD）',
+      '电脑自言自语配上了刘邦、项羽的原声（声音部）',
       '人机对局里电脑想得久时偶尔自言自语（想满 3 秒起，每 5 秒有三成机会说一句；刘邦、项羽各三句）',
       '开场曲之前一直没响（总是放回老的一声锣鼓），现在修好了：开局、观战都放新开场曲。',
       '修好上一版房间页一处写错导致页面打不开的问题。',
@@ -921,17 +923,20 @@
     return Voice.play(id);
   }
   // 电脑一步想满 3 秒起、每次 30% 的机会，头顶冒一句自言自语（Ham 审批台 td-033）；声音部配好音（ai_l_muse1～3、ai_x_muse1～3）就连声音一起放，没配好只出气泡
-  const AI_MUSE = { l: ['呃……这步怎么下呢？', '嗯……容我三思。', '这个嘛……要是子房在就好了。'], x: ['唔……先斩哪一个？', '哼……此局倒有几分意思。', '嗯……让我想想。'] };
+  const AI_MUSE = { l: ['呃……这步怎么下呢？', '嗯……容我三思。', '这个嘛……要是子房在就好了。'], x: ['呃……先斩哪一个？', '哼……此局倒有几分意思。', '嗯……让我想想。'] };
+  let museUntil = 0;
   function aiMuse(id, side) {
     if (id !== aiSeq || !aiThinking || ended || game.result || !vsAI() || game.turn !== side) return;
     if (busy) { setTimeout(() => aiMuse(id, side), 500); return; }   // 演出还在放：等放完再说，免得和别的气泡撞
     setTimeout(() => aiMuse(id, side), 5000);   // 还在想：每 5 秒再掷一次
-    if (Math.random() >= 0.3) return;   // 每次 30% 的机会说（Ham 10-11）
+    if (Math.random() >= 0.3 || Date.now() < museUntil) return;   // 每次 30% 的机会说（Ham 10-11）；上一句还没念完就不出下一句（声音部 S7：一句 3.6～6.3 秒）
     const k = side === 'b' ? 'x' : 'l', pool = [1, 2, 3].filter(i => i !== lastAiLine['muse' + k]);
     const i = pool[Math.floor(Math.random() * pool.length)]; lastAiLine['muse' + k] = i;
     const vid = `ai_${k}_muse${i}`;
-    bubble(side, Voice.has(vid) ? Voice.text(vid) || AI_MUSE[k][i - 1] : AI_MUSE[k][i - 1], 3200);
-    if (Voice.has(vid)) Voice.play(vid);
+    const vo = Voice.has(vid), dur = vo ? Math.max(3.2, Voice.dur(vid) || 0) : 3.2;
+    bubble(side, vo ? Voice.text(vid) || AI_MUSE[k][i - 1] : AI_MUSE[k][i - 1], dur * 1000);
+    museUntil = Date.now() + dur * 1000;
+    if (vo) Voice.play(vid);
   }
   // 技能模式的电脑放进 Web Worker 里算（和动画互不耽误）；开不了 Worker 就等动画放完在主线程分片算
   let bfW = null, bfWSeq = 0;
