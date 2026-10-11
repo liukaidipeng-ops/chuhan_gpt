@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '观战电脑对电脑的局，结束后也能「保存」、发给数值部；标题写明两边各是哪一档（数值部）',
       '技能模式的电脑会看钟了：房间里开了计时，时间不多时想得快些，「兵仙」不会再下到后面超时判负（数值部）',
       '观战时顶上状态栏下多了一个「势」字，点开是实时局势条，看谁占优（只显示局势，不提示走法；技能模式要在面板里勾上才算，手机会比较热）（美术总监、TD）',
       '电脑自言自语配上了刘邦、项羽的原声（声音部）',
@@ -1500,7 +1501,7 @@
       await Ending.play(result, {
         again: W ? () => { Ending.hideCard(); toast('等待棋手开新局…'); } : requestAgain, againText: W ? '继 续 观 战' : '',
         lobby: toLobby, persp, tune, instant: endSkip || slain, review: reviewOpen,
-        extra: watching() ? [] : [{ text: '保 存', fn: () => openSave() }],   // 结算卡：复盘（带分析，Ham 10-10 13:32 合成一个）· 保存
+        extra: watching() && !(opts && opts.ai && opts.ai2) ? [] : [{ text: '保 存', fn: () => openSave() }],   // 观战电脑对电脑也能存、发给数值部（Ham 10-11，数值部 C71）   // 结算卡：复盘（带分析，Ham 10-10 13:32 合成一个）· 保存
         mine: mode === 'local' || W || aiBoth() || !result.winner ? '' : (persp === 'win' ? '你 胜 了' : '你 败 了'),
       });
       if (pendingRestart) { const st = pendingRestart; pendingRestart = null; restart(st === true ? undefined : st); if (mode === 'host') Net.send({ t: 'restart', state: snapshot() }); }
@@ -4152,6 +4153,7 @@
     const kind = G.bf ? 'bf' : G.jq ? 'jq' : 'xq', KIND = { bf: '技能模式', jq: '揭棋', xq: '象棋' };
     const o = { app: 'chuhan3d', ver: APPV, when: new Date().toISOString(), kind, mode, me: mode === 'local' ? null : mySide };
     if (vsAI()) o.ai = aiBoth() ? { r: aiLevel('r'), b: aiLevel('b') } : { [aiSide()]: opts.level };
+    else if (watching() && opts.ai && opts.ai2) o.ai = { [hostSide]: opts.ai2, [other(hostSide)]: opts.ai };   // 观战房主那间电脑对电脑
     else if (online() && opts.ai2 && !opts.ai) o.ai = { [hostSide]: opts.ai2 };
     o.opts = { undo: opts.undo, total: opts.total, step: opts.step };
     if (G.bf) { o.opts.bs = +opts.bs ? 1 : 0; o.opts.r6 = +opts.r6 ? 1 : 0; }   // 这一局用的哪套规则（重放要用）
@@ -4225,7 +4227,7 @@
   // 标题里的几项：技能 · 霸王 · 电脑执楚 · 汉胜 · 36 回合
   function mgHead(o, rounds) {
     const ai = o.ai || null, ks = ai ? Object.keys(ai) : [];
-    const vs = o.mode === 'ai' && ks.length === 2 ? `电脑对电脑 · 汉${LV[ai.r] || ''} 楚${LV[ai.b] || ''}` : o.mode === 'ai' && ks.length ? `${LV[ai[ks[0]]] || ''} · 电脑执${SIDE_CN[ks[0]]}` : o.mode === 'local' ? '本地' : '联机';
+    const vs = ks.length === 2 ? `电脑对电脑 · 汉${LV[ai.r] || ''} 楚${LV[ai.b] || ''}` : o.mode === 'ai' && ks.length ? `${LV[ai[ks[0]]] || ''} · 电脑执${SIDE_CN[ks[0]]}` : o.mode === 'local' ? '本地' : '联机';
     const res = o.result ? (o.result.winner ? SIDE_CN[o.result.winner] + '胜' : '和棋') : '未分胜负';
     return [KIND_CN[o.kind] || o.kind, vs, res, `${rounds} 回合`].join(' · ');
   }
