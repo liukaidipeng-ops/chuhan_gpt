@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '人机对局里电脑一步想超过 3 秒，会自言自语一句（刘邦、项羽各三句）',
       '开场曲之前一直没响（总是放回老的一声锣鼓），现在修好了：开局、观战都放新开场曲。',
       '修好上一版房间页一处写错导致页面打不开的问题。',
       '技能模式人机新增最强一档「兵仙」：比霸王还强，每步想得更久（约九秒，难处最多二十多秒）；电脑想的时候随时能悔棋、认输，切到后台不再偷偷算；兵仙想得久，手机会比较热（数值部）',
@@ -919,6 +920,17 @@
     bubble(s, Voice.text(id), 3600);
     return Voice.play(id);
   }
+  // 电脑一步想过 3 秒，头顶冒一句自言自语（Ham 审批台 td-033）；声音部配好音（ai_l_muse1～3、ai_x_muse1～3）就连声音一起放，没配好只出气泡
+  const AI_MUSE = { l: ['呃……这步怎么下呢？', '嗯……容我三思。', '这个嘛……要是子房在就好了。'], x: ['唔……先斩哪一个？', '哼……此局倒有几分意思。', '嗯……让我想想。'] };
+  function aiMuse(id, side) {
+    if (id !== aiSeq || !aiThinking || ended || game.result || !vsAI() || game.turn !== side) return;
+    if (busy) { setTimeout(() => aiMuse(id, side), 500); return; }   // 演出还在放：等放完再说，免得和别的气泡撞
+    const k = side === 'b' ? 'x' : 'l', pool = [1, 2, 3].filter(i => i !== lastAiLine['muse' + k]);
+    const i = pool[Math.floor(Math.random() * pool.length)]; lastAiLine['muse' + k] = i;
+    const vid = `ai_${k}_muse${i}`;
+    bubble(side, Voice.has(vid) ? Voice.text(vid) || AI_MUSE[k][i - 1] : AI_MUSE[k][i - 1], 3200);
+    if (Voice.has(vid)) Voice.play(vid);
+  }
   // 技能模式的电脑放进 Web Worker 里算（和动画互不耽误）；开不了 Worker 就等动画放完在主线程分片算
   let bfW = null, bfWSeq = 0;
   const bfWait = new Map();
@@ -951,6 +963,7 @@
     const id = ++aiSeq, side = game.turn, lvl = aiLevel(side);
     aiThinking = true; updateHud();
     const t0 = performance.now();
+    (async () => { await anim; while (busy) await Core.sleep(0.1); setTimeout(() => aiMuse(id, side), 3000); })();   // 3 秒从对方这步演出放完算起
     const minWait = { easy: 1100, mid: 1300, hard: 700 }[lvl] || 1000;
     if (game.bf) {
       // 技能模式：电脑给出一串行动（升级 → 拒马 → 主行动），依次执行；每一步等上一步的演出放完
