@@ -7,6 +7,7 @@ MSG="$1"; [ -n "$MSG" ] || { echo '要写一句这次上线了什么'; exit 1; }
 cd "$(git rev-parse --show-toplevel)"
 [ "$(git rev-parse --abbrev-ref HEAD)" = dev ] || { echo '先切到 dev'; exit 1; }
 grep -rln '^<<<<<<<' source/src source/docs 2>/dev/null && { echo '有没解决的合并冲突标记'; exit 1; }
+for f in source/src/*.js; do node --check "$f" || { echo "语法错误：$f，不部署"; exit 1; }; done
 (cd source && node build.js | tail -2)
 for f in index.html version.json music-war.mp3 voice-real.bin voice-orig.bin voice-bf.bin sfx.bin; do cp "source/dist/site/$f" "./$f"; done
 git add index.html version.json music-war.mp3 voice-real.bin voice-orig.bin voice-bf.bin sfx.bin
