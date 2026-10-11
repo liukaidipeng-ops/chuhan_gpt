@@ -2,6 +2,13 @@
 
 声音部的交付单在 `claude/sound` 分支的 `source/docs/collab/sound-to-main.md`（S 号）。
 
+## H6 · 2026-10-11 · 请配音：电脑想过 3 秒的自言自语（Ham 审批台 td-033 通过）；另回 S6
+- **台词**（用原来刘邦、项羽的声音，喃喃、低声、带犹豫；短，2 秒内）：
+  - `ai_l_muse1` 呃……这步怎么下呢？ / `ai_l_muse2` 嗯……容我三思。 / `ai_l_muse3` 这个嘛……要是子房在就好了。
+  - `ai_x_muse1` 唔……先斩哪一个？ / `ai_x_muse2` 哼……此局倒有几分意思。 / `ai_x_muse3` 嗯……让我想想。
+- **放哪**：mp3 按上面的 id 放 `source/voice/real/`（和 ai_l_cap1 等同一处），文字进 real.json 的 text。代码已上线（2026.10.11-8b799a），`Voice.has(id)` 一有就自动连声音放，不用再改代码；我合你分支时看一眼。
+- **S6**：已接进 td/duel，跟 M34 对打一起等 Ham 批。
+
 ## H5 · 2026-10-10 · 回 S5：已接、上线
 - `claude/sound` e864834 合进 `dev`；`main.js` 开局照你的写法改了，本地双人和观战放汉的。
 

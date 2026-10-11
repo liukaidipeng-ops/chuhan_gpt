@@ -8,6 +8,9 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '人机对局里电脑想得久时偶尔自言自语（想满 3 秒起，每 5 秒有三成机会说一句；刘邦、项羽各三句）',
+      '开场曲之前一直没响（总是放回老的一声锣鼓），现在修好了：开局、观战都放新开场曲。',
+      '修好上一版房间页一处写错导致页面打不开的问题。',
       '技能模式人机新增最强一档「兵仙」：比霸王还强，每步想得更久（约九秒，难处最多二十多秒）；电脑想的时候随时能悔棋、认输，切到后台不再偷偷算；兵仙想得久，手机会比较热（数值部）',
       '复盘分析的步数条：按住左右滑就能一步步看，电脑上鼠标悬停放大，手机上手指上方浮出放大镜，右头加了上一步 / 下一步按钮（美术总监）',
       '技能模式：楚战象升级换成「火象」，一到四级越来越大、越来越威风（四级金鳞甲、大象牙、背上火鬃），每级一只、不再叠影（角色部）',
@@ -917,6 +920,19 @@
     bubble(s, Voice.text(id), 3600);
     return Voice.play(id);
   }
+  // 电脑一步想满 3 秒起、每次 30% 的机会，头顶冒一句自言自语（Ham 审批台 td-033）；声音部配好音（ai_l_muse1～3、ai_x_muse1～3）就连声音一起放，没配好只出气泡
+  const AI_MUSE = { l: ['呃……这步怎么下呢？', '嗯……容我三思。', '这个嘛……要是子房在就好了。'], x: ['唔……先斩哪一个？', '哼……此局倒有几分意思。', '嗯……让我想想。'] };
+  function aiMuse(id, side) {
+    if (id !== aiSeq || !aiThinking || ended || game.result || !vsAI() || game.turn !== side) return;
+    if (busy) { setTimeout(() => aiMuse(id, side), 500); return; }   // 演出还在放：等放完再说，免得和别的气泡撞
+    setTimeout(() => aiMuse(id, side), 5000);   // 还在想：每 5 秒再掷一次
+    if (Math.random() >= 0.3) return;   // 每次 30% 的机会说（Ham 10-11）
+    const k = side === 'b' ? 'x' : 'l', pool = [1, 2, 3].filter(i => i !== lastAiLine['muse' + k]);
+    const i = pool[Math.floor(Math.random() * pool.length)]; lastAiLine['muse' + k] = i;
+    const vid = `ai_${k}_muse${i}`;
+    bubble(side, Voice.has(vid) ? Voice.text(vid) || AI_MUSE[k][i - 1] : AI_MUSE[k][i - 1], 3200);
+    if (Voice.has(vid)) Voice.play(vid);
+  }
   // 技能模式的电脑放进 Web Worker 里算（和动画互不耽误）；开不了 Worker 就等动画放完在主线程分片算
   let bfW = null, bfWSeq = 0;
   const bfWait = new Map();
@@ -949,6 +965,7 @@
     const id = ++aiSeq, side = game.turn, lvl = aiLevel(side);
     aiThinking = true; updateHud();
     const t0 = performance.now();
+    (async () => { await anim; while (busy) await Core.sleep(0.1); setTimeout(() => aiMuse(id, side), 3000); })();   // 从对方这步演出放完算起：想满 3 秒掷一次，之后每 5 秒再掷（Ham 10-11）
     const minWait = { easy: 1100, mid: 1300, hard: 700 }[lvl] || 1000;
     if (game.bf) {
       // 技能模式：电脑给出一串行动（升级 → 拒马 → 主行动），依次执行；每一步等上一步的演出放完
@@ -1129,7 +1146,7 @@
     if (intro && !game.history.length) {
       // 战局开场曲（声音部 S5，Ham 试听台 b52 / b53）：按玩家所执一方放，本地双人和观战放汉的；没有就照旧锣鼓
       const openSide = mode === 'local' || mode === 'watch' ? 'r' : mySide;
-      if (!(window.EndTunes && EndTunes.open && EndTunes.open(openSide))) { Sfx.B.gong(0, 0.9); Sfx.B.taiko(0.5, 0.8); Sfx.B.taiko(0.8, 0.8); Sfx.B.taiko(1.05, 0.9); }
+      if (!(typeof EndTunes !== 'undefined' && EndTunes.open && EndTunes.open(openSide))) { Sfx.B.gong(0, 0.9); Sfx.B.taiko(0.5, 0.8); Sfx.B.taiko(0.8, 0.8); Sfx.B.taiko(1.05, 0.9); }
       let sub = mode === 'local' ? '红方先行' : vsAI() ? `人机 · ${LV[opts.level]} · ${mySide === 'r' ? '你执红（汉）先行' : '你执黑（楚）后手'}` : mode === 'watch' ? '观战' : (mySide === 'r' ? '你执红（汉）· 先行' : '你执黑（楚）· 后手');
       if (game.jq) sub = '揭棋 · ' + sub;
       if (game.bf) sub = '技能模式 · ' + sub;
@@ -3805,7 +3822,7 @@
       if (hostSeat) {
         const back = room.host && hostOut ? ' data-back tabindex="0" role="button"' : '';
         if (!hostOut) { who = room.host ? '你' : '房主'; st = '房主'; if (room.host) cls = ' me'; }
-        else if (ai2) { who = LV[ai2] || '人机'; st = `人机 <span class="st">${STAR[ai2] || ''}</span>${room.host ? '' : ' · 房主观战'}`;   // 房主自己看：不写「点我坐回」（Ham 10-11），圆还是可以点、悬停变亮 cls = ' ai' + (back ? ' back' : ''); attr = back; }
+        else if (ai2) { who = LV[ai2] || '人机'; st = `人机 <span class="st">${STAR[ai2] || ''}</span>${room.host ? '' : ' · 房主观战'}`; cls = ' ai' + (back ? ' back' : ''); attr = back; }   // 房主自己看：不写「点我坐回」（Ham 10-11），圆还是可以点、悬停变亮
         else { who = '空位'; st = room.host ? '点这里坐回' : '房主在观战席'; cls = ' empty' + (back ? ' back' : ''); attr = back; }
       } else {
         const ai = room.ai, taken = room.seated || ai, mine = !room.host && room.seated && !ai;
