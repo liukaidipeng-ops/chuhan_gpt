@@ -24,13 +24,13 @@ function piece(ch, red, x, z) { const m = new THREE.Mesh(new THREE.CylinderGeome
 piece('兵', true, 0, 0); piece('兵', true, -1, 0); piece('相', true, 1, 1); piece('象', false, 0, -1.6); piece('帥', true, 2.6, 2.4); piece('仕', true, 3.6, 2.4); piece('車', false, 2.6, -1.4);
 
 // —— 共用：带边缘光、上淡下实的半透明材质（虚影都用它）——
-function ghost({ map = null, color = 0x2b2622, rim = 0xfff0c8, rimK = 1.2, op = .85, fadeY0 = 1.5, fadeY1 = 4, add = false, emis = 0 }) {
+function ghost({ map = null, color = 0x2b2622, rim = 0xfff0c8, rimK = 1.2, op = .85, fadeY0 = 1.5, fadeY1 = 4, add = false, emis = 0, curve = 1 }) {
   return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.FrontSide, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
-    uniforms: { map: { value: map }, useMap: { value: map ? 1 : 0 }, color: { value: new THREE.Color(color) }, rim: { value: new THREE.Color(rim) }, rimK: { value: rimK }, op: { value: op }, f0: { value: fadeY0 }, f1: { value: fadeY1 }, k: { value: 1 }, emis: { value: emis } },
+    uniforms: { curve: { value: curve }, map: { value: map }, useMap: { value: map ? 1 : 0 }, color: { value: new THREE.Color(color) }, rim: { value: new THREE.Color(rim) }, rimK: { value: rimK }, op: { value: op }, f0: { value: fadeY0 }, f1: { value: fadeY1 }, k: { value: 1 }, emis: { value: emis } },
     vertexShader: `varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vUv=uv; vec4 wp=modelMatrix*vec4(position,1.); vY=position.y; vN=normalize(mat3(modelMatrix)*normal); vV=normalize(cameraPosition-wp.xyz); gl_Position=projectionMatrix*viewMatrix*wp; }`,
-    fragmentShader: `uniform sampler2D map; uniform float useMap; uniform vec3 color; uniform vec3 rim; uniform float rimK, op, f0, f1, k, emis; varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying float vY;
+    fragmentShader: `uniform float curve; uniform sampler2D map; uniform float useMap; uniform vec3 color; uniform vec3 rim; uniform float rimK, op, f0, f1, k, emis; varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying float vY;
       void main(){ vec4 t = useMap>.5 ? texture2D(map, vUv) : vec4(1.); float fr = pow(1.-abs(dot(normalize(vN), normalize(vV))), 2.2);
-        vec3 c = color*t.rgb*(1.+emis) + rim*fr*rimK; float a = (op*t.a + fr*.6) * (1.-smoothstep(f0, f1, vY)) * k; gl_FragColor = vec4(c, clamp(a,0.,1.)); }` });
+        vec3 c = color*t.rgb*(1.+emis) + rim*fr*rimK; float fy = pow(clamp((vY-f0)/(f1-f0),0.,1.), 1./curve); float a = (op*t.a + fr*.6*(1.-fy*.7)) * (1.-fy) * k; gl_FragColor = vec4(c, clamp(a,0.,1.)); }` });
 }
 // —— 象腿（第二版）：真象腿的特征——脚掌圆而外撑、前面一排象牙色大趾甲；脚踝、膝盖两处一圈圈深褶；
 //     往上大腿变粗接进身子；整条腿略往前倾（正在踩下去）——
@@ -102,7 +102,7 @@ const paintLeg = (mode) => { const W = 640, H = 2048, c = document.createElement
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
 const inkPaint = paintLeg('ink'), linePaint = paintLeg('line');
 const LEGS = {
-  grey: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(legGeo(), ghost({ map: realSkin, color: 0xffffff, rim: 0xf0e7d2, rimK: .8, op: .8, fadeY0: 2.2, fadeY1: 4.6 }))); g.add(nails(new THREE.MeshStandardMaterial({ color: 0xd9ccb0, roughness: .55 }))); return g; },
+  grey: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(legGeo(), ghost({ map: realSkin, color: 0xffffff, rim: 0xf0e7d2, rimK: .8, op: .82, fadeY0: .35, fadeY1: 2.9, curve: 1.6 }))); /* Ham ad-035：越往上越虚——脚掌最实，脚踝起就开始淡，膝盖以上大半透明 */ g.add(nails(new THREE.MeshStandardMaterial({ color: 0xd9ccb0, roughness: .55 }))); return g; },
   ink: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(legGeo(), ghost({ map: realSkin, color: 0x857d72, rim: 0xf0e7d2, rimK: 1.1, op: .9, fadeY0: 2.2, fadeY1: 4.6 }))); g.add(nails(new THREE.MeshStandardMaterial({ color: 0xd9ccb0, roughness: .55 }))); return g; },
   gold: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(legGeo(), ghost({ color: 0x3a2a12, rim: 0xffd98a, rimK: 1.5, op: .22, fadeY0: 2.2, fadeY1: 4.8 }))); g.add(new THREE.Mesh(legGeo(), ghost({ map: goldLine, color: 0xffd27a, rim: 0x000000, rimK: 0, op: 1, fadeY0: 2.2, fadeY1: 4.8, add: true, emis: .6 }))); g.add(nails(ghost({ color: 0xfff0c8, rim: 0xffffff, rimK: .8, op: .85, fadeY0: 9, fadeY1: 10, add: true }))); return g; },
 };
@@ -173,7 +173,45 @@ function tigerShield() { const g = new THREE.Group(), R0 = .42;
   const rim = new THREE.Mesh(new THREE.TorusGeometry(R0 * 1.02, .018, 8, 64), new THREE.MeshStandardMaterial({ color: 0x6b4426, roughness: .8 })); rim.rotation.x = Math.PI / 2; g.add(rim); return g; }
 // 头顶盾：悬在帅头顶 0.95 高，盾面朝前上方（对着镜头偏上、也对着对方）；外面一圈金光晕
 const glowTex = cv(256, 256, (g, w) => { const c = w / 2, gr = g.createRadialGradient(c, c, c * .5, c, c, c); gr.addColorStop(0, 'rgba(255,220,140,0)'); gr.addColorStop(.75, 'rgba(255,220,140,.55)'); gr.addColorStop(1, 'rgba(255,220,140,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, w); });
-const OVER = { round: roundShield, tiger: tigerShield };
+// —— 立体铜盾（Ham ad-036：要模型、要立体感，中间半球换掉）——
+// 金属要有东西可反：用一个暖色渐变的小环境（上亮下暗，两块亮窗）生成反射贴图
+const envTex = (() => { const es = new THREE.Scene(); const sky = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), new THREE.ShaderMaterial({ side: THREE.BackSide, vertexShader: 'varying vec3 p; void main(){ p=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }', fragmentShader: 'varying vec3 p; void main(){ float y=normalize(p).y; vec3 c=mix(vec3(.12,.09,.07), vec3(1.,.93,.8), smoothstep(-.3,.8,y)); gl_FragColor=vec4(c,1.); }' })); es.add(sky);
+  for (const [x, y, z, w] of [[-4, 5, 3, 3], [5, 2, -2, 2], [0, -2, 6, 4]]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w), new THREE.MeshBasicMaterial({ color: y < 0 ? 0x6a4a2a : 0xfff4dc, side: THREE.DoubleSide })); m.position.set(x, y, z); m.lookAt(0, 0, 0); es.add(m); }
+  const pm = new THREE.PMREMGenerator(R); return pm.fromScene(es, .04).texture; })();
+// 凸纹的法线贴图：雷纹带、云纹带（画成高度图再转法线）
+const reliefNormal = (() => { const N = 512, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, N, N); const C = N / 2;
+  g.strokeStyle = '#fff'; g.lineWidth = 5;
+  for (let i = 0; i < 36; i++) { const a = i / 36 * 6.283; g.save(); g.translate(C + Math.cos(a) * C * .66, C + Math.sin(a) * C * .66); g.rotate(a); g.beginPath(); g.arc(0, 0, 12, 0, 4.7); g.stroke(); g.beginPath(); g.arc(0, 0, 5, 0, 4.7); g.stroke(); g.restore(); }   // 云纹带
+  for (let i = 0; i < 24; i++) { const a = i / 24 * 6.283; g.save(); g.translate(C + Math.cos(a) * C * .43, C + Math.sin(a) * C * .43); g.rotate(a); g.strokeRect(-9, -9, 18, 18); g.strokeRect(-4, -4, 8, 8); g.restore(); }   // 雷纹带
+  const d = g.getImageData(0, 0, N, N).data, out = g.createImageData(N, N), H = (x, y) => d[((Math.min(N - 1, Math.max(0, y))) * N + Math.min(N - 1, Math.max(0, x))) * 4] / 255;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const dx = (H(x - 1, y) - H(x + 1, y)) * 2.2, dy = (H(x, y - 1) - H(x, y + 1)) * 2.2, l = Math.hypot(dx, dy, 1), o = (y * N + x) * 4; out.data[o] = (dx / l * .5 + .5) * 255; out.data[o + 1] = (dy / l * .5 + .5) * 255; out.data[o + 2] = (1 / l * .5 + .5) * 255; out.data[o + 3] = 255; }
+  g.putImageData(out, 0, 0); const t = new THREE.CanvasTexture(c); return t; })();
+function bronzeMat(col = 0xc8a052, rough = .32) { return new THREE.MeshStandardMaterial({ color: col, metalness: .9, roughness: rough, envMap: envTex, envMapIntensity: 1.3 }); }
+function solidShield(boss) { const g = new THREE.Group(), R0 = .42;
+  // 盾身截面（从中心到边、再从边回到背面）：中间鼓起，两道凸起的环棱，边上一圈有厚度的卷边
+  const top = [[0, .13], [.05, .129], [.1, .125], [.15, .117], [.17, .121], [.185, .117], [.22, .106], [.27, .09], [.285, .095], [.3, .09], [.35, .072], [.375, .066], [.395, .078], [.415, .086], [.432, .078], [.442, .05], [.44, .015]];   // Ham ad-037：再厚一点——整体加厚三成、卷边更厚
+  const back = [[.43, -.005], [.4, .0], [.3, .03], [.15, .05], [0, .055]];
+  const prof = top.concat(back).map(([r, y]) => new THREE.Vector2(r, y));
+  const geo = new THREE.LatheGeometry(prof, 96); const uv = geo.attributes.uv, pp = geo.attributes.position; for (let i = 0; i < pp.count; i++) uv.setXY(i, .5 + pp.getX(i) / (2 * R0), .5 + pp.getZ(i) / (2 * R0)); geo.computeVertexNormals();
+  const mat = bronzeMat(); mat.normalMap = reliefNormal; mat.normalScale = new THREE.Vector2(.8, .8); g.add(new THREE.Mesh(geo, mat));
+  // 卷边上一圈铜钉（实体，带一点亮）
+  const stud = new THREE.SphereGeometry(.018, 12, 8, 0, 6.3, 0, 1.6), sm = bronzeMat(0xe8c87a, .25);
+  for (let i = 0; i < 28; i++) { const a = i / 28 * 6.283, m = new THREE.Mesh(stud, sm); m.position.set(Math.cos(a) * .405, .078, Math.sin(a) * .405); g.add(m); }
+  // 盾鈕
+  if (boss === 'lotus') {   // 莲瓣底座 + 尖顶：八片莲瓣斜着围一圈，中间一根收尖的钮
+    const pet = new THREE.SphereGeometry(.05, 16, 10); pet.scale(1, .45, .55);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283, m = new THREE.Mesh(pet, bronzeMat(0xd8b060, .28)); m.position.set(Math.cos(a) * .055, .138, Math.sin(a) * .055); m.rotation.set(0, -a, .35); g.add(m); }
+    const knob = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [.045, 0], [.04, .02], [.025, .045], [.012, .085], [0, .11]].map(([r, y]) => new THREE.Vector2(r, y)), 32), bronzeMat(0xf0d080, .22)); knob.position.y = .13; g.add(knob);
+  } else {   // 柿蒂纹钮：四片大叶贴在盾面，中间一个带穿孔的圆钮（像铜镜的钮）
+    const leaf = new THREE.Shape(); leaf.moveTo(0, 0); leaf.quadraticCurveTo(.05, .04, 0, .11); leaf.quadraticCurveTo(-.05, .04, 0, 0);
+    const lg = new THREE.ExtrudeGeometry(leaf, { depth: .008, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }); lg.rotateX(-Math.PI / 2);
+    for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(lg, bronzeMat(0xd8b060, .3)); m.position.y = .1; m.rotation.y = i * Math.PI / 2 + Math.PI / 4; g.add(m); }
+    const knob = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [.05, 0], [.052, .012], [.045, .03], [.03, .042], [0, .046]].map(([r, y]) => new THREE.Vector2(r, y)), 32), bronzeMat(0xf0d080, .22)); knob.position.y = .1; g.add(knob);
+    const hole = new THREE.Mesh(new THREE.TorusGeometry(.016, .006, 8, 16), new THREE.MeshStandardMaterial({ color: 0x2a1c0a, roughness: .9 })); hole.position.y = .128; hole.rotation.y = Math.PI / 2; g.add(hole);
+  }
+  // 背面一圈暗铜色内衬（从下往上看到的那面）
+  return g; }
+const OVER = { round: roundShield, tiger: tigerShield, lotus: () => solidShield('lotus'), knob: () => solidShield('knob') };
 let cur = null;
 window.show = (kind, v, opt = {}) => {
   if (cur) scene.remove(cur);
@@ -209,7 +247,7 @@ window.anim = (kind, v, t) => {
   } else {
     const sh = cur.userData.sh, halo = cur.userData.halo, inK = ease.back(seg(t, 0, .4)), fo = seg(t, 1.7, 2.2), bob = Math.sin(t * 4) * .02;
     if (v === 'veil') { cur.position.set(2.6, 0, 2.4); cur.scale.set(1, Math.max(.01, inK), 1); }
-    else { cur.position.set(2.6, .22 + .78 + .6 * (1 - inK) + bob, 2.4 - .05); sh.rotation.set(Math.PI / 2 - .55, 0, 0); sh.rotation.order = 'XYZ'; cur.rotation.y = 0; cur.scale.setScalar(Math.max(.01, .6 + .4 * inK)); halo.position.set(0, 0, -.02); halo.material.opacity = (seg(t, .3, .45) - seg(t, .45, .9) * .6) * (1 - fo); }
+    else { cur.position.set(2.6, .22 + .78 + .6 * (1 - inK) + bob, 2.4 - .05); sh.rotation.set(Math.PI / 2 - .55, 0, 0); sh.rotation.order = 'XYZ'; cur.rotation.y = 0; cur.scale.setScalar(Math.max(.01, .6 + .4 * inK)); halo.position.set(0, 0, -.02); halo.material.opacity = (v === 'lotus' || v === 'knob' ? .35 : 1) * (seg(t, .3, .45) - seg(t, .45, .9) * .6) * (1 - fo); if (v === 'lotus' || v === 'knob') sh.rotation.z = Math.sin(t * 1.6) * .18; }
     cur.traverse(n => { if (n.material && n !== halo) { n.material.transparent = true; n.material.opacity = (n.material.userData.o0 ??= n.material.opacity) * Math.min(1, seg(t, 0, .2) * 1.0) * (1 - fo); } });
     const k = seg(t, .35, .9); r1.visible = k > 0 && k < 1; r1.position.set(2.6, .02, 2.4); const sc = .3 + 1.1 * ease.out(k); r1.scale.set(sc, sc, sc); r1.material.opacity = .8 * (1 - k);
   }

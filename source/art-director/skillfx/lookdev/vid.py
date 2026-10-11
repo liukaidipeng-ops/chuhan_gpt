@@ -1,7 +1,7 @@
 import glob, pathlib, time, subprocess, os, sys
 from playwright.sync_api import sync_playwright
 here = pathlib.Path(__file__).parent; url = (here / 'index.html').resolve().as_uri()
-JOBS = [('leg', 'grey', 2.0), ('leg', 'ink', 2.0), ('leg', 'gold', 2.0), ('shield', 'round', 2.4), ('shield', 'tiger', 2.4), ('shield', 'veil', 2.4)]
+JOBS = [('shield', 'lotus', 2.4), ('shield', 'knob', 2.4), ('leg', 'grey', 2.0), ('leg', 'ink', 2.0), ('leg', 'gold', 2.0), ('shield', 'round', 2.4), ('shield', 'tiger', 2.4), ('shield', 'veil', 2.4)]
 if len(sys.argv) > 1: JOBS = [j for j in JOBS if j[1] in sys.argv[1].split(',')]
 FPS = 24
 with sync_playwright() as p:
