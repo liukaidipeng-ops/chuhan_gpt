@@ -48,6 +48,7 @@
   - **⏸ 10-11 02:45 暂停到 10-16**（Ham：“暂停所有需要消耗额度的测试，额度要没了，下周五10月16再跑”）：
     - 已删 04:45 自查闹钟；10-16 01:30 UTC 有恢复闹钟 trig_01985jkBZvWC6sA5rwtWFpLE（照它的清单做）。门铃（trig_0171…、trig_01G4…）不耗额度，留着。
     - 已告诉顾问部取消 04:58 那个等 h1 的闹钟。
+    - **03:15 TD H70**：Ham 说兵仙“还是会超时”“还是会把自己困毙”。TD 上线兜底 022275（给不出 / 给错行动时走第一步能走的，导出带 rescue）；指出 bfai 困毙只在 ≤4 子时查，想法补丁 dev `source/docs/collab/td-stalemate-idea.patch` 没测。照 Ham 的暂停，排到 10-16 第一件（恢复闹钟内容已改）。
     - GitHub 上 run 60（h1 / o1）、run 61（fA–fD）不耗 Claude 额度，照跑，结果由机器人存进 simresults，10-16 再看。
     - **C71 已上线（H69）**：看钟 24410b、观战电脑对电脑能存 / 发对局 bea3f5（已核 main 上 bfai.js 有 opt.maxMs、main.js 传了 maxMs）。等着的：Ham 确认兵仙那局是不是“超时”；顾问部 A6 → 开局考题 → 到位拍板题。
   - **02:20 Ham：兵仙打不过霸王、“不走棋把自己憋死”**（在房间里看电脑对电脑）；Ham 要“观战人机对打也能发对局”。没收到对局。最可能：房间默认每方总 15 分钟（ropts total 15 / step 60），电脑想时钟照走，兵仙 9～24 秒一步 → 七八十回合超时判负。→ **C71**：`tools/variants/bfai_clock.patch`（think 加 opt.maxMs，预算按 maxMs/3.5 缩；26 局面实测从不超上限；8 测试过），请 TD 在 main.js 按剩余时间传 maxMs（min(step−3s, total/8)），并做观战电脑对电脑也能发对局。
