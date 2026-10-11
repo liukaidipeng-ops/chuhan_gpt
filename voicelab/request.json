@@ -1,5 +1,5 @@
 {
- "batch": "b42",
+ "batch": "b43",
  "list_voices": false,
  "hosts": [
   "https://api.minimax.cn",
@@ -13,292 +13,172 @@
  ],
  "jobs": [
   {
-   "id": "vic_0_h3",
-   "voice": "Spanish_PowerfulSoldier",
-   "text": "吼！吼！吼！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Reliable_Executive",
+   "pitch": -1,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "pitch": -12,
+    "timbre": -8
+   },
+   "id": "ai_l_muse1_a",
+   "text": "呃……这步怎么下呢？",
+   "emotion": "calm",
+   "speed": 0.9
   },
   {
-   "id": "vic_0_he",
-   "voice": "Spanish_PowerfulSoldier",
-   "text": "嗬——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Reliable_Executive",
+   "pitch": -1,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "pitch": -12,
+    "timbre": -8
+   },
+   "id": "ai_l_muse1_b",
+   "text": "(breath)呃……这步怎么下呢？",
+   "emotion": "sad",
+   "speed": 0.85
   },
   {
-   "id": "vic_0_wl",
-   "voice": "Spanish_PowerfulSoldier",
-   "text": "呜啦——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Reliable_Executive",
+   "pitch": -1,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "pitch": -12,
+    "timbre": -8
+   },
+   "id": "ai_l_muse2_a",
+   "text": "嗯……容我三思。",
+   "emotion": "calm",
+   "speed": 0.9
   },
   {
-   "id": "vic_0_ao",
-   "voice": "Spanish_PowerfulSoldier",
-   "text": "嗷——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Reliable_Executive",
+   "pitch": -1,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "pitch": -12,
+    "timbre": -8
+   },
+   "id": "ai_l_muse2_b",
+   "text": "(breath)嗯……容我三思。",
+   "emotion": "sad",
+   "speed": 0.85
   },
   {
-   "id": "vic_1_h3",
-   "voice": "Spanish_PowerfulVeteran",
-   "text": "吼！吼！吼！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Reliable_Executive",
+   "pitch": -1,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "pitch": -12,
+    "timbre": -8
+   },
+   "id": "ai_l_muse3_a",
+   "text": "这个嘛……要是子房在就好了。",
+   "emotion": "calm",
+   "speed": 0.9
   },
   {
-   "id": "vic_1_he",
-   "voice": "Spanish_PowerfulVeteran",
-   "text": "嗬——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Reliable_Executive",
+   "pitch": -1,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "pitch": -12,
+    "timbre": -8
+   },
+   "id": "ai_l_muse3_b",
+   "text": "(breath)这个嘛……要是子房在就好了。",
+   "emotion": "sad",
+   "speed": 0.85
   },
   {
-   "id": "vic_1_wl",
-   "voice": "Spanish_PowerfulVeteran",
-   "text": "呜啦——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Humorous_Elder",
+   "pitch": -3,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "intensity": -80,
+    "pitch": -20,
+    "timbre": -30,
+    "sound_effects": "spacious_echo"
+   },
+   "id": "ai_x_muse1_a",
+   "text": "唔……先斩哪一个？",
+   "emotion": "calm",
+   "speed": 0.9
   },
   {
-   "id": "vic_1_ao",
-   "voice": "Spanish_PowerfulVeteran",
-   "text": "嗷——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Humorous_Elder",
+   "pitch": -3,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "intensity": -80,
+    "pitch": -20,
+    "timbre": -30,
+    "sound_effects": "spacious_echo"
+   },
+   "id": "ai_x_muse1_b",
+   "text": "(breath)唔……先斩哪一个？",
+   "emotion": "sad",
+   "speed": 0.85
   },
   {
-   "id": "vic_2_h3",
-   "voice": "Spanish_PassionateWarrior",
-   "text": "吼！吼！吼！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Humorous_Elder",
+   "pitch": -3,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "intensity": -80,
+    "pitch": -20,
+    "timbre": -30,
+    "sound_effects": "spacious_echo"
+   },
+   "id": "ai_x_muse2_a",
+   "text": "哼……此局倒有几分意思。",
+   "emotion": "calm",
+   "speed": 0.9
   },
   {
-   "id": "vic_2_he",
-   "voice": "Spanish_PassionateWarrior",
-   "text": "嗬——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Humorous_Elder",
+   "pitch": -3,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "intensity": -80,
+    "pitch": -20,
+    "timbre": -30,
+    "sound_effects": "spacious_echo"
+   },
+   "id": "ai_x_muse2_b",
+   "text": "(breath)哼……此局倒有几分意思。",
+   "emotion": "sad",
+   "speed": 0.85
   },
   {
-   "id": "vic_2_wl",
-   "voice": "Spanish_PassionateWarrior",
-   "text": "呜啦——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Humorous_Elder",
+   "pitch": -3,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
+    "intensity": -80,
+    "pitch": -20,
+    "timbre": -30,
+    "sound_effects": "spacious_echo"
+   },
+   "id": "ai_x_muse3_a",
+   "text": "嗯……让我想想。",
+   "emotion": "calm",
+   "speed": 0.9
   },
   {
-   "id": "vic_2_ao",
-   "voice": "Spanish_PassionateWarrior",
-   "text": "嗷——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
+   "voice": "Chinese (Mandarin)_Humorous_Elder",
+   "pitch": -3,
    "vol": 1,
    "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_3_h3",
-   "voice": "Spanish_AngryMan",
-   "text": "吼！吼！吼！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_3_he",
-   "voice": "Spanish_AngryMan",
-   "text": "嗬——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_3_wl",
-   "voice": "Spanish_AngryMan",
-   "text": "呜啦——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_3_ao",
-   "voice": "Spanish_AngryMan",
-   "text": "嗷——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_4_h3",
-   "voice": "Portuguese_AngryMan",
-   "text": "吼！吼！吼！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_4_he",
-   "voice": "Portuguese_AngryMan",
-   "text": "嗬——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_4_wl",
-   "voice": "Portuguese_AngryMan",
-   "text": "呜啦——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_4_ao",
-   "voice": "Portuguese_AngryMan",
-   "text": "嗷——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_5_h3",
-   "voice": "Japanese_GenerousIzakayaOwner",
-   "text": "吼！吼！吼！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_5_he",
-   "voice": "Japanese_GenerousIzakayaOwner",
-   "text": "嗬——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_5_wl",
-   "voice": "Japanese_GenerousIzakayaOwner",
-   "text": "呜啦——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
-  },
-  {
-   "id": "vic_5_ao",
-   "voice": "Japanese_GenerousIzakayaOwner",
-   "text": "嗷——！！",
-   "emotion": "angry",
-   "speed": 0.95,
-   "pitch": 0,
-   "vol": 1,
-   "modify": {
-    "intensity": -95
-   }
+    "intensity": -80,
+    "pitch": -20,
+    "timbre": -30,
+    "sound_effects": "spacious_echo"
+   },
+   "id": "ai_x_muse3_b",
+   "text": "(breath)嗯……让我想想。",
+   "emotion": "sad",
+   "speed": 0.85
   }
  ],
  "music": []
