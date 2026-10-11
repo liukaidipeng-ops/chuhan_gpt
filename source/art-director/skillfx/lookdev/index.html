@@ -1,0 +1,147 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>造型对比</title>
+<style>html,body{margin:0;background:#1a1714;color:#f0e7d2;font-family:"Noto Sans SC",sans-serif}#c{width:100vw;height:100vh;display:block}#lab{position:fixed;left:12px;bottom:10px;font-size:15px;background:rgba(20,19,17,.8);padding:4px 10px}</style>
+<canvas id="c"></canvas><div id="lab"></div>
+<script src="three.min.js"></script>
+<script>
+// 造型对比：象腿三版、金盾三版。window.show(kind, v, t) 摆出某一版在某一刻的样子，截图用
+const R = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true }); R.setPixelRatio(1);
+R.outputColorSpace = THREE.SRGBColorSpace; R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a1714);
+const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+scene.add(new THREE.HemisphereLight(0xfff6e6, 0x5a4a3a, 1.4));
+const sun = new THREE.DirectionalLight(0xfff0dc, 2.3); sun.position.set(-2.5, 16, 3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6 }); scene.add(sun);
+const cv = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+const rnd = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(9);
+// 棋盘、棋子（和游戏一样的尺寸：格 1，子半径 0.42，高 0.22）
+const boardTex = cv(1024, 1024, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#e8cb95'); gr.addColorStop(1, '#d9b67a'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.globalAlpha = .1; for (let i = 0; i < 80; i++) { g.strokeStyle = i % 2 ? '#8a5a2a' : '#fff3d8'; g.lineWidth = 1 + rnd() * 3; g.beginPath(); const y = rnd() * h; g.moveTo(0, y); g.bezierCurveTo(w * .3, y + 20, w * .7, y - 20, w, y + 8); g.stroke(); }
+  g.globalAlpha = 1; g.strokeStyle = '#3b2a1a'; g.lineWidth = 3; const s = w / 8; for (let i = 1; i < 8; i++) { g.beginPath(); g.moveTo(s * i, s); g.lineTo(s * i, h - s); g.stroke(); g.beginPath(); g.moveTo(s, s * i); g.lineTo(w - s, s * i); g.stroke(); } });
+const board = new THREE.Mesh(new THREE.BoxGeometry(8, .3, 8), new THREE.MeshStandardMaterial({ map: boardTex, roughness: .75 })); board.position.y = -.15; board.receiveShadow = true; scene.add(board);
+const faceTex = (ch, red) => cv(256, 256, (g, w) => { const c = w / 2; g.fillStyle = '#ecd2a0'; g.beginPath(); g.arc(c, c, c - 2, 0, 7); g.fill(); g.strokeStyle = red ? '#a8281c' : '#141311'; g.lineWidth = 10; g.beginPath(); g.arc(c, c, c - 14, 0, 7); g.stroke(); g.fillStyle = red ? '#a8281c' : '#141311'; g.font = '900 128px "Noto Serif SC","Songti SC",serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, c, c + 6); });
+const side = new THREE.MeshStandardMaterial({ color: 0xc9945a, roughness: .5 });
+function piece(ch, red, x, z) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, .22, 48), [side, new THREE.MeshStandardMaterial({ map: faceTex(ch, red), roughness: .5 }), side]); m.position.set(x, .11, z); m.castShadow = true; scene.add(m); return m; }
+piece('兵', true, 0, 0); piece('兵', true, -1, 0); piece('相', true, 1, 1); piece('象', false, 0, -1.6); piece('帥', true, 2.6, 2.4); piece('仕', true, 3.6, 2.4); piece('車', false, 2.6, -1.4);
+
+// —— 共用：带边缘光、上淡下实的半透明材质（虚影都用它）——
+function ghost({ map = null, color = 0x2b2622, rim = 0xfff0c8, rimK = 1.2, op = .85, fadeY0 = 1.5, fadeY1 = 4, add = false, emis = 0 }) {
+  return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.FrontSide, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
+    uniforms: { map: { value: map }, useMap: { value: map ? 1 : 0 }, color: { value: new THREE.Color(color) }, rim: { value: new THREE.Color(rim) }, rimK: { value: rimK }, op: { value: op }, f0: { value: fadeY0 }, f1: { value: fadeY1 }, k: { value: 1 }, emis: { value: emis } },
+    vertexShader: `varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vUv=uv; vec4 wp=modelMatrix*vec4(position,1.); vY=position.y; vN=normalize(mat3(modelMatrix)*normal); vV=normalize(cameraPosition-wp.xyz); gl_Position=projectionMatrix*viewMatrix*wp; }`,
+    fragmentShader: `uniform sampler2D map; uniform float useMap; uniform vec3 color; uniform vec3 rim; uniform float rimK, op, f0, f1, k, emis; varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying float vY;
+      void main(){ vec4 t = useMap>.5 ? texture2D(map, vUv) : vec4(1.); float fr = pow(1.-abs(dot(normalize(vN), normalize(vV))), 2.2);
+        vec3 c = color*t.rgb*(1.+emis) + rim*fr*rimK; float a = (op*t.a + fr*.6) * (1.-smoothstep(f0, f1, vY)) * k; gl_FragColor = vec4(c, clamp(a,0.,1.)); }` });
+}
+// —— 象腿（第二版）：真象腿的特征——脚掌圆而外撑、前面一排象牙色大趾甲；脚踝、膝盖两处一圈圈深褶；
+//     往上大腿变粗接进身子；整条腿略往前倾（正在踩下去）——
+const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+function legGeo() {
+  const prof = [[0, 0], [.5, 0], [.58, .03], [.61, .1], [.6, .2], [.54, .34], [.49, .5], [.47, .75], [.5, .95], [.55, 1.12], [.53, 1.3], [.5, 1.55], [.53, 2.0], [.62, 2.7], [.76, 3.5], [.92, 4.4], [1.05, 5.6]].map(([r, y]) => new THREE.Vector2(r, y));
+  const g = new THREE.LatheGeometry(prof, 96); const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x); let r = Math.hypot(x, z);
+    if (r < 1e-4) continue;
+    const zone = Math.exp(-Math.pow((y - .42) / .2, 2)) + Math.exp(-Math.pow((y - 1.18) / .28, 2)) * 1.1 + .18 * sm(1.5, 3, y);   // 脚踝、膝盖两圈深褶，大腿上浅褶
+    const ph = Math.sin(a * 2 + y * .7) * 1.2 + Math.sin(a * 5) * .35;   // 褶子不是正圆环：前后高低不一、断续
+    const crease = Math.pow(Math.abs(Math.sin(y * 30 + ph)), 7);   // 尖的凹线
+    const sag = .018 * Math.sin(y * 9 + a) * zone;   // 皮松垂的起伏
+    const roll = .035 * Math.pow(Math.abs(Math.sin(y * 15 + ph * .5)), 2) * zone;   // 褶子之间的皮鼓起来
+    r *= 1 - .12 * crease * zone + sag + roll + .01 * Math.sin(a * 13 + y * 7);
+    let X = Math.cos(a) * r, Y = y, Z = Math.sin(a) * r * .9;
+    // 膝盖以上往后折：腿不再是一根直柱子
+    const yk = 1.2; if (Y > yk) { const phi = -.42 * sm(yk, yk + 1.4, Y), dy = Y - yk; const ny = yk + dy * Math.cos(phi) - Z * Math.sin(phi), nz = dy * Math.sin(phi) + Z * Math.cos(phi); Y = ny; Z = nz; }
+    p.setXYZ(i, X, Y, Z); }
+  g.computeVertexNormals(); return g;
+}
+function nails(mat) { const g = new THREE.Group(); for (const a of [-1.05, -.52, 0, .52, 1.05]) { const n = new THREE.Mesh(new THREE.SphereGeometry(.17, 24, 14, 0, 6.3, 0, 1.6), mat); n.position.set(Math.sin(a) * .6, .0, Math.cos(a) * .57); n.scale.set(1.15, .5, .5); n.rotation.y = a; g.add(n); } return g; }
+// 象皮：灰底、裂纹网（龟裂）、横褶阴影
+const skinTex = (base, line, line2) => cv(1024, 1024, (g, w, h) => { g.fillStyle = base; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 3000; i++) { g.globalAlpha = .05 + rnd() * .08; g.fillStyle = rnd() < .5 ? line2 : '#ffffff'; g.fillRect(rnd() * w, rnd() * h, 2 + rnd() * 6, 2 + rnd() * 6); }
+  g.strokeStyle = line; g.lineCap = 'round';
+  for (let i = 0; i < 900; i++) { let x = rnd() * w, y = rnd() * h; g.globalAlpha = .25 + rnd() * .35; g.lineWidth = .8 + rnd() * 1.6; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (rnd() - .5) * 46; y += (rnd() - .5) * 22; g.lineTo(x, y); } g.stroke(); }   // 龟裂
+  for (let y = 0; y < h; y += 7 + rnd() * 12) { g.globalAlpha = .18 + rnd() * .3; g.lineWidth = 1.5 + rnd() * 2.5; g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= w; x += 24) g.lineTo(x, y + Math.sin(x / 60 + y) * 5 + (rnd() - .5) * 3); g.stroke(); }   // 横皱
+  g.globalAlpha = 1; });
+const inkSkin = skinTex('#8c857c', '#2a2420', '#4a433c');
+const realSkin = skinTex('#9a948b', '#3e3832', '#5c554d');
+// 金线：透明底，只有描金的褶线和龟裂（像金线勾出来的象腿）
+const goldLine = cv(1024, 1024, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = '#ffe6a6'; g.lineCap = 'round';
+  for (let y = 0; y < h; y += 10 + rnd() * 16) { g.globalAlpha = .5 + rnd() * .5; g.lineWidth = 1.2 + rnd() * 2; g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= w; x += 20) g.lineTo(x, y + Math.sin(x / 70 + y) * 6); g.stroke(); }
+  for (let i = 0; i < 300; i++) { let x = rnd() * w, y = rnd() * h; g.globalAlpha = .25 + rnd() * .3; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 3; k++) { x += (rnd() - .5) * 40; y += (rnd() - .5) * 18; g.lineTo(x, y); } g.stroke(); } });
+// 水墨写意象腿：一张画在纸上的象腿（面朝镜头的立板），墨分浓淡：轮廓干笔、腿身淡墨渲染、褶子一笔笔横扫、趾甲留白，上端化成墨雾
+const paintLeg = (mode) => { const W = 640, H = 2048, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  const cx = W / 2, U = 320 / .9;   // 立板宽 1.8：半宽 0.9 = 320 像素
+  const bump = (t, m, w) => Math.exp(-Math.pow((t - m) / w, 2));
+  // 半径（棋盘单位）随高度：t 0 顶（大腿）→ 1 脚底
+  const r = t => .78 - .3 * Math.min(1, t / .6) + .045 * bump(t, .6, .05) - .03 * bump(t, .86, .04) + .16 * Math.pow(Math.max(0, t - .88) / .12, 1.8);
+  const X = (t, sd) => cx + sd * r(t) * U, Y = t => t * (H - 30);
+  const outline = () => { g.beginPath(); for (let t = 0; t <= 1.0001; t += .01) g.lineTo(X(t, -1), Y(t)); g.quadraticCurveTo(cx, H + 4, X(1, 1), Y(1)); for (let t = 1; t >= -.0001; t -= .01) g.lineTo(X(t, 1), Y(t)); g.closePath(); };
+  // 腿身：淡墨，越往下越浓
+  const L = mode === 'line';
+  outline(); const vg = g.createLinearGradient(0, 0, 0, H);
+  if (L) { vg.addColorStop(0, 'rgba(244,236,218,0)'); vg.addColorStop(.4, 'rgba(244,236,218,.28)'); vg.addColorStop(1, 'rgba(244,236,218,.55)'); }
+  else { vg.addColorStop(0, 'rgba(46,42,38,0)'); vg.addColorStop(.35, 'rgba(46,42,38,.35)'); vg.addColorStop(.8, 'rgba(36,32,29,.78)'); vg.addColorStop(1, 'rgba(24,21,19,.92)'); }
+  g.fillStyle = vg; g.fill();
+  g.save(); outline(); g.clip();
+  // 圆柱的明暗：左侧受光淡一点，右侧积墨
+  const hg = g.createLinearGradient(cx - 280, 0, cx + 280, 0); hg.addColorStop(0, `rgba(10,9,8,${L ? .12 : .35})`); hg.addColorStop(.3, 'rgba(240,231,210,.10)'); hg.addColorStop(.55, 'rgba(0,0,0,0)'); hg.addColorStop(1, `rgba(10,9,8,${L ? .18 : .45})`); g.fillStyle = hg; g.fillRect(0, 0, W, H);
+  // 褶子：弧线随腿的圆面往下弯；脚踝、膝盖处密而浓
+  const folds = (t0, t1, n, a0) => { for (let i = 0; i < n; i++) { const t = t0 + (t1 - t0) * (i + rnd() * .6) / n, y = Y(t), hw = r(t) * U, bow = 14 + rnd() * 18;
+    g.beginPath(); g.moveTo(cx - hw - 6, y); g.bezierCurveTo(cx - hw * .4, y + bow, cx + hw * .4, y + bow, cx + hw + 6, y - 4 + rnd() * 8); g.strokeStyle = `rgba(10,9,8,${a0 * (.5 + rnd() * .5)})`; g.lineWidth = 2 + rnd() * 4.5; g.stroke(); } };
+  folds(.3, .5, 6, .35); folds(.54, .66, 9, .75); folds(.78, .9, 9, .85); folds(.68, .76, 3, .4);
+  for (let i = 0; i < 320; i++) { const t = .25 + rnd() * .72, hw = r(t) * U * .85, x = cx + (rnd() - .5) * 2 * hw, y = Y(t); g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rnd() - .5) * 24, y + (rnd() - .5) * 10); g.strokeStyle = `rgba(8,7,6,${.12 + rnd() * .2})`; g.lineWidth = 1 + rnd() * 1.4; g.stroke(); }   // 龟裂短笔
+  g.restore();
+  // 轮廓：几道干笔，粗细不一、断续（飞白）
+  for (const sd of [-1, 1]) for (let k = 0; k < 6; k++) { let on = false; g.beginPath(); for (let t = .2; t <= 1; t += .008) { const x = X(t, sd) - sd * (2 + k * 1.8) + (rnd() - .5) * 3, y = Y(t); if (rnd() < .04) on = !on; on ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.strokeStyle = `rgba(10,9,8,${(.25 + rnd() * .35) * 1})`; g.lineWidth = 2 + rnd() * 6; g.stroke(); }
+  // 脚底压地的一笔浓墨；前面四片趾甲留白、淡墨勾边
+  g.fillStyle = 'rgba(10,9,8,.92)'; g.beginPath(); g.ellipse(cx, H - 26, r(1) * U * 1.02, 22, 0, 0, 7); g.fill();
+  for (const fx of [-.66, -.23, .23, .66]) { const x = cx + fx * r(1) * U, y = H - 46, w = 36 - Math.abs(fx) * 8; g.fillStyle = 'rgba(236,226,204,.97)'; g.beginPath(); g.ellipse(x, y, w, 24, 0, Math.PI, 0); g.closePath(); g.fill(); g.strokeStyle = 'rgba(30,26,22,.8)'; g.lineWidth = 3; g.beginPath(); g.ellipse(x, y, w, 24, 0, Math.PI * 1.05, -Math.PI * .05); g.stroke(); }
+  // 上端化开成墨雾
+  g.globalCompositeOperation = 'destination-out'; const f = g.createLinearGradient(0, 0, 0, H * .5); f.addColorStop(0, 'rgba(0,0,0,1)'); f.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = f; g.fillRect(0, 0, W, H * .5);
+  for (let i = 0; i < 50; i++) { g.fillStyle = `rgba(0,0,0,${.15 + rnd() * .35})`; g.beginPath(); g.ellipse(cx + (rnd() - .5) * 500, H * (.28 + rnd() * .22), 8 + rnd() * 30, 50 + rnd() * 140, (rnd() - .5) * .3, 0, 7); g.fill(); }
+  g.globalCompositeOperation = 'source-over';
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+const inkPaint = paintLeg('ink'), linePaint = paintLeg('line');
+const LEGS = {
+  grey: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(legGeo(), ghost({ map: realSkin, color: 0xffffff, rim: 0xf0e7d2, rimK: .8, op: .8, fadeY0: 2.2, fadeY1: 4.6 }))); g.add(nails(new THREE.MeshStandardMaterial({ color: 0xd9ccb0, roughness: .55 }))); return g; },
+  ink: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(legGeo(), ghost({ map: realSkin, color: 0x857d72, rim: 0xf0e7d2, rimK: 1.1, op: .9, fadeY0: 2.2, fadeY1: 4.6 }))); g.add(nails(new THREE.MeshStandardMaterial({ color: 0xd9ccb0, roughness: .55 }))); return g; },
+  gold: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(legGeo(), ghost({ color: 0x3a2a12, rim: 0xffd98a, rimK: 1.5, op: .22, fadeY0: 2.2, fadeY1: 4.8 }))); g.add(new THREE.Mesh(legGeo(), ghost({ map: goldLine, color: 0xffd27a, rim: 0x000000, rimK: 0, op: 1, fadeY0: 2.2, fadeY1: 4.8, add: true, emis: .6 }))); g.add(nails(ghost({ color: 0xfff0c8, rim: 0xffffff, rimK: .8, op: .85, fadeY0: 9, fadeY1: 10, add: true }))); return g; },
+};
+// —— 盾（第二版）：照汉代漆盾的样子——上尖、中间收腰、下宽的「亚腰盾」，黑漆底、朱红和金色云气纹；高 0.72、宽 0.46 ——
+function hanShape() { const s = new THREE.Shape(), W = .23, H = .72;
+  s.moveTo(0, H); s.bezierCurveTo(W * .5, H * .99, W * .95, H * .9, W, H * .74); s.bezierCurveTo(W * .9, H * .6, W * .86, H * .45, W * .9, H * .32); s.bezierCurveTo(W * .97, H * .18, W, H * .08, W * .94, 0);
+  s.lineTo(-W * .94, 0); s.bezierCurveTo(-W, H * .08, -W * .97, H * .18, -W * .9, H * .32); s.bezierCurveTo(-W * .86, H * .45, -W * .9, H * .6, -W, H * .74); s.bezierCurveTo(-W * .95, H * .9, -W * .5, H * .99, 0, H); return s; }
+function shieldGeo() { const g = new THREE.ExtrudeGeometry(hanShape(), { depth: .03, bevelEnabled: true, bevelThickness: .018, bevelSize: .016, bevelSegments: 4, curveSegments: 32 });
+  g.computeBoundingBox(); const bb = g.boundingBox, uv = g.attributes.uv, p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { uv.setXY(i, (p.getX(i) - bb.min.x) / (bb.max.x - bb.min.x), (p.getY(i) - bb.min.y) / (bb.max.y - bb.min.y)); const z = p.getZ(i); p.setZ(i, z + .05 * (1 - Math.pow(p.getX(i) / .25, 2)) + .03 * Math.max(0, 1 - Math.abs(p.getX(i)) / .03)); }   // 盾面微鼓 + 一道中脊   // 盾面中间微鼓
+  g.computeVertexNormals(); return g; }
+// 云气纹：一笔一笔卷云，朱红 + 金
+function clouds(g, w, h, col, lw, n = 9) { g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round';
+  for (let i = 0; i < n; i++) { const cx = w * (.2 + rnd() * .6), cy = h * (.12 + i / n * .8), s = w * (.12 + rnd() * .1), d = rnd() < .5 ? 1 : -1;
+    g.beginPath(); g.moveTo(cx - s * 1.6 * d, cy + s * .3); g.bezierCurveTo(cx - s * d, cy - s * .8, cx + s * .4 * d, cy - s * .6, cx + s * .2 * d, cy); g.stroke();
+    g.beginPath(); g.arc(cx + s * .2 * d - s * .25 * d, cy, s * .25, 0, Math.PI * 1.6); g.stroke();
+    g.beginPath(); g.moveTo(cx + s * .2 * d, cy + s * .1); g.quadraticCurveTo(cx + s * 1.3 * d, cy + s * .5, cx + s * 1.5 * d, cy - s * .2); g.stroke(); } }
+const lacquer = cv(512, 1024, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#1d1714'); gr.addColorStop(1, '#0e0b0a'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#c9a24e'; g.lineWidth = 10; g.strokeRect(22, 22, w - 44, h - 44); g.lineWidth = 3; g.strokeRect(40, 40, w - 80, h - 80);
+  clouds(g, w, h, '#a8281c', 9, 8); clouds(g, w, h, '#d9b877', 4, 7);
+  g.fillStyle = '#d9b877'; g.beginPath(); g.arc(w / 2, h * .5, 26, 0, 7); g.fill(); g.fillStyle = '#1d1714'; g.beginPath(); g.arc(w / 2, h * .5, 12, 0, 7); g.fill(); });
+const goldClouds = cv(512, 1024, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = '#ffe6a6'; g.lineWidth = 8; g.strokeRect(20, 20, w - 40, h - 40); clouds(g, w, h, '#ffe6a6', 6, 9); g.fillStyle = '#ffe6a6'; g.beginPath(); g.arc(w / 2, h * .5, 20, 0, 7); g.fill(); });
+const SHIELDS = {
+  lacquer: () => new THREE.Mesh(shieldGeo(), new THREE.MeshStandardMaterial({ map: lacquer, roughness: .28, metalness: .15, transparent: true, opacity: .96 })),
+  goldline: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(shieldGeo(), ghost({ color: 0x2a1c08, rim: 0xffd98a, rimK: 1.2, op: .35, fadeY0: 9, fadeY1: 10 }))); g.add(new THREE.Mesh(shieldGeo(), ghost({ map: goldClouds, color: 0xffd27a, rim: 0x000000, rimK: 0, op: 1, fadeY0: 9, fadeY1: 10, add: true, emis: .8 }))); return g; },
+  veil: () => { const g = new THREE.Group(), tex = cv(512, 256, (c, w, h) => { const gr = c.createLinearGradient(0, h, 0, 0); gr.addColorStop(0, 'rgba(255,220,140,.85)'); gr.addColorStop(.75, 'rgba(255,220,140,.18)'); gr.addColorStop(1, 'rgba(255,220,140,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+      c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(255,240,200,${.08 + rnd() * .2})`; c.fillRect(rnd() * w, 0, 1 + rnd() * 3, h); } clouds(c, w, h, 'rgba(255,240,200,.55)', 3, 5); });
+    const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }); const arc = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, .55, 48, 1, true, Math.PI * .68, Math.PI * .64), m); arc.position.y = .275; g.add(arc);
+    return g; },
+};
+let cur = null;
+window.show = (kind, v, opt = {}) => {
+  if (cur) scene.remove(cur);
+  if (kind === 'leg') { cur = LEGS[v](); cur.position.set(0, opt.y || 0, 0); cam.position.set(opt.cx || 3.6, opt.cy || 4.6, opt.cz || 6.2); cam.lookAt(0, 1.0, 0); }
+  else { cur = new THREE.Group(); const s = SHIELDS[v](); cur.add(s); if (v !== 'veil') { s.position.x = 0; cur.position.set(2.6, .16, 1.85); } else cur.position.set(2.6, 0, 2.4); cam.position.set(opt.cx || 3.9, opt.cy || 2.5, opt.cz || 5.6); cam.lookAt(2.6, opt.cx ? .5 : .45, 1.9); }
+  if (cur.userData.bill) { const b = cur.userData.bill; b.lookAt(cam.position.x, b.getWorldPosition(new THREE.Vector3()).y, cam.position.z); }
+  scene.add(cur); document.getElementById('lab').textContent = opt.label || ''; resize(); R.render(scene, cam);
+};
+function resize() { const w = innerWidth, h = innerHeight; R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+addEventListener('resize', () => { resize(); R.render(scene, cam); });
+window.ready = true;
+</script>
