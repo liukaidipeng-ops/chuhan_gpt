@@ -11,3 +11,8 @@ body.compact.cine #skip{bottom:calc(3vh + var(--safe-b))}
 /* 气泡：字小一号、边距收紧、最宽到屏幕六成多 */
 body.compact .bubble{font-size:calc(15px * var(--fs,1));padding:6px 12px;max-width:64vw;letter-spacing:.04em}
 body.compact .bubble b{font-size:calc(11px * var(--fs,1));margin-bottom:0}
+/* 矮屏（微信内置浏览器等，高 ≤ 760）：竖排会压到棋盘右列，改成往左横排展开，临时盖在自己名牌上，收起后名牌照常 */
+@media (max-height:760px){
+body.compact.toolsOpen #tools{flex-direction:row-reverse;width:auto;gap:5px;padding:4px;background:rgba(20,19,17,.88);box-shadow:0 0 0 2px var(--c)}
+body.compact.toolsOpen #tools .tool{width:40px;height:40px}
+}
