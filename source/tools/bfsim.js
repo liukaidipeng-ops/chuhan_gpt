@@ -13,6 +13,8 @@
 //   --open-ai FILE   开局那 N 步统一由这个电脑挑（不设就由各自的电脑挑）。比两版电脑时用：同一个种子 → 完全相同的开局局面，
 //                    不会因为两版估值不同挑出不同的开局（N9：w_t5 / w_t6 的汉胜率差 9.5 点，多半来自各自挑的开局）
 //   --open-nodes N   开局那几步按 N 个节点算（不跟 --nodes 变），比“算多深”时开局保持同一批
+//   --open-seq S     开局前几步强制走法：每步用 / 隔开，同一步里几个行动用 + 连（升级不占行动），行动写 mv:列,行>列,行 或 up:列,行
+//                    例：mv:1,2>4,2/mv:1,7>4,7/up:4,3+mv:4,2>4,6（中炮对中炮，汉升中兵再炮打中卒）。强制步数也算在 --open 里，后面接着随机开局
 //   --seed N         起始随机种子（第 i 局用 seed + i，可复现）
 //   --preset NAME    预设配置（见下方 PRESETS；可多个，逗号分隔）：baseline（普通象棋对照）、no-pofu / no-revive / no-simian / no-hongmen
 //                    （关掉某个兵法）、no-<技能>（如 no-chongzhen，关掉某个兵种技能）、
@@ -354,6 +356,7 @@ function parseArgs(argv) {
     else if (k === '--open') o.open = +v();
     else if (k === '--open-ai') o.openAI = v();
     else if (k === '--open-nodes') o.openNodes = +v();
+    else if (k === '--open-seq') o.openSeq = v().split('/').map(ply => ply.split('+').map(t => { const m = t.trim().match(/^(mv|up):(\d),(\d)(?:>(\d),(\d))?$/); if (!m) throw new Error('--open-seq 看不懂：' + t); return m[1] === 'up' ? { k: 'up', at: [+m[2], +m[3]] } : { k: 'mv', from: [+m[2], +m[3]], to: [+m[4], +m[5]] }; }));
     else if (k === '--seed') o.seed = +v();
     else if (k === '--preset') o.presets.push(...v().split(',').filter(Boolean));
     else if (k === '--set') o.sets.push(v());
@@ -399,6 +402,7 @@ function worker() {
   // 规则变体引擎（tools/variants/*.js，导出 enginePath()）：环境变量 BFSIM_ENGINE 指定；预设里写了 engine 的会由主进程自动设好
   const BF = global.BF = require(process.env.BFSIM_ENGINE ? require(path.resolve(__dirname, '..', process.env.BFSIM_ENGINE)).enginePath() : path.join(SRC, 'bingfa.js'));
   let AIMAP = null;            // 名字 → 电脑模块；每局由 job.aiR / job.aiB 指定双方用哪个
+  let OPENSEQ = null;          // --open-seq：开局前几步强制走法
   let ov = null;
   const inc = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
   const other = s => (s === 'r' ? 'b' : 'r');
@@ -503,9 +507,9 @@ function worker() {
         if (left && g.merit[side] >= U.cost - 7) L += 'Save';
       }
       const AI = R.plies < job.open && AIMAP.O ? AIMAP.O : AIS[side];
-      const seq = await AI.think(BF.cloneState(g.S), L);
+      const seq = OPENSEQ && R.plies < OPENSEQ.length ? JSON.parse(JSON.stringify(OPENSEQ[R.plies])) : await AI.think(BF.cloneState(g.S), L);
       const dt = Date.now() - t0; R.ms += dt; if (dt > R.msMax) R.msMax = dt;
-      const st = AI.think.last; if (st && st.nodes != null) { R.nodes = (R.nodes || 0) + st.nodes; R.nodeMoves = (R.nodeMoves || 0) + 1; }
+      const st = OPENSEQ && R.plies < OPENSEQ.length ? null : AI.think.last; if (st && st.nodes != null) { R.nodes = (R.nodes || 0) + st.nodes; R.nodeMoves = (R.nodeMoves || 0) + 1; }
       if (!seq.length) { let why = ''; try { why = `（${side === 'r' ? '汉' : '楚'}方，第 ${g.round} 回合，${BF.ai.inCheck(g.S, side) ? '被将军' : '没被将军'}，普通行动 ${BF.ai.expand(g.S).length} 种，破釜 / 背水组合 ${side === 'b' && !g.S.used.art.b && BF.ai.pofuPairs ? BF.ai.pofuPairs(g.S).length : 0} 种）`; } catch (e) { why = '（' + e.message + '）'; } throw new Error('电脑没有给出行动' + why); }
       let noisy = false;
       for (const a of seq) {
@@ -561,7 +565,7 @@ function worker() {
         const real = global.BF; global.BF = guard(real, 'BF');
         try { delete require.cache[file]; return require(file); } finally { global.BF = real; }
       };
-      AIMAP = {};
+      AIMAP = {}; OPENSEQ = m.openSeq || null;
       for (const [k, spec] of Object.entries(m.ais)) {
         const X = AIMAP[k] = load(spec);
         if (BF.ai.version != null && X.apiVersion != null && X.apiVersion !== BF.ai.version) warns.push(`${spec.label} 按接口第 ${X.apiVersion} 版写的，当前引擎是第 ${BF.ai.version} 版`);
@@ -657,7 +661,7 @@ async function run(o) {
         feed();
       });
       c.on('exit', () => { if (--alive === 0) resolve(); });
-      c.send({ init: ov, budget: o.budget, ais, nodes: o.nodes, openNodes: o.openNodes });
+      c.send({ init: ov, budget: o.budget, ais, nodes: o.nodes, openNodes: o.openNodes, openSeq: o.openSeq || null });
     }
   });
   if (!o.quiet && process.stderr.isTTY) process.stderr.write('\n');
@@ -684,6 +688,7 @@ async function run(o) {
   sum.level = (o.red || o.level) + ' vs ' + (o.black || o.level) + ((o.aiR || o.aiB || o.ai !== 'src/bfai.js') ? `  [汉 ${o.aiR || o.ai} | 楚 ${o.aiB || o.ai}]` : '');
   if (o.openAI) sum.level += `  [开局 ${o.open} 步由 ${o.openAI} 挑]`;
   if (o.openNodes) sum.level += `  [开局按 ${o.openNodes} 节点]`;
+  if (o.openSeq) sum.level += `  [开局强制 ${o.openSeq.length} 步]`;
   print(sum, o);
   if (errors.length) console.log(`✗ 出错的局 ${errors.length} 个（没算进胜负；出错的局往往不是随便哪局，结果可能有偏差）：`, errors.slice(0, 3).map(e => e.seed + ' ' + e.error.split('\n')[0]).join(' | '));
   return sum;
