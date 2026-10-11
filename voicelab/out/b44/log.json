@@ -1,43 +1,9 @@
 {
  "batch": "b44",
- "key_present": true,
- "key_len": 126,
- "host": "https://api.minimax.cn",
- "probe": [
-  {
-   "host": "https://api.minimax.cn",
-   "http": 200,
-   "code": 0,
-   "msg": "success"
-  }
- ],
- "jobs": [
-  {
-   "id": "ai_x_muse1_c",
-   "voice": "Chinese (Mandarin)_Humorous_Elder",
-   "voice_id": "Chinese (Mandarin)_Humorous_Elder",
-   "voice_name": null,
-   "ok": true,
-   "ms": 3924,
-   "chars": 23
-  },
-  {
-   "id": "ai_x_muse1_d",
-   "voice": "Chinese (Mandarin)_Humorous_Elder",
-   "voice_id": "Chinese (Mandarin)_Humorous_Elder",
-   "voice_name": null,
-   "ok": true,
-   "ms": 3852,
-   "chars": 23
-  },
-  {
-   "id": "ai_x_muse1_e",
-   "voice": "Chinese (Mandarin)_Humorous_Elder",
-   "voice_id": "Chinese (Mandarin)_Humorous_Elder",
-   "voice_name": null,
-   "ok": true,
-   "ms": 4968,
-   "chars": 22
-  }
- ]
+ "key_present": false,
+ "key_len": 0,
+ "host": null,
+ "probe": [],
+ "jobs": [],
+ "error": "仓库 Secrets 里没有 MINIMAX_API_KEY（名字要一字不差）"
 }
