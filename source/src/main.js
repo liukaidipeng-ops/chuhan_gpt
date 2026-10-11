@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '复盘分析的步数条：按住左右滑就能一步步看，电脑上鼠标悬停放大，手机上手指上方浮出放大镜，右头加了上一步 / 下一步按钮（美术总监）',
       '技能模式：楚战象升级换成「火象」，一到四级越来越大、越来越威风（四级金鳞甲、大象牙、背上火鬃），每级一只、不再叠影（角色部）',
       '界面小修：对方喊话时提示条让到气泡下面；弹出确认框时暂停卡先收起来；加载页的字不再忽明忽暗；电脑上技能按钮放大；没走子的复盘写明“没有可分析的”（美术总监）',
       '技能模式开局不再卡几秒：棋子材质的准备挪到页面刚打开、空闲的时候做（优化部）',
@@ -1997,6 +1998,65 @@
     const xb = e.target.closest('[data-xi]'); if (xb) { e.stopPropagation(); anaPick(+xb.dataset.xi); anaExplain(+xb.dataset.xi); return; }
     const r = e.target.closest('.ar'); if (r) anaPick(+r.dataset.i);
   });
+  // 复盘令牌条（美术总监，Ham 审批台 ad-025 / ad-029 甲）：按住整条左右滑，选中的那一步跟着手指 / 鼠标走；
+  //   电脑上鼠标悬在哪一枚，那枚和选中的一样大、显出字，两边各两枚依次过渡；放不下时一起收窄、再不够就叠起；
+  //   手机按住时手指上方浮出放大镜（选中那步居中、前后各 4 步全尺寸带字）；标题右边 ‹ › 一下走一步
+  if (ANAV === 3) (() => {
+    const L = $('anaList'), anaA = () => { const real = RP ? RP.real : game; return real && real.__ana; };
+    const tks = () => L.querySelectorAll('.ar.tk');
+    let down = false, touch = false, hover = -1, sel = -1;
+    const lp = document.createElement('div'); lp.id = 'anaLoupe'; lp.className = 'hidden'; lp.innerHTML = '<div class="row"></div><div class="lb"></div>'; document.body.appendChild(lp);
+    const nav = document.createElement('span'); nav.className = 'anaNav'; nav.innerHTML = '<button type="button" data-d="-1" aria-label="上一步">‹</button><button type="button" data-d="1" aria-label="下一步">›</button>';
+    $('ana').appendChild(nav);   // 放在令牌条右头（第三列）
+    nav.addEventListener('click', e => { const b = e.target.closest('[data-d]'), A = anaA(); if (!b || !A || !A.n) return; anaPick(Math.max(0, Math.min(A.n - 1, (A.sel < 0 ? 0 : A.sel) + +b.dataset.d))); });
+    function fit() {
+      const n = tks().length; if (n < 2) { L.classList.remove('dense'); return; }
+      const per = (L.clientWidth - 4 - 28) / (n - 1);
+      L.style.setProperty('--gap', per >= 6 ? '2px' : per >= 4 ? '1px' : (per - 4).toFixed(2) + 'px'); L.classList.toggle('dense', per < 16);
+    }
+    // 第几枚：密的时候按位置占全条的比例算（选中那枚变宽会把旁边挤开，按最近的找会来回跳）；不密时找中线最近的那枚
+    function idxAt(x) {
+      const t = tks(), n = t.length; if (!n) return -1;
+      const r = L.getBoundingClientRect();
+      if (L.classList.contains('dense')) return Math.max(0, Math.min(n - 1, Math.round((x - r.left - 2 - 13) / (L.clientWidth - 30) * (n - 1))));
+      let best = 0, bd = 1e9; t.forEach((q, i) => { const b = q.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - x); if (d < bd) { bd = d; best = i; } }); return best;
+    }
+    // 悬停按「没放大」的排法算，放大后令牌不会在鼠标下来回跳
+    function baseIdx(x) {
+      const n = tks().length, A = anaA(), s = A ? A.sel : -1, r = L.getBoundingClientRect(), Wc = L.clientWidth - 4, g = parseFloat(L.style.getPropertyValue('--gap')) || 0;
+      const wb = Math.min(22, (Wc - 26 - g * (n - 1)) / Math.max(1, n - 1)), st = wb + g, u = x - r.left - 2;
+      const i = s < 0 ? Math.floor(u / st) : u < s * st ? Math.floor(u / st) : u < s * st + 26 + g ? s : s + 1 + Math.floor((u - s * st - 26 - g) / st);
+      return Math.max(0, Math.min(n - 1, i));
+    }
+    function paintHover() { tks().forEach((q, i) => { const d = hover < 0 || q.classList.contains('on') ? 9 : Math.abs(i - hover); q.classList.toggle('h0', d === 0); q.classList.toggle('h1', d === 1); q.classList.toggle('h2', d === 2); }); }
+    function showLoupe(x) {
+      const A = anaA(); if (!A || A.sel < 0) return;
+      let h = ''; for (let i = A.sel - 4; i <= A.sel + 4; i++) { const s = A.steps[i], g = s && s.grade; h += s ? `<div class="tk ${s.side}${i === A.sel ? ' on' : ''}">${g == null ? '' : `<i class="g${g}" data-c="${ANA1[g]}">${g >= 3 ? ANA1[g] : ''}</i>`}</div>` : '<div class="tk no"></div>'; }
+      const s = A.steps[A.sel], g = s.grade;
+      lp.querySelector('.row').innerHTML = h; lp.querySelector('.lb').textContent = `${A.bf ? '第 ' + (A.sel + 1) + ' 回合' : '第 ' + (Math.floor(A.sel / 2) + 1) + ' 步'} · ${SIDE_CN[s.side]}${g == null ? '' : ' · ' + ANA.tags[g]}`;
+      lp.classList.remove('hidden');
+      const r = L.getBoundingClientRect(), half = lp.offsetWidth / 2;
+      let left = Math.max(half + 4, Math.min(innerWidth - half - 4, x)); lp.style.left = left + 'px'; lp.style.top = (r.top - lp.offsetHeight - 12) + 'px';
+      const b = lp.getBoundingClientRect(); if (b.left < 4) left += 4 - b.left; else if (b.right > innerWidth - 4) left -= b.right - innerWidth + 4; lp.style.left = left + 'px';   // 贴边时收在屏内
+    }
+    function go(i) { if (i < 0 || i === sel) return; sel = i; anaPick(i); try { if (touch && navigator.vibrate) navigator.vibrate(4); } catch (e) { } }
+    L.addEventListener('pointerdown', e => {
+      if (e.button > 0) return;
+      down = true; touch = e.pointerType !== 'mouse'; try { L.setPointerCapture(e.pointerId); } catch (er) { }
+      L.classList.add('drag'); hover = -1; const A = anaA(); sel = A ? A.sel : -1; go(idxAt(e.clientX)); paintHover();
+      if (touch) showLoupe(e.clientX);
+    });
+    L.addEventListener('pointermove', e => {
+      if (down) { go(idxAt(e.clientX)); if (touch) showLoupe(e.clientX); }
+      else if (e.pointerType === 'mouse') { const j = baseIdx(e.clientX); if (j !== hover) { hover = j; paintHover(); } }
+    });
+    const up = () => { down = false; L.classList.remove('drag'); lp.classList.add('hidden'); };
+    L.addEventListener('pointerup', up); L.addEventListener('pointercancel', up);
+    L.addEventListener('pointerleave', () => { if (!down && hover >= 0) { hover = -1; paintHover(); } });
+    // 每次重画令牌（换了一步、分析出新结果）后重新收窄、补上悬停
+    new MutationObserver(() => { fit(); if (hover >= 0) paintHover(); }).observe(L, { childList: true });
+    new ResizeObserver(fit).observe(L);
+  })();
   $('anaChart').addEventListener('click', e => {
     const real = RP ? RP.real : game, A = real && real.__ana; if (!A || !A.n) return;
     const b = $('anaChart').getBoundingClientRect(), i = Math.round((e.clientX - b.left) / b.width * A.n);
