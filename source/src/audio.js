@@ -233,6 +233,22 @@ const Sfx = (() => {
     tigerLand(t = 0, v = 0.65) { smp('tigerland', { t, vol: v, rj: 0.03 }); },
     jumaShake(t = 0, v = 0.7, pan) { smp('jumashake', { t, vol: v, pan, rj: 0.03 }); },   // 象顶路障，不碎
     jumaBreak(t = 0, big = false, v = 0.8, pan) { smp(big ? 'jumabrkbig' : 'jumabrk', { t, vol: v, pan, rj: 0.02 }); },   // 路障碎：虎扑 / 象撞（big）
+    // 兵卒对打（角色部 M34 的 Duel.play 的 onEvent 直接接这里：onEvent: (kind) => Sfx.B.duel(kind)）。
+    //   声音同 Ham 10-10 试听台 b43 通过的对打配音：拨开 = 木杆相碰，碰盾 = 盾挡声，扎中 = 入肉 + 痛叫，扎死 = 劈开 + 入肉 + 惨叫，踏地 = 闷木；
+    //   盾撞盾 = 盾挡声垫一层闷撞。同一种声音 60 毫秒内只响一次（3v3 一帧可能碰好几下）
+    duel(kind, { v = 0.6, pan } = {}) {
+      const now = ctx ? ctx.currentTime : 0, last = B._duelT || (B._duelT = {});
+      if (last[kind] != null && now - last[kind] < 0.06) return; last[kind] = now;
+      switch (kind) {
+        case 'parry': smp('plank', { vol: v * 0.7, pan, rj: 0.06 }); smp('thunk', { vol: v * 0.35, pan }); break;
+        case 'block': B.block(0, v, pan); break;
+        case 'clank': B.block(0, v, pan); smp('punch', { vol: v * 0.6, pan, rate: R(0.75, 0.9) }); smp('soft', { vol: v * 0.5, pan, rate: 0.7 }); break;
+        case 'hit': smp('arrowflesh', { vol: v, pan }); smp('chop', { vol: v * 0.4, pan }); if (Math.random() < 0.7) smp('pain', { t: 0.02, vol: v * 0.5, pan }); break;
+        case 'kill': smp('chop', { vol: v, pan }); smp('slash', { vol: v * 0.6, pan }); smp('arrowflesh', { vol: v, pan }); smp('gibs', { t: 0.02, vol: v * 0.3, pan }); if (Math.random() < 0.8) smp('death', { t: 0.02, vol: v * 0.5, pan }); break;
+        case 'thud': smp('wood', { vol: v * 0.5, pan, rate: R(0.65, 0.8) }); break;
+        case 'dust': smp('step', { vol: v * 0.2, pan, lp: 1800 }); break;
+      }
+    },
     plate(t = 0, v = 0.4) { smp('plate', { t, vol: v }); },
     ring(t = 0, v = 0.3) { smp('unsheathe', { t, vol: v }); },
     whoosh(t = 0, dur = 0.35, v = 0.35, pan) { smp('swing', { t, vol: v, pan, rate: R(0.8, 1.1) / Math.max(0.5, dur / 0.4) }); },

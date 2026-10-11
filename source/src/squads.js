@@ -1361,8 +1361,8 @@ const Squads = (() => {
     const duel = window.Duel && c.lv && t === 'p' && dt_ === 'p' && !c.counter && !c.ranged && cine && att.troop && def.troop;
     if (duel) {
       P.dust(mid.clone().setY(TOP), 18, null, 0.5); Cam.shake(0.08); await sleep(0.25);
-      const SND = { parry: () => Sfx.B.clang(0, 0.4), block: () => Sfx.B.block(0, 0.6), clank: () => Sfx.B.clang(0, 0.5), hit: () => { Sfx.B.stab(0, 0.5); Sfx.B.sgrunt(0, 0.45); }, kill: () => Sfx.B.stab(0, 0.6), thud: () => Sfx.B.thud(0, 0.5) };
-      try { await Duel.play({ lv: Math.max(1, Math.min(4, c.lv)), kill: !c.survive, att: s, speed: Core.Time.boost || 1.5, onEvent: k => { const f = SND[k]; if (f) try { f(); } catch (e) { } } }); } catch (e) { }
+      try { await Duel.play({ lv: Math.max(1, Math.min(4, c.lv)), kill: !c.survive, att: s, speed: Core.Time.boost || 1.5, onEvent: k => { try { Sfx.B.duel(k); } catch (e) { } } }); } catch (e) { }   // 声音部 S6
+      def.duelDone = true;   // 对打里已经响过盾挡，回到棋盘扣血时不再放
       P.dust(B.clone().setY(TOP), 14, null, 0.45);
       if (c.survive) def.die('stab', d, 1, B);   // 扣血：回到棋盘上小队少几个人、脚下血圈少一段，跟别的扣血一样
       else { def.setVis(0.001); def.dead = true; Fx.Marks.blood(B.clone().setY(Fx.groundAt(B)), 1.0, d); }
@@ -1493,7 +1493,7 @@ const Squads = (() => {
     const c = sq.center(0.3);
     if (sq.troop) {
       if (sq.wall && !sq.noWallShake) sq.wall.shake(dir, 1.2);
-      if (sq instanceof Guards || sq.elite) Sfx.B.block(0, 0.6);   // 持盾的（士、四级金甲兵）挡下一击：盾挡声（声音部 S2，Ham：“所有盾牌格挡都会有音效”）   // 只掉血：路障不碎，往后一挫晃两晃（M28）
+      if ((sq instanceof Guards || sq.elite) && !sq.duelDone) Sfx.B.block(0, 0.6);   // 持盾的（士、四级金甲兵）挡下一击：盾挡声（声音部 S2，Ham：“所有盾牌格挡都会有音效”）   // 只掉血：路障不碎，往后一挫晃两晃（M28）
       const alive = sq.alive(), n = Math.max(1, Math.round(alive.length / 3));
       alive.slice(0, n).forEach(u => killUnit(sq.troop, u.i, hit === 'bolts' ? 'bolts' : hit === 'blast' ? 'blast' : 'stab', dir, power * 0.8, center || c));
       alive.slice(n).forEach(u => sq.troop.act(u.i, 'hit', 0.35, Math.random() * 0.2));
