@@ -1,0 +1,10 @@
+{
+ "args": "--games 600 --seed 410000 --level mid --nodes mid=60000 --open 10 --open-seq mv:1,2>4,2/up:4,6+mv:1,7>4,7 --open-ai tools/variants/bfai_t3p.js --open-nodes 60000 --ai tools/variants/bfai_next.js",
+ "env": {
+  "BFAI_NEXT_BASE": "54ba8bc",
+  "BFAI_TUNE_W": "tools/tune/w_t6.json",
+  "BFAI_TUNE_FAST": "1"
+ },
+ "chunks": 12,
+ "note": "强制开局（顾问部 A6）：汉中炮，楚先把中卒升二级再炮8平5——顾问部 A6 防法 2。w_t6 自对打，校尉 6 万节点；强制几步之后接着由现在线上电脑随机挑到第 10 步"
+}
