@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '技能模式的电脑偶尔给不出能走的一步时，原来会一直不走直到超时，现在会改走一步能走的（并记下来发给数值部查）',
       '房主坐到观战席看电脑下时，也有局势条（点状态栏下的「势」展开）',
       '观战电脑对电脑的局，结束后也能「保存」、发给数值部；标题写明两边各是哪一档（数值部）',
       '技能模式的电脑会看钟了：房间里开了计时，时间不多时想得快些，「兵仙」不会再下到后面超时判负（数值部）',
@@ -967,6 +968,16 @@
     if (document.hidden) { if (aiThinking && game && game.bf) { cancelAI(); updateHud(); } }
     else setTimeout(() => { try { maybeAI(); } catch (e) { } }, 300);
   });
+  // 电脑给不出行动、或给的行动走不了时，原来就停在那里一直不走、直到超时判负（Ham 10-11：“兵仙不走棋、还是会超时”）。
+  //   兜底：按规则把能走的行动挨个试，走第一个走得通的（宁可走一步普通的，也不能站着等超时）；记一笔，导出对局时带上给数值部查
+  async function aiRescue(id, side, waitIdle, why) {
+    await waitIdle();
+    if (id !== aiSeq || ended || game.result || game.turn !== side) return;
+    (game.__rescue = game.__rescue || []).push({ why, at: game.entries.length, side });
+    let kids = []; try { kids = BF.ai.expand(BF.cloneState(game.S)) || []; } catch (e) { }
+    for (const k of kids) { if (k.up || !k.a) continue; if (doBF(JSON.parse(JSON.stringify(k.a)))) return; }
+    if (game.mustPass && game.mustPass()) doBF({ k: 'pass' });
+  }
   function maybeAI() {
     if (!(vsAI() || hostBot()) || ended || game.result || !started || !isAI(game.turn) || pendingUndo) return;
     if (aiThinking) return;
@@ -984,7 +995,8 @@
         const lim = Math.min(opts.step ? clock.step - 3000 : Infinity, opts.total ? clock[side] / 8 : Infinity);
         return bfThink(BF.cloneState(game.S), lvl, waitIdle, true, isFinite(lim) ? { maxMs: Math.max(300, lim) } : undefined);
       })().then(async seq => {
-        if (id !== aiSeq || !seq) { if (id === aiSeq) { aiThinking = false; updateHud(); } return; }
+        if (id !== aiSeq) return;
+        if (!seq || !seq.length) { aiThinking = false; await aiRescue(id, side, waitIdle, '电脑没给出行动'); updateHud(); return; }
         // 思考记录按这一回合第一条行动的序号存（导出里的 think）
         const tr = bfThink.last && bfThink.last.trace;
         if (tr) { if (!game.__think) game.__think = {}; game.__think[game.entries.length] = tr; }
@@ -994,7 +1006,7 @@
         for (const a of seq) {
           await waitIdle();
           if (id !== aiSeq || ended || game.result || game.turn !== side || pendingUndo) break;
-          if (!doBF(a)) { console.warn('电脑行动非法', a); break; }
+          if (!doBF(a)) { console.warn('电脑行动非法', a); await aiRescue(id, side, waitIdle, '电脑行动非法'); break; }
         }
         updateHud();
       }).catch(e => { console.error(e); aiThinking = false; updateHud(); });
@@ -4171,6 +4183,7 @@
     o.result = G.result || null;
     // C62 A：电脑每一回合的思考记录（键是这一回合第一条行动在 entries 里的序号）、悔掉的分支；C62 C：标了“这步笨”的
     if (G.__think) o.think = G.__think;
+    if (G.__rescue) o.rescue = G.__rescue;   // 电脑卡住、靠兜底走的那几步（TD 10-11）
     if (G.__branches && G.__branches.length) o.branches = G.__branches;
     if (G.__flags && G.__flags.length) o.flags = G.__flags;
     if (G.bf) {
