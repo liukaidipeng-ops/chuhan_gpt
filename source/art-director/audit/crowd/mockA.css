@@ -1,0 +1,13 @@
+/* 甲：工具收成右下角一颗「令」，点开往上竖排弹出；自己的名牌落到底边 */
+body.compact #cardMe{bottom:calc(8px + var(--safe-b));right:62px}
+body.compact #tools{left:auto;right:10px;bottom:calc(10px + var(--safe-b));flex-direction:column-reverse;gap:6px;width:44px}
+body.compact #tools .tool{flex:none;width:44px;height:44px;max-width:none}
+body.compact:not(.toolsOpen) #tools .tool:not(#tHandle){display:none}
+#tHandle{display:none}body.compact #tHandle{display:grid;order:-1}
+body.compact.toolsOpen #tHandle{background:var(--c)!important;color:var(--k)!important}
+/* 跳过：放在棋盘和自己名牌之间的空当，不压棋子；电影镜头时放进下面的黑边里 */
+body.compact #skip{bottom:calc(var(--meTop, 104px) + 10px)}
+body.compact.cine #skip{bottom:calc(3vh + var(--safe-b))}
+/* 气泡：字小一号、边距收紧、最宽到屏幕六成多 */
+body.compact .bubble{font-size:calc(15px * var(--fs,1));padding:6px 12px;max-width:64vw;letter-spacing:.04em}
+body.compact .bubble b{font-size:calc(11px * var(--fs,1));margin-bottom:0}
