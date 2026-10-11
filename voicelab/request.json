@@ -1,5 +1,5 @@
 {
- "batch": "b43",
+ "batch": "b44",
  "list_voices": false,
  "hosts": [
   "https://api.minimax.cn",
@@ -13,81 +13,18 @@
  ],
  "jobs": [
   {
-   "voice": "Chinese (Mandarin)_Reliable_Executive",
-   "pitch": -1,
+   "voice": "Chinese (Mandarin)_Humorous_Elder",
+   "pitch": -3,
    "vol": 1,
    "modify": {
-    "pitch": -12,
-    "timbre": -8
+    "intensity": -80,
+    "pitch": -20,
+    "timbre": -30,
+    "sound_effects": "spacious_echo"
    },
-   "id": "ai_l_muse1_a",
-   "text": "呃……这步怎么下呢？",
-   "emotion": "calm",
-   "speed": 0.9
-  },
-  {
-   "voice": "Chinese (Mandarin)_Reliable_Executive",
-   "pitch": -1,
-   "vol": 1,
-   "modify": {
-    "pitch": -12,
-    "timbre": -8
-   },
-   "id": "ai_l_muse1_b",
-   "text": "(breath)呃……这步怎么下呢？",
    "emotion": "sad",
-   "speed": 0.85
-  },
-  {
-   "voice": "Chinese (Mandarin)_Reliable_Executive",
-   "pitch": -1,
-   "vol": 1,
-   "modify": {
-    "pitch": -12,
-    "timbre": -8
-   },
-   "id": "ai_l_muse2_a",
-   "text": "嗯……容我三思。",
-   "emotion": "calm",
-   "speed": 0.9
-  },
-  {
-   "voice": "Chinese (Mandarin)_Reliable_Executive",
-   "pitch": -1,
-   "vol": 1,
-   "modify": {
-    "pitch": -12,
-    "timbre": -8
-   },
-   "id": "ai_l_muse2_b",
-   "text": "(breath)嗯……容我三思。",
-   "emotion": "sad",
-   "speed": 0.85
-  },
-  {
-   "voice": "Chinese (Mandarin)_Reliable_Executive",
-   "pitch": -1,
-   "vol": 1,
-   "modify": {
-    "pitch": -12,
-    "timbre": -8
-   },
-   "id": "ai_l_muse3_a",
-   "text": "这个嘛……要是子房在就好了。",
-   "emotion": "calm",
-   "speed": 0.9
-  },
-  {
-   "voice": "Chinese (Mandarin)_Reliable_Executive",
-   "pitch": -1,
-   "vol": 1,
-   "modify": {
-    "pitch": -12,
-    "timbre": -8
-   },
-   "id": "ai_l_muse3_b",
-   "text": "(breath)这个嘛……要是子房在就好了。",
-   "emotion": "sad",
+   "id": "ai_x_muse1_c",
+   "text": "(breath)呃……先斩哪一个？",
    "speed": 0.85
   },
   {
@@ -100,9 +37,9 @@
     "timbre": -30,
     "sound_effects": "spacious_echo"
    },
-   "id": "ai_x_muse1_a",
-   "text": "唔……先斩哪一个？",
-   "emotion": "calm",
+   "emotion": "sad",
+   "id": "ai_x_muse1_d",
+   "text": "(breath)呃……先斩哪一个？",
    "speed": 0.9
   },
   {
@@ -115,69 +52,9 @@
     "timbre": -30,
     "sound_effects": "spacious_echo"
    },
-   "id": "ai_x_muse1_b",
-   "text": "(breath)唔……先斩哪一个？",
    "emotion": "sad",
-   "speed": 0.85
-  },
-  {
-   "voice": "Chinese (Mandarin)_Humorous_Elder",
-   "pitch": -3,
-   "vol": 1,
-   "modify": {
-    "intensity": -80,
-    "pitch": -20,
-    "timbre": -30,
-    "sound_effects": "spacious_echo"
-   },
-   "id": "ai_x_muse2_a",
-   "text": "哼……此局倒有几分意思。",
-   "emotion": "calm",
-   "speed": 0.9
-  },
-  {
-   "voice": "Chinese (Mandarin)_Humorous_Elder",
-   "pitch": -3,
-   "vol": 1,
-   "modify": {
-    "intensity": -80,
-    "pitch": -20,
-    "timbre": -30,
-    "sound_effects": "spacious_echo"
-   },
-   "id": "ai_x_muse2_b",
-   "text": "(breath)哼……此局倒有几分意思。",
-   "emotion": "sad",
-   "speed": 0.85
-  },
-  {
-   "voice": "Chinese (Mandarin)_Humorous_Elder",
-   "pitch": -3,
-   "vol": 1,
-   "modify": {
-    "intensity": -80,
-    "pitch": -20,
-    "timbre": -30,
-    "sound_effects": "spacious_echo"
-   },
-   "id": "ai_x_muse3_a",
-   "text": "嗯……让我想想。",
-   "emotion": "calm",
-   "speed": 0.9
-  },
-  {
-   "voice": "Chinese (Mandarin)_Humorous_Elder",
-   "pitch": -3,
-   "vol": 1,
-   "modify": {
-    "intensity": -80,
-    "pitch": -20,
-    "timbre": -30,
-    "sound_effects": "spacious_echo"
-   },
-   "id": "ai_x_muse3_b",
-   "text": "(breath)嗯……让我想想。",
-   "emotion": "sad",
+   "id": "ai_x_muse1_e",
+   "text": "(sighs)呃……先斩哪一个？",
    "speed": 0.85
   }
  ],
