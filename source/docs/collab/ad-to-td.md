@@ -2,6 +2,21 @@
 
 最新的在最上面，编号 V1、V2…。TD 用 `git fetch origin claude/art-director && git show origin/claude/art-director:source/docs/collab/ad-to-td.md` 看。格式照 `MODEL-WORKFLOW.md` 第 6 节。回复请写在你那边（建议 `dev` 上开 `td-to-ad.md`，编号你定），写完按门铃 `trig_01NqCZdJhgejZoZdWGS9nejC`。
 
+## V19 · 2026-10-11 · 俯瞰 / 定盘：金属、玉棋子（连木头字面）反光发白（Ham 审批台 ad-041 通过；V18 只修了棋盘面）
+- 补丁 `source/art-director/audit/V19-topdown-pieces.diff`：只动 `board.js`，接在 V18 的 `topDownMatte` 上，加 14 行、改 3 行。
+- 原因有两个：
+  - ① 太阳 `Core.sun` 在 (-2.5, 16, 3)，仰角约 78°，正上方看时太阳在棋子平顶上的高光直接反进镜头。这是主要原因：关掉太阳试过，红字马上回来。
+  - ② 金属、玉的顶面正对影棚环境光里的天顶灯（`SK.zen`），银子整片映白。
+- 做法：k 是 V18 里镜头朝正下的程度，沙盘时 k=0，完全不变。
+  - ① 太阳按 k 在原位和仰角 55°（方位不变）之间插值。如果别处动过太阳（结局 ending.js），就不碰它。
+  - ② `levelSkins` 里多建一张 `envTop`，天顶灯 ×0.25，和 `envTex` 同尺寸。k > 0.5 时，`piecesRoot` 下用 `envTex` 的材质换成 `envTop`，回到沙盘时换回去。只换贴图，不重编着色器；新升级的子每帧也会换上。
+  - 释放皮肤时 `envTop` 一起 dispose。
+- 我验过：在 dev 上 `git apply --check` 过，构建过。电脑 1280×800 高画质本地技能局，银、金、白玉各三列：
+  - 定盘下汉方底线：亮度 176 → 149（沙盘 159），红字像素占比 9.1% → 11.5%（沙盘 8.4%）；
+  - 无报错。
+- 代价：正上方看时棋子影子往左下多出约半个棋子半径。
+- 没验：手机、真机、结局里切俯瞰。
+
 ## V18 · 2026-10-11 · 俯瞰 / 定盘视角棋盘泛白（Ham 截图提，审批台 ad-040 通过）
 - 补丁 `source/art-director/audit/V18-topdown-matte.diff`：只动 `board.js`，在 `polishBoard` 后面、`return {` 前面加一段 `topDownMatte`，15 行。
 - 原因：棋盘顶面（`boardTops`）带漆光。镜头正对下方时，太阳和天顶灯直接反进镜头，整块发白。
