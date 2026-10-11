@@ -373,6 +373,10 @@ textarea:focus { border-color: var(--ink); }
     for (const im of Array.isArray(it.images) ? it.images : []) {
       const src = im && (im.url || (im.id ? '/_blob/' + im.id : '')); if (!src) continue;
       const f = el('figure'); f.style.margin = '0';
+      if (im.video) {   // 动态：实机录下来的短片，点了就放，循环
+        const v = el('video', 'shot'); v.src = src; v.controls = true; v.loop = true; v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.style.width = '100%'; v.style.display = 'block';
+        f.appendChild(v); if (im.cap) f.appendChild(el('figcaption', 'cap', '▶ ' + im.cap)); box.appendChild(f); continue;
+      }
       const b = el('button', 'shot'); b.type = 'button'; b.setAttribute('aria-label', '放大看图：' + (im.cap || it.title || ''));
       const g = el('img'); g.src = src; g.alt = im.cap || ''; g.loading = 'lazy'; b.appendChild(g);
       b.addEventListener('click', () => { $('lbImg').src = src; $('lb').hidden = false; });
@@ -423,7 +427,7 @@ textarea:focus { border-color: var(--ink); }
     inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true; inp.disabled = allBusy;
     inp.addEventListener('change', () => { addFiles(id, inp.files); inp.value = ''; });
     add.append('＋ 上传图片', inp); if (allBusy) add.setAttribute('aria-disabled', 'true');
-    const tools = el('div', 'note-tools'), imgs = (Array.isArray(it.images) ? it.images : []).filter(im => im && (im.url || im.id));
+    const tools = el('div', 'note-tools'), imgs = (Array.isArray(it.images) ? it.images : []).filter(im => im && (im.url || im.id) && !im.video);
     if (imgs.length) {
       const mk = el('button', 'addimg', '✎ 截图标注'); mk.type = 'button'; mk.disabled = allBusy;
       mk.addEventListener('click', () => { const im = imgs[imgs.length - 1]; openEditor(id, im.url || '/_blob/' + im.id); });
