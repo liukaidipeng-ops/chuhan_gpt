@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '局势条在电脑对电脑（霸王、兵仙）的局里也能跟上了（原来和电脑抢着算，一直显示「分析中」）',
       '俯瞰、定盘视角下棋盘不再泛白（美术总监）',
       '技能模式的电脑在慢手机上也守时了：给了时限就一定在时限内走；电脑线程没回话时自动重来；页面切到后台时电脑的钟暂停（数值部）',
       '技能模式的电脑偶尔给不出能走的一步时，原来会一直不走直到超时，现在会改走一步能走的（并记下来发给数值部查）',
@@ -1658,7 +1659,13 @@
   // ---------- 观战实时局势条（Ham 10-11：观众只给局势条、不给走法；样子美术总监 V17，Ham 审批台 ad-039 甲）----------
   //   观众每看到一步（技能模式每一个行动）就把当前局面交给电脑算一遍，分数换成 -1～+1（汉方看）。收起时不算，省电；揭棋不显示
   //   技能模式默认不算（手机吃力），面板里勾「技能模式也显示」才算
-  let lbKey = null, lbBusy = false, lbW = null;
+  let lbKey = null, lbBusy = false, lbW = null, lbBW = null;
+  // 技能模式的局势条也用自己的线程：和电脑走棋共用那个线程时，电脑一直在想（霸王、兵仙一步几秒到二十几秒），局势条排不上队，算出来也过时了（Ham 10-11）
+  function lbBfAnalyze(S) {
+    if (lbBW === null) { try { lbBW = new Worker(URL.createObjectURL(new Blob([document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;let st=null;try{if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}await BFAI.think(d.S,"ana");st=BFAI.think.last;}catch(err){}postMessage(st&&{v:st.v});};'], { type: 'text/javascript' }))); } catch (e) { lbBW = false; } }
+    if (!lbBW) return Promise.resolve(null);
+    return new Promise(res => { const t = setTimeout(() => res(null), 15000); lbBW.onmessage = e => { clearTimeout(t); res(e.data); }; lbBW.postMessage({ S, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); });
+  }
   // 房主坐到观战席（自己的座位交给电脑）也显示（Ham 10-11）
   const lbHostOut = () => mode === 'host' && !!(opts && opts.ai2);
   // 标准象棋的局势条用自己的一个引擎线程：和电脑走棋共用那个线程会互相顶掉（同一时间只认一个请求）
@@ -1680,7 +1687,7 @@
     el.classList.toggle('bf', !!game.bf);
     const st = $('status').getBoundingClientRect(); el.style.top = Math.round(st.bottom + 8) + 'px';
     if (game.bf && !el.querySelector('.sw input').checked) { el.classList.remove('busy'); lbSet(null, '已关'); lbKey = null; return; }
-    if (!el.classList.contains('open') || lbBusy || busy) return;
+    if (!el.classList.contains('open') || lbBusy) return;   // 用自己的线程算，演出放着也照算
     const key = game.bf ? 'b' + game.entries.length : 's' + game.history.length;
     if (key === lbKey) return;
     lbBusy = true; el.classList.add('busy'); lbSet(null, '分析中');
@@ -1689,7 +1696,7 @@
       if (game.bf) {
         const S = BF.cloneState(game.S), g = new BF.Game(); g.reset(BF.cloneState(S));
         if (g.status.result) v = g.status.result.winner === 'r' ? 1 : g.status.result.winner === 'b' ? -1 : 0;
-        else { await bfThink(S, 'ana', async () => { }); v = (S.turn === 'r' ? 1 : -1) * Math.tanh(((bfThink.last || {}).v || 0) / LB.bf); }
+        else { const st = await lbBfAnalyze(S); if (!st) throw new Error('没算出来'); v = (S.turn === 'r' ? 1 : -1) * Math.tanh((st.v || 0) / LB.bf); }
       } else {
         const r = await lbAnalyze(game.history.map(h => ({ from: h.from, to: h.to })));
         if (!r) throw new Error('没算出来');
@@ -1697,7 +1704,7 @@
         v = (game.turn === 'r' ? 1 : -1) * Math.tanh(sc / LB.std);
       }
       const now = game.bf ? 'b' + game.entries.length : 's' + game.history.length;
-      if ((watching() || lbHostOut()) && now === key) { lbKey = key; lbSet(v); }   // 算的时候又走了一步：这次的不用，下一轮重算
+      if (watching() || lbHostOut()) { lbKey = key; lbSet(v); }   // 算的时候又走了一步也先显示（晚一步总比一直「分析中」好），下一轮按新局面重算
     } catch (e) { console.warn('局势条', e); lbKey = key; }
     finally { lbBusy = false; el.classList.remove('busy'); }
   }
