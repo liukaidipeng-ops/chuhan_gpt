@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '房主坐到观战席看电脑下时，也有局势条（点状态栏下的「势」展开）',
       '观战电脑对电脑的局，结束后也能「保存」、发给数值部；标题写明两边各是哪一档（数值部）',
       '技能模式的电脑会看钟了：房间里开了计时，时间不多时想得快些，「兵仙」不会再下到后面超时判负（数值部）',
       '观战时顶上状态栏下多了一个「势」字，点开是实时局势条，看谁占优（只显示局势，不提示走法；技能模式要在面板里勾上才算，手机会比较热）（美术总监、TD）',
@@ -1640,7 +1641,15 @@
   // ---------- 观战实时局势条（Ham 10-11：观众只给局势条、不给走法；样子美术总监 V17，Ham 审批台 ad-039 甲）----------
   //   观众每看到一步（技能模式每一个行动）就把当前局面交给电脑算一遍，分数换成 -1～+1（汉方看）。收起时不算，省电；揭棋不显示
   //   技能模式默认不算（手机吃力），面板里勾「技能模式也显示」才算
-  let lbKey = null, lbBusy = false;
+  let lbKey = null, lbBusy = false, lbW = null;
+  // 房主坐到观战席（自己的座位交给电脑）也显示（Ham 10-11）
+  const lbHostOut = () => mode === 'host' && !!(opts && opts.ai2);
+  // 标准象棋的局势条用自己的一个引擎线程：和电脑走棋共用那个线程会互相顶掉（同一时间只认一个请求）
+  function lbAnalyze(moves) {
+    if (lbW === null) { try { lbW = new Worker(URL.createObjectURL(new Blob([`const E = (${XQEngineFactory.toString()})(); onmessage = e => { let r = null; try { r = E.analyzePos(e.data.moves, e.data.time); } catch (err) { } postMessage(r); };`], { type: 'text/javascript' }))); } catch (e) { lbW = false; } }
+    if (!lbW) return AI.busy ? Promise.resolve(null) : AI.analyzePos(moves, 450);
+    return new Promise(res => { const t = setTimeout(() => res(null), 8000); lbW.onmessage = e => { clearTimeout(t); res(e.data); }; lbW.postMessage({ moves, time: 450 }); });
+  }
   const LB = { std: 300, bf: 6 };   // 分数 → 条：tanh(分 / 这个)。标准象棋车约 200 → 大优；技能模式车 9 → 胜势
   function lbSet(v, txt) {
     const el = $('liveBar');
@@ -1648,7 +1657,7 @@
     el.querySelector('.lb').innerHTML = txt;
   }
   async function liveBarTick() {
-    const el = $('liveBar'), show = watching() && !!game && !game.jq && !RP;
+    const el = $('liveBar'), show = (watching() || lbHostOut()) && !!game && !game.jq && !RP;
     el.classList.toggle('hidden', !show);
     if (!show) { lbKey = null; return; }
     el.classList.toggle('bf', !!game.bf);
@@ -1665,12 +1674,13 @@
         if (g.status.result) v = g.status.result.winner === 'r' ? 1 : g.status.result.winner === 'b' ? -1 : 0;
         else { await bfThink(S, 'ana', async () => { }); v = (S.turn === 'r' ? 1 : -1) * Math.tanh(((bfThink.last || {}).v || 0) / LB.bf); }
       } else {
-        const r = await AI.analyzePos(game.history.map(h => ({ from: h.from, to: h.to })), 450);
-        const sc = !r ? 0 : r.over ? -1e5 : r.score;
+        const r = await lbAnalyze(game.history.map(h => ({ from: h.from, to: h.to })));
+        if (!r) throw new Error('没算出来');
+        const sc = r.over ? -1e5 : r.score;
         v = (game.turn === 'r' ? 1 : -1) * Math.tanh(sc / LB.std);
       }
       const now = game.bf ? 'b' + game.entries.length : 's' + game.history.length;
-      if (watching() && now === key) { lbKey = key; lbSet(v); }   // 算的时候又走了一步：这次的不用，下一轮重算
+      if ((watching() || lbHostOut()) && now === key) { lbKey = key; lbSet(v); }   // 算的时候又走了一步：这次的不用，下一轮重算
     } catch (e) { console.warn('局势条', e); lbKey = key; }
     finally { lbBusy = false; el.classList.remove('busy'); }
   }
