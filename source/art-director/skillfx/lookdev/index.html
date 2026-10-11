@@ -133,6 +133,47 @@ const SHIELDS = {
     const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }); const arc = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, .55, 48, 1, true, Math.PI * .68, Math.PI * .64), m); arc.position.y = .275; g.add(arc);
     return g; },
 };
+// —— 悬停头顶的盾（Ham ad-033：一眼看得出是盾，悬在帅头顶）——
+// 甲 金圆盾：圆形铜盾，外圈一排铜钉，中间凸起的兽面钮，同心纹
+const roundTex = cv(512, 512, (g, w) => { const c = w / 2; const gr = g.createRadialGradient(c * .8, c * .7, 10, c, c, c); gr.addColorStop(0, '#f4dc9a'); gr.addColorStop(.6, '#c9a050'); gr.addColorStop(1, '#8a6420'); g.fillStyle = gr; g.beginPath(); g.arc(c, c, c, 0, 7); g.fill();
+  g.strokeStyle = '#6a4a14'; for (const [r, lw] of [[c - 8, 10], [c - 46, 4], [c * .5, 3], [c * .3, 5]]) { g.lineWidth = lw; g.beginPath(); g.arc(c, c, r, 0, 7); g.stroke(); }
+  g.fillStyle = '#7a5418'; for (let i = 0; i < 24; i++) { const a = i / 24 * 6.283; g.beginPath(); g.arc(c + Math.cos(a) * (c - 26), c + Math.sin(a) * (c - 26), 7, 0, 7); g.fill(); }
+  g.strokeStyle = '#7a5418'; g.lineWidth = 3; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; g.beginPath(); g.moveTo(c + Math.cos(a) * c * .32, c + Math.sin(a) * c * .32); g.lineTo(c + Math.cos(a) * c * .48, c + Math.sin(a) * c * .48); g.stroke(); }
+  for (let i = 0; i < 16; i++) { const a = i / 16 * 6.283 + .2; g.beginPath(); g.arc(c + Math.cos(a) * c * .62, c + Math.sin(a) * c * .62, 14, a, a + 3); g.stroke(); } });
+function roundShield() { const g = new THREE.Group(), R0 = .42;
+  const prof = [[0, .1], [R0 * .3, .095], [R0 * .7, .07], [R0 * .95, .035], [R0, .02], [R0 * 1.02, 0], [R0 * .98, -.015], [0, -.01]].map(([r, y]) => new THREE.Vector2(r, y));
+  const body = new THREE.LatheGeometry(prof, 64); const uv = body.attributes.uv, pp = body.attributes.position; for (let i = 0; i < pp.count; i++) uv.setXY(i, .5 + pp.getX(i) / (2 * R0), .5 + pp.getZ(i) / (2 * R0));
+  g.add(new THREE.Mesh(body, new THREE.MeshStandardMaterial({ map: roundTex, metalness: .3, roughness: .42, emissive: 0x6a4a10, emissiveIntensity: .45 })));
+  const boss = new THREE.Mesh(new THREE.SphereGeometry(.075, 24, 14, 0, 6.3, 0, 1.4), new THREE.MeshStandardMaterial({ color: 0xf0d48a, metalness: .4, roughness: .3, emissive: 0x6a4a10, emissiveIntensity: .4 })); boss.position.y = .09; boss.scale.y = .7; g.add(boss);
+  return g; }
+// 乙 虎头藤牌：圆藤牌，藤条一圈圈盘出来，正面画一张虎头（米白底、墨线、朱红嘴）
+const tigerTex = cv(512, 512, (g, w) => { const c = w / 2; g.fillStyle = '#a87a3e'; g.beginPath(); g.arc(c, c, c, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(80,52,20,.75)'; for (let r = 24; r < c; r += 8) { g.lineWidth = 2.5; g.beginPath(); g.arc(c, c, r, 0, 7); g.stroke(); }   // 盘藤
+  // 虎面：橙黄底，一整块倒三角的脸
+  g.fillStyle = '#d98a2a'; g.beginPath(); g.moveTo(c - 150, c - 120); g.quadraticCurveTo(c, c - 175, c + 150, c - 120); g.quadraticCurveTo(c + 170, c + 30, c + 70, c + 150); g.quadraticCurveTo(c, c + 185, c - 70, c + 150); g.quadraticCurveTo(c - 170, c + 30, c - 150, c - 120); g.fill();
+  g.fillStyle = '#f2e6c8'; g.beginPath(); g.moveTo(c - 95, c + 30); g.quadraticCurveTo(c, c - 10, c + 95, c + 30); g.quadraticCurveTo(c + 70, c + 150, c, c + 160); g.quadraticCurveTo(c - 70, c + 150, c - 95, c + 30); g.fill();   // 白腮
+  // 墨色虎纹：一笔笔从两侧往里扫的尖刺
+  g.fillStyle = '#141311';
+  const stripe = (x0, y0, x1, y1, wd) => { const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy), nx = -dy / L * wd, ny = dx / L * wd; g.beginPath(); g.moveTo(x0 + nx, y0 + ny); g.quadraticCurveTo((x0 + x1) / 2 + nx * .4, (y0 + y1) / 2 + ny * .4, x1, y1); g.quadraticCurveTo((x0 + x1) / 2 - nx * .4, (y0 + y1) / 2 - ny * .4, x0 - nx, y0 - ny); g.fill(); };
+  for (const sd of [-1, 1]) { for (const [y, l] of [[-90, 70], [-55, 85], [-15, 80], [25, 60]]) stripe(c + sd * 160, c + y, c + sd * (160 - l), c + y + 12, 9);
+    stripe(c + sd * 40, c - 150, c + sd * 22, c - 100, 7); stripe(c + sd * 75, c - 140, c + sd * 52, c - 95, 6); }
+  g.lineWidth = 11; g.strokeStyle = '#141311'; g.lineCap = 'butt'; for (const y of [-128, -110, -92]) { g.beginPath(); g.moveTo(c - 26, c + y); g.lineTo(c + 26, c + y); g.stroke(); } g.beginPath(); g.moveTo(c, c - 132); g.lineTo(c, c - 88); g.stroke();   // 额上「王」
+  // 眼：斜吊的杏眼，琥珀色、竖瞳、粗墨眼线
+  for (const sd of [-1, 1]) { g.save(); g.translate(c + sd * 62, c - 45); g.rotate(sd * .38); g.fillStyle = '#f2b830'; g.beginPath(); g.moveTo(-34, 0); g.quadraticCurveTo(0, -24, 34, 0); g.quadraticCurveTo(0, 18, -34, 0); g.fill(); g.lineWidth = 7; g.stroke();
+    g.fillStyle = '#141311'; g.beginPath(); g.ellipse(0, -1, 5, 13, 0, 0, 7); g.fill(); g.restore(); }
+  // 鼻、口：张开的血盆口，上下獠牙
+  g.fillStyle = '#141311'; g.beginPath(); g.moveTo(c - 26, c + 22); g.lineTo(c + 26, c + 22); g.lineTo(c, c + 46); g.fill();
+  g.fillStyle = '#8e1a12'; g.beginPath(); g.moveTo(c - 70, c + 72); g.quadraticCurveTo(c, c + 52, c + 70, c + 72); g.quadraticCurveTo(c + 40, c + 140, c, c + 140); g.quadraticCurveTo(c - 40, c + 140, c - 70, c + 72); g.fill(); g.lineWidth = 6; g.strokeStyle = '#141311'; g.stroke();
+  g.fillStyle = '#f6eedc'; for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(c + sd * 52, c + 68); g.lineTo(c + sd * 40, c + 112); g.lineTo(c + sd * 30, c + 66); g.fill(); g.beginPath(); g.moveTo(c + sd * 34, c + 136); g.lineTo(c + sd * 26, c + 104); g.lineTo(c + sd * 16, c + 136); g.fill(); }
+  g.lineWidth = 8; g.strokeStyle = '#3a2810'; g.beginPath(); g.arc(c, c, c - 4, 0, 7); g.stroke(); });
+function tigerShield() { const g = new THREE.Group(), R0 = .42;
+  const prof = [[0, .08], [R0 * .5, .07], [R0 * .9, .035], [R0, .015], [R0 * 1.03, 0], [0, -.01]].map(([r, y]) => new THREE.Vector2(r, y));
+  const body = new THREE.LatheGeometry(prof, 64); const uv = body.attributes.uv, pp = body.attributes.position; for (let i = 0; i < pp.count; i++) uv.setXY(i, .5 + pp.getX(i) / (2 * R0), .5 - pp.getZ(i) / (2 * R0));
+  g.add(new THREE.Mesh(body, new THREE.MeshStandardMaterial({ map: tigerTex, roughness: .75 })));
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(R0 * 1.02, .018, 8, 64), new THREE.MeshStandardMaterial({ color: 0x6b4426, roughness: .8 })); rim.rotation.x = Math.PI / 2; g.add(rim); return g; }
+// 头顶盾：悬在帅头顶 0.95 高，盾面朝前上方（对着镜头偏上、也对着对方）；外面一圈金光晕
+const glowTex = cv(256, 256, (g, w) => { const c = w / 2, gr = g.createRadialGradient(c, c, c * .5, c, c, c); gr.addColorStop(0, 'rgba(255,220,140,0)'); gr.addColorStop(.75, 'rgba(255,220,140,.55)'); gr.addColorStop(1, 'rgba(255,220,140,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, w); });
+const OVER = { round: roundShield, tiger: tigerShield };
 let cur = null;
 window.show = (kind, v, opt = {}) => {
   if (cur) scene.remove(cur);
@@ -143,5 +184,36 @@ window.show = (kind, v, opt = {}) => {
 };
 function resize() { const w = innerWidth, h = innerHeight; R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
 addEventListener('resize', () => { resize(); R.render(scene, cam); });
+// 动态：象腿 0–0.66 从 9 高处加速落下，落地震环 + 尘土，停 0.45，0.5 上收淡出；盾 0–0.35 从头顶上方落下定住、一圈光、轻微浮动，1.6 起淡出
+const ease = { in: k => k * k * k, out: k => 1 - Math.pow(1 - k, 3), back: k => 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2) };
+const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+let fx = null;
+function ringMesh(col) { const m = new THREE.Mesh(new THREE.RingGeometry(.9, 1, 64), new THREE.MeshBasicMaterial({ color: col, transparent: true, depthWrite: false, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; scene.add(m); return m; }
+function dustPts(n) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3)); const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xd8c39a, size: .08, transparent: true, depthWrite: false })); pts.userData.seed = Array.from({ length: n }, () => [rnd() * 6.283, .5 + rnd(), .5 + rnd()]); scene.add(pts); return pts; }
+window.anim = (kind, v, t) => {
+  if (!fx || fx.key !== kind + v) { if (fx) fx.objs.forEach(o => scene.remove(o)); if (cur) scene.remove(cur);
+    if (kind === 'leg') { cur = LEGS[v](); scene.add(cur); fx = { key: kind + v, objs: [ringMesh(0xf0e7d2), ringMesh(0xa8281c), dustPts(90)] }; cam.position.set(3.6, 4.6, 6.2); cam.lookAt(0, 1.0, 0); }
+    else { cur = new THREE.Group(); scene.add(cur); const sh = v === 'veil' ? SHIELDS.veil() : OVER[v](); cur.add(sh); cur.userData.sh = sh;
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); halo.scale.set(1.35, 1.35, 1); if (v !== 'veil') cur.add(halo); cur.userData.halo = halo;
+      fx = { key: kind + v, objs: [ringMesh(0xd9b877)] }; cam.position.set(3.9, 2.6, 5.4); cam.lookAt(2.6, .7, 2.2); }
+    resize(); }
+  const [r1, r2, du] = fx.objs;
+  if (kind === 'leg') {
+    const IMP = .66, fall = ease.in(seg(t, 0, IMP)), up = seg(t, IMP + .45, IMP + .95);
+    cur.position.set(0, 5.5 * (1 - fall) + 3 * up, 0); cur.visible = t < IMP + .95;
+    cur.traverse(n => { if (n.material && n.material.uniforms) n.material.uniforms.k.value = 1 - up; else if (n.material) { n.material.transparent = true; n.material.opacity = (n.material.userData.o0 ??= n.material.opacity) * (1 - up); } });
+    const ring = (m, t0, d, R) => { const k = seg(t, t0, t0 + d); m.visible = k > 0 && k < 1; m.position.set(0, .02, 0); const sc = .2 + R * ease.out(k); m.scale.set(sc, sc, sc); m.material.opacity = .85 * (1 - k); };
+    ring(r1, IMP, .6, 2.4); ring(r2, IMP + .06, .45, 1.6);
+    const k = seg(t, IMP, IMP + 1), a = du.geometry.attributes.position.array; du.visible = k > 0 && k < 1; du.userData.seed.forEach(([ang, sp, h], i) => { const r = 1.6 * sp * ease.out(k); a[i * 3] = Math.cos(ang) * r; a[i * 3 + 1] = h * k * (1 - k) * 1.6; a[i * 3 + 2] = Math.sin(ang) * r; }); du.geometry.attributes.position.needsUpdate = true; du.material.opacity = 1 - k;
+    const sh = Math.max(0, 1 - Math.abs(t - IMP - .08) / .3) * .14; cam.position.set(3.6 + (rnd() - .5) * sh, 4.6 + (rnd() - .5) * sh, 6.2); cam.lookAt(0, 1.0, 0);
+  } else {
+    const sh = cur.userData.sh, halo = cur.userData.halo, inK = ease.back(seg(t, 0, .4)), fo = seg(t, 1.7, 2.2), bob = Math.sin(t * 4) * .02;
+    if (v === 'veil') { cur.position.set(2.6, 0, 2.4); cur.scale.set(1, Math.max(.01, inK), 1); }
+    else { cur.position.set(2.6, .22 + .78 + .6 * (1 - inK) + bob, 2.4 - .05); sh.rotation.set(Math.PI / 2 - .55, 0, 0); sh.rotation.order = 'XYZ'; cur.rotation.y = 0; cur.scale.setScalar(Math.max(.01, .6 + .4 * inK)); halo.position.set(0, 0, -.02); halo.material.opacity = (seg(t, .3, .45) - seg(t, .45, .9) * .6) * (1 - fo); }
+    cur.traverse(n => { if (n.material && n !== halo) { n.material.transparent = true; n.material.opacity = (n.material.userData.o0 ??= n.material.opacity) * Math.min(1, seg(t, 0, .2) * 1.0) * (1 - fo); } });
+    const k = seg(t, .35, .9); r1.visible = k > 0 && k < 1; r1.position.set(2.6, .02, 2.4); const sc = .3 + 1.1 * ease.out(k); r1.scale.set(sc, sc, sc); r1.material.opacity = .8 * (1 - k);
+  }
+  R.render(scene, cam);
+};
 window.ready = true;
 </script>
