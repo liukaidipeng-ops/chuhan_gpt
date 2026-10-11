@@ -2,6 +2,22 @@
 
 最新的在最上面。美术那边用 `git fetch origin && git show origin/dev:source/docs/collab/main-to-model.md` 看。约定见同目录的 `MODEL-WORKFLOW.md`。
 
+## H37 · 2026-10-10 · M33（火象合网格）已接，图已更新（td/m31）
+- `elephantlv.js` 换成 de6f4e8。实测（无头浏览器，单只象加进场景前后）：一级每帧 +9 次绘制，四级 +18 次；样子和合并前一样。
+- 一到四级各走一遍 `march` → `attack`（踩兵）→ `die('blast')`：都跑完，没有报错。腿、鼻子、塔错位要逐帧看，我没录；四级合并后的正面截图和合并前对比看不出差别。
+- 图已覆盖：`td/m31` 的 `source/docs/collab/td-shots/m32-front.png`、`m32-side-lv1～4.png`（含 M32 的旗子位置）。Ham 点头就上线。
+
+## H36 · 2026-10-10 · M32（象的旗子抬高、不穿模）已改，图在 td/m31
+- `elephantlv.js` 换成 dd278c6（多了 `topY`）；`squads.js` 的 `leader()`：火象的旗插在 `topY × EL × lvScale + 0.15`，不往后挪。
+- 图（`td/m31` 分支）：`source/docs/collab/td-shots/m32-front.png`（正面，左起一、二、三、四级，四只象旗子都在塔顶上方）；`m32-side-lv1.png`～`m32-side-lv4.png`（侧面，每张中间那只是该级；为了侧面不被挡，四只摆在同一列的 5～8 行，旁边会露出相邻那只）。
+- **待优化部 R2**：优化部提醒四级一只 202 个网格、两只四级每帧多约 400 次绘制。Ham 点头后我照样上线（造型已批），但请你和优化部把网格合一合，合好交 M 号我再换。
+
+## H35 · 2026-10-10 · M31（火象一到四级）已接进游戏，等 Ham 最后看一眼再上线
+- 分支 `td/m31`：`elephantlv.js` 照 model-lab 原样取；`build.js` 在 `models` 后加 `elephantlv`；`Elephant` 按等级调 `ElephantLV.make('b', { lv, plan: 'b' })`，缩放 `EL × lvScale`；升级时小队按等级重建（整只换掉）。
+- **去掉了叠影**：原来 `make()` 给楚象按等级加回声（两三只叠在一起），火象一律不加，每级一只。普通模式（不分等级）还是原来的象。
+- 四级比一级大三成多：棋盘上摆了一排（第 7 行 1、3、5、7 列，旁边有卒、士），没看到压到邻格的子。
+- 截图（模型模式，技能模式开局，楚方背后看）：`source/docs/collab/td-shots/m31-all.png`（四只并排：左起四级、三级、二级、一级），`m31-lv1.png`～`m31-lv4.png` 各一张（从整图裁的）。请挂审批台给 Ham；他点头告诉我，我就上线。
+
 ## H34 · 2026-10-10 · M28 第 3 条（相 / 象打拒马三段）、M30 已接、上线（Ham 审批台 td-029 通过）
 - `bfx.js`：被打的兵正立着拒马（走子前那一刻 `jm > cnt[攻方]`）时 `c.djm = true`；`capture` 里守方摆拒马阵、架路障。
 - 相（`TigerRider.jmAttack`）：一、二级身边一阵烟现出一名弩手，两箭 0.70 / 0.95；三、四级两名随护左先右后各一箭（M30）。只掉血：相和弩手不上前、路障不动；打得死：箭后 `pounce` 扑上去，`shatter(d, 1.3)`、兵砸飞，落地咆哮。

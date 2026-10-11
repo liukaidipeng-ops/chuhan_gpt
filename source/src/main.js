@@ -8,6 +8,12 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '技能模式人机新增最强一档「兵仙」：比霸王还强，每步想得更久（约九秒，难处最多二十多秒）；电脑想的时候随时能悔棋、认输，切到后台不再偷偷算；兵仙想得久，手机会比较热（数值部）',
+      '复盘分析的步数条：按住左右滑就能一步步看，电脑上鼠标悬停放大，手机上手指上方浮出放大镜，右头加了上一步 / 下一步按钮（美术总监）',
+      '技能模式：楚战象升级换成「火象」，一到四级越来越大、越来越威风（四级金鳞甲、大象牙、背上火鬃），每级一只、不再叠影（角色部）',
+      '界面小修：对方喊话时提示条让到气泡下面；弹出确认框时暂停卡先收起来；加载页的字不再忽明忽暗；电脑上技能按钮放大；没走子的复盘写明“没有可分析的”（美术总监）',
+      '技能模式开局不再卡几秒：棋子材质的准备挪到页面刚打开、空闲的时候做（优化部）',
+      '技能模式的电脑重新调了看局面的分寸，比上一版强不少（对上一版胜率约九成）（数值部）',
       '开局换成一段约 3 秒的开场曲（大鼓、锣、编钟、古筝），汉楚各有自己的，汉方两首随机（声音部）',
       '修好上一版棋子立体化后打开变慢、开局卡一下的问题：刻字的明暗改成空闲时一颗一颗算（优化部）',
       '棋子更立体：字和圈线刻进去，银、金、玉的花纹更深；灯光挪高，影子收在棋子脚下，每颗子下面一片贴地暗影（美术总监）',
@@ -152,7 +158,7 @@
     ['第一版', '', ['三维水墨棋盘、兵种战斗演出、联机对战']],
   ];
   const REASON = { checkmate: '将死', stalemate: '困毙', kingdead: '主帅阵亡', occupy: '夺营', resign: '认输', timeout: '超时', draw: '四十回合无吃子' };
-  const LV = { easy: '新兵', mid: '校尉', hard: '霸王' };
+  const LV = { easy: '新兵', mid: '校尉', hard: '霸王', xhard: '兵仙' };   // 兵仙：只有技能模式有（数值部 C70，Ham 审批台 td-031）
   const VIS = ['cine', 'std', 'low'], VISNAME = { cine: '完整电影镜头', std: '精简特效', low: '低特效' }, VISBADGE = { cine: '影', std: '简', low: '低' };
 
   // ---------- 本地存储与设置 ----------
@@ -929,7 +935,14 @@
     // 试验性的规则开关（背水一战等）也带给电脑线程：它那边有自己的一份配置
     return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej }); bfW.postMessage({ id, S, level, trace: !!trace, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
   }
-  function cancelAI() { aiSeq++; if (aiThinking) { try { AI.cancel(); } catch (e) { } } aiThinking = false; }
+  // 技能模式的电脑线程：作废正在算的那一步（悔棋、认输、退出、切到后台时用）。按时间收手的思考不能暂停续算，回来对同一局面重新算（数值部 C70 提醒）
+  function killBfWorker() { if (!bfW) return; try { bfW.terminate(); } catch (e) { } bfW = null; for (const w of bfWait.values()) w.res(null); bfWait.clear(); }
+  function cancelAI() { aiSeq++; if (aiThinking) { try { AI.cancel(); } catch (e) { } if (game && game.bf) killBfWorker(); } aiThinking = false; }
+  // 页面切到后台 / 锁屏：电脑别在后台烧电（优化部建议）；回来接着想
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (aiThinking && game && game.bf) { cancelAI(); updateHud(); } }
+    else setTimeout(() => { try { maybeAI(); } catch (e) { } }, 300);
+  });
   function maybeAI() {
     if (!(vsAI() || hostBot()) || ended || game.result || !started || !isAI(game.turn) || pendingUndo) return;
     if (aiThinking) return;
@@ -1993,6 +2006,65 @@
     const xb = e.target.closest('[data-xi]'); if (xb) { e.stopPropagation(); anaPick(+xb.dataset.xi); anaExplain(+xb.dataset.xi); return; }
     const r = e.target.closest('.ar'); if (r) anaPick(+r.dataset.i);
   });
+  // 复盘令牌条（美术总监，Ham 审批台 ad-025 / ad-029 甲）：按住整条左右滑，选中的那一步跟着手指 / 鼠标走；
+  //   电脑上鼠标悬在哪一枚，那枚和选中的一样大、显出字，两边各两枚依次过渡；放不下时一起收窄、再不够就叠起；
+  //   手机按住时手指上方浮出放大镜（选中那步居中、前后各 4 步全尺寸带字）；标题右边 ‹ › 一下走一步
+  if (ANAV === 3) (() => {
+    const L = $('anaList'), anaA = () => { const real = RP ? RP.real : game; return real && real.__ana; };
+    const tks = () => L.querySelectorAll('.ar.tk');
+    let down = false, touch = false, hover = -1, sel = -1;
+    const lp = document.createElement('div'); lp.id = 'anaLoupe'; lp.className = 'hidden'; lp.innerHTML = '<div class="row"></div><div class="lb"></div>'; document.body.appendChild(lp);
+    const nav = document.createElement('span'); nav.className = 'anaNav'; nav.innerHTML = '<button type="button" data-d="-1" aria-label="上一步">‹</button><button type="button" data-d="1" aria-label="下一步">›</button>';
+    $('ana').appendChild(nav);   // 放在令牌条右头（第三列）
+    nav.addEventListener('click', e => { const b = e.target.closest('[data-d]'), A = anaA(); if (!b || !A || !A.n) return; anaPick(Math.max(0, Math.min(A.n - 1, (A.sel < 0 ? 0 : A.sel) + +b.dataset.d))); });
+    function fit() {
+      const n = tks().length; if (n < 2) { L.classList.remove('dense'); return; }
+      const per = (L.clientWidth - 4 - 28) / (n - 1);
+      L.style.setProperty('--gap', per >= 6 ? '2px' : per >= 4 ? '1px' : (per - 4).toFixed(2) + 'px'); L.classList.toggle('dense', per < 16);
+    }
+    // 第几枚：密的时候按位置占全条的比例算（选中那枚变宽会把旁边挤开，按最近的找会来回跳）；不密时找中线最近的那枚
+    function idxAt(x) {
+      const t = tks(), n = t.length; if (!n) return -1;
+      const r = L.getBoundingClientRect();
+      if (L.classList.contains('dense')) return Math.max(0, Math.min(n - 1, Math.round((x - r.left - 2 - 13) / (L.clientWidth - 30) * (n - 1))));
+      let best = 0, bd = 1e9; t.forEach((q, i) => { const b = q.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - x); if (d < bd) { bd = d; best = i; } }); return best;
+    }
+    // 悬停按「没放大」的排法算，放大后令牌不会在鼠标下来回跳
+    function baseIdx(x) {
+      const n = tks().length, A = anaA(), s = A ? A.sel : -1, r = L.getBoundingClientRect(), Wc = L.clientWidth - 4, g = parseFloat(L.style.getPropertyValue('--gap')) || 0;
+      const wb = Math.min(22, (Wc - 26 - g * (n - 1)) / Math.max(1, n - 1)), st = wb + g, u = x - r.left - 2;
+      const i = s < 0 ? Math.floor(u / st) : u < s * st ? Math.floor(u / st) : u < s * st + 26 + g ? s : s + 1 + Math.floor((u - s * st - 26 - g) / st);
+      return Math.max(0, Math.min(n - 1, i));
+    }
+    function paintHover() { tks().forEach((q, i) => { const d = hover < 0 || q.classList.contains('on') ? 9 : Math.abs(i - hover); q.classList.toggle('h0', d === 0); q.classList.toggle('h1', d === 1); q.classList.toggle('h2', d === 2); }); }
+    function showLoupe(x) {
+      const A = anaA(); if (!A || A.sel < 0) return;
+      let h = ''; for (let i = A.sel - 4; i <= A.sel + 4; i++) { const s = A.steps[i], g = s && s.grade; h += s ? `<div class="tk ${s.side}${i === A.sel ? ' on' : ''}">${g == null ? '' : `<i class="g${g}" data-c="${ANA1[g]}">${g >= 3 ? ANA1[g] : ''}</i>`}</div>` : '<div class="tk no"></div>'; }
+      const s = A.steps[A.sel], g = s.grade;
+      lp.querySelector('.row').innerHTML = h; lp.querySelector('.lb').textContent = `${A.bf ? '第 ' + (A.sel + 1) + ' 回合' : '第 ' + (Math.floor(A.sel / 2) + 1) + ' 步'} · ${SIDE_CN[s.side]}${g == null ? '' : ' · ' + ANA.tags[g]}`;
+      lp.classList.remove('hidden');
+      const r = L.getBoundingClientRect(), half = lp.offsetWidth / 2;
+      let left = Math.max(half + 4, Math.min(innerWidth - half - 4, x)); lp.style.left = left + 'px'; lp.style.top = (r.top - lp.offsetHeight - 12) + 'px';
+      const b = lp.getBoundingClientRect(); if (b.left < 4) left += 4 - b.left; else if (b.right > innerWidth - 4) left -= b.right - innerWidth + 4; lp.style.left = left + 'px';   // 贴边时收在屏内
+    }
+    function go(i) { if (i < 0 || i === sel) return; sel = i; anaPick(i); try { if (touch && navigator.vibrate) navigator.vibrate(4); } catch (e) { } }
+    L.addEventListener('pointerdown', e => {
+      if (e.button > 0) return;
+      down = true; touch = e.pointerType !== 'mouse'; try { L.setPointerCapture(e.pointerId); } catch (er) { }
+      L.classList.add('drag'); hover = -1; const A = anaA(); sel = A ? A.sel : -1; go(idxAt(e.clientX)); paintHover();
+      if (touch) showLoupe(e.clientX);
+    });
+    L.addEventListener('pointermove', e => {
+      if (down) { go(idxAt(e.clientX)); if (touch) showLoupe(e.clientX); }
+      else if (e.pointerType === 'mouse') { const j = baseIdx(e.clientX); if (j !== hover) { hover = j; paintHover(); } }
+    });
+    const up = () => { down = false; L.classList.remove('drag'); lp.classList.add('hidden'); };
+    L.addEventListener('pointerup', up); L.addEventListener('pointercancel', up);
+    L.addEventListener('pointerleave', () => { if (!down && hover >= 0) { hover = -1; paintHover(); } });
+    // 每次重画令牌（换了一步、分析出新结果）后重新收窄、补上悬停
+    new MutationObserver(() => { fit(); if (hover >= 0) paintHover(); }).observe(L, { childList: true });
+    new ResizeObserver(fit).observe(L);
+  })();
   $('anaChart').addEventListener('click', e => {
     const real = RP ? RP.real : game, A = real && real.__ana; if (!A || !A.n) return;
     const b = $('anaChart').getBoundingClientRect(), i = Math.round((e.clientX - b.left) / b.width * A.n);
@@ -3665,8 +3737,9 @@
   const paintVar = () => { $('varNote').textContent = VAR_NOTE[ropts.v] || ''; $('optSkin').classList.toggle('hidden', ropts.v === 'bf'); };
   bindSeg($('pCreate'), 'data-k', k => ropts[k], (k, v) => { ropts[k] = k === 'side' || k === 'v' ? v : +v; store.set('ropts', ropts); if (k === 'v') paintVar(); });
   paintVar();
-  bindSeg($('pAI'), 'data-a', k => aopts[k], (k, v) => { aopts[k] = k === 'side' ? v : +v; store.set('aopts', aopts); });
-  const paintLv = () => $('aiLv').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === aopts.level));
+  bindSeg($('pAI'), 'data-a', k => aopts[k], (k, v) => { aopts[k] = k === 'side' ? v : +v; store.set('aopts', aopts); if (k === 'bf') paintLv(); });
+  // 兵仙只有技能模式有：选普通象棋时灰掉；已选兵仙又切回象棋，就退到霸王
+  const paintLv = () => { if (!aopts.bf && aopts.level === 'xhard') aopts.level = 'hard'; $('aiLv').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.v === aopts.level); if (b.dataset.v === 'xhard') b.disabled = !aopts.bf; }); };
   $('aiLv').querySelectorAll('button').forEach(b => b.onclick = () => { aopts.level = b.dataset.v; store.set('aopts', aopts); paintLv(); Sfx.select && Sfx.select(); });
   paintLv();
   let createFor = 'host';
@@ -3732,7 +3805,7 @@
       if (hostSeat) {
         const back = room.host && hostOut ? ' data-back tabindex="0" role="button"' : '';
         if (!hostOut) { who = room.host ? '你' : '房主'; st = '房主'; if (room.host) cls = ' me'; }
-        else if (ai2) { who = LV[ai2] || '人机'; st = `人机 <span class="st">${STAR[ai2] || ''}</span>${room.host ? ' · 点我坐回' : ' · 房主观战'}`; cls = ' ai' + (back ? ' back' : ''); attr = back; }
+        else if (ai2) { who = LV[ai2] || '人机'; st = `人机 <span class="st">${STAR[ai2] || ''}</span>${room.host ? '' : ' · 房主观战'}`;   // 房主自己看：不写「点我坐回」（Ham 10-11），圆还是可以点、悬停变亮 cls = ' ai' + (back ? ' back' : ''); attr = back; }
         else { who = '空位'; st = room.host ? '点这里坐回' : '房主在观战席'; cls = ' empty' + (back ? ' back' : ''); attr = back; }
       } else {
         const ai = room.ai, taken = room.seated || ai, mine = !room.host && room.seated && !ai;
