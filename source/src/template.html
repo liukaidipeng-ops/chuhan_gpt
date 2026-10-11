@@ -1426,7 +1426,7 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
 #ana.v3 #anaList:empty::before{content:"这局没有走子，没有可分析的。";font-size:13px;color:rgba(240,231,210,.75)}
 .lv button:disabled,#lobby .lv button:disabled{opacity:.38;cursor:not-allowed;filter:grayscale(1)}
 /* V17 观战局势条（T17，Ham 审批台 ad-039 选甲）：默认收起只露「势」印；点开是一根横条，挂在状态栏下面。汉在左（朱）、楚在右（米白） */
-#liveBar{position:fixed;z-index:9;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--es);--w:300px}
+#liveBar{position:fixed;z-index:9;pointer-events:auto;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--es);--w:300px}
 #liveBar.hidden{display:none}
 #liveBar .seal{width:30px;height:30px;display:grid;place-items:center;background:var(--k);color:var(--c);border:2px solid var(--c);font:900 16px/1 var(--ef);cursor:pointer;padding:0}
 #liveBar.open .seal{background:var(--c);color:var(--k)}
