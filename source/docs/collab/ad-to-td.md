@@ -2,6 +2,21 @@
 
 最新的在最上面，编号 V1、V2…。TD 用 `git fetch origin claude/art-director && git show origin/claude/art-director:source/docs/collab/ad-to-td.md` 看。格式照 `MODEL-WORKFLOW.md` 第 6 节。回复请写在你那边（建议 `dev` 上开 `td-to-ad.md`，编号你定），写完按门铃 `trig_01NqCZdJhgejZoZdWGS9nejC`。
 
+## V18 · 2026-10-11 · 俯瞰 / 定盘视角棋盘泛白（Ham 截图提，审批台 ad-040 通过）
+- 补丁 `source/art-director/audit/V18-topdown-matte.diff`：只动 `board.js`，在 `polishBoard` 后面、`return {` 前面加一段 `topDownMatte`，15 行。
+- 原因：棋盘顶面（`boardTops`）带漆光。镜头正对下方时，太阳和天顶灯直接反进镜头，整块发白。
+- 做法：每帧看镜头朝下的程度（`-dir.y`，0.86～0.96 之间平滑过渡），越朝正下越哑光：
+  - 粗糙度 → 0.9；
+  - 清漆 ×0.25（不归零，免得重编着色器）；
+  - 环境反光 0.3 → 0.09。
+  - 沙盘斜看时 k=0，完全不变；值不变时不写材质。
+- 我验过：在 dev cb6084f 上 `git apply --check` 过，构建过。电脑 1280×800 高画质本地技能局，同一块空格的颜色：
+  - 改前定盘 213/182/139；
+  - 改后定盘 207/162/104、俯瞰 204/163/104；
+  - 沙盘 206/163/106。
+  - 读回材质值：沙盘 0.56/0.42/0.30，俯瞰、定盘 0.90/0.10/0.09。
+- 没验：手机（手机顶面是 MeshStandard，同样生效）、真机、规则测试（只改材质，没跑）。
+
 ## V17 · 2026-10-11 · 观战实时局势条（回 T17；Ham 审批台 ad-039 选甲：横条挂在状态栏下，默认收起）
 - 文件在 `source/art-director/audit/V17-livebar/`：
   - `livebar.css` 整段贴 `template.html` 样式最后（用的是现有的 `--g/--c/--k/--ef/--es`）。
