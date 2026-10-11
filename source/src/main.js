@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '房主坐到观战席后，自己也有个能走动的小人，名号跟观众一起排（农夫、樵夫……）',
       '人机对局里电脑一步想超过 3 秒，会自言自语一句（刘邦、项羽各三句）',
       '开场曲之前一直没响（总是放回老的一声锣鼓），现在修好了：开局、观战都放新开场曲。',
       '修好上一版房间页一处写错导致页面打不开的问题。',
@@ -2163,6 +2164,7 @@
     if (dbgOn && game.bf) { const p = Board.pick(e.clientX, e.clientY); if (p) dbgClick(p[0], p[1]); return; }
     // 观众：点哪儿走到哪儿。棋手：点到站在棋盘上的观众就把他弹飞
     if (watching()) { if (!RP && !Ending.running) specGo(e.clientX, e.clientY); return; }
+    if (hostSpecOn && hostSpec()) { if (!RP && !Ending.running) specGo(e.clientX, e.clientY); return; }   // 房主坐观战席：点哪儿走到哪儿（td-034）
     if (online() && Spect.count) { const sid = Spect.pickOnBoard(e.clientX, e.clientY); if (sid && specFlick(sid, true)) return; }
     if (game.bf && canAct()) { const p = Board.pick(e.clientX, e.clientY); dbgFreeTurn(p); ktPoke(p); bfClick(p); return; }
     if (!canAct()) {
@@ -3492,6 +3494,7 @@
   function hostNameSpecs() {
     if (Net.role !== 'host') return false;
     const live = [...Spect.people.values()].filter(p => !p.self).map(p => p.id);
+    if (hostSpec()) live.unshift(Net.myPid);   // 房主坐观战席：自己也有小人，跟观众一起排名号（Ham 审批台 td-034 乙）
     let changed = false;
     for (const id of Object.keys(specNames)) if (!live.includes(id)) { delete specNames[id]; changed = true; }
     const used = new Set(Object.values(specNames));
@@ -3551,6 +3554,21 @@
     myName = Spect.randomName(); specNames = {};
     startWatch(code);
   }
+  // 房主坐观战席（座位交给电脑）时也有个能走动的小人：名号跟观众一起排，别人看到的和观众一样（Ham 审批台 td-034）
+  const hostSpec = () => mode === 'host' && Net.role === 'host' && !!(opts && opts.ai2) && started && !ended;
+  let hostSpecOn = false;
+  function hostSpecSync() {
+    if (hostSpec()) {
+      if (!specNames[Net.myPid]) hostNameSpecs();
+      const nm = specNames[Net.myPid] || '房主';
+      if (!hostSpecOn || (Spect.get(Net.myPid) || {}).name !== nm) { Spect.upsert(Net.myPid, nm, 'n', true); if (!hostSpecOn) sendSpecNames(); hostSpecOn = true; }
+      Net.sendSpec({ t: 'sp', n: nm, a: 'n', p: Spect.posOf(Net.myPid) || undefined });
+    } else if (hostSpecOn) {
+      hostSpecOn = false; Spect.remove(Net.myPid); delete specNames[Net.myPid];
+      try { Net.sendSpec({ t: 'sbye' }); } catch (e) { }
+    }
+  }
+  setInterval(() => { try { hostSpecSync(); } catch (e) { } }, 4000);
   function specHello() { if (Net.role === 'watch') Net.sendSpec({ t: 'sp', n: myName, a: myAlleg, p: Spect.posOf(Net.myPid) || undefined }); }
   // 观众走动：点地面 / 棋盘就走过去（过河走桥、上棋盘走楼梯；路线在自己这边算好，发给大家照着走）
   function specGo(cx, cy) {
@@ -3558,7 +3576,8 @@
     const t = Spect.rayTarget(cx, cy); if (!t) return;
     const r = Spect.plan(Net.myPid, t);
     if (r.err != null) { if (r.err) toast(r.err, 2200); return; }
-    if (Spect.walk(Net.myPid, r.wp)) { Net.sendSpec({ t: 'go', n: myName, a: myAlleg, wp: r.wp }); Sfx.select && Sfx.select(); }
+    const hs = Net.role === 'host';
+    if (Spect.walk(Net.myPid, r.wp)) { Net.sendSpec({ t: 'go', n: hs ? me.name : myName, a: hs ? 'n' : myAlleg, wp: r.wp }); Sfx.select && Sfx.select(); }
   }
   // 弹飞：mine = 我点的（要告诉大家）
   function specFlick(id, mine) {
