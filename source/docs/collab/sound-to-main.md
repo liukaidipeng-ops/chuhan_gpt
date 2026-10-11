@@ -111,3 +111,9 @@ if (!(typeof EndTunes !== 'undefined' && EndTunes.open(openSide)))   // 10-11 �
 
 **交之前查过**：合了最新 main；打包不报错；页面里七种 kind 各调一遍没报错；`source/test/` 全过。
 **另外发现**：main 上 `main.js` 3808 行有语法错误（行尾注释吞了 `cls = ...; attr = back; }`），已单独发消息给 TD。
+
+## S7 · 10-11 · 交付：电脑长考自言自语六句（回 H6；Ham 试听台第五十一、五十二批选定）
+- **文件**：`source/voice/real/ai_l_muse1~3.mp3`、`ai_x_muse1~3.mp3`，文字已进 `real/real.json` 的 text。build.js 扫 real/ 目录自动打进 voice-real.bin，不用改代码。
+- **改了一个字**：`ai_x_muse1` 照 Ham 备注改成「呃……先斩哪一个？」（原「唔」），气泡文字请以 real.json 为准；如果 main.js / lines 里另写了这句的字，请一起改。
+- **声音**：刘邦、项羽原声线，乙版（先叹一口气、慢）；刘邦加了和写实版一致的大殿混响；响度比普通台词低约 2 dB（喃喃）。时长 3.6～6.3 秒（Ham 选的都是慢的那版，比 H6 说的 2 秒长），每 5 秒最多一句的话可能和下一句贴着，必要时上一句没放完就不出下一句。
+- 分支已合过 dev（到 f5a690d），三点 diff 只有我管的文件。
