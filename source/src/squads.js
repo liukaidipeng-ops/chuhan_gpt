@@ -1358,7 +1358,7 @@ const Squads = (() => {
       else Fx.shot(A.clone().lerp(B, 0.7).addScaledVector(side, 2.3).addScaledVector(d, -0.6).add(new V3(0, 0.95, 0)), A.clone().lerp(B, 0.82).add(new V3(0, 0.25, 0)), 0.6);
     }
     // 兵卒对打（角色部 M34，Ham 角色部审批台 char-024）：技能模式里兵 / 卒小队之间，换成全屏的精细小人对打，烟尘一遮切进切出
-    const duel = window.Duel && c.lv && t === 'p' && dt_ === 'p' && !c.counter && !c.ranged && cine && att.troop && def.troop;
+    const duel = window.Duel && c.lv && t === 'p' && dt_ === 'p' && !c.counter && !c.ranged && cine;
     if (duel) {
       P.dust(mid.clone().setY(TOP), 18, null, 0.5); Cam.shake(0.08); await sleep(0.25);
       try { await Duel.play({ lv: Math.max(1, Math.min(4, c.lv)), kill: !c.survive, att: s, speed: Core.Time.boost || 1.5, onEvent: k => { try { Sfx.B.duel(k); } catch (e) { } } }); } catch (e) { }   // 声音部 S6
