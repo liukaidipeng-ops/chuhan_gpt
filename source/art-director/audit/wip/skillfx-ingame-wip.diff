@@ -1,0 +1,463 @@
+diff --git a/source/src/bfx.js b/source/src/bfx.js
+index 03fa7fb..c1e90a4 100644
+--- a/source/src/bfx.js
++++ b/source/src/bfx.js
+@@ -95,6 +95,91 @@ const BFX = (() => {
+     if (m) Fx.removePiece(m);
+     Sfx.B.crack(0); 
+   }
++  // ===== 践踏的象腿、护驾的盾：成品造型（美术总监，Ham 审批台 ad-035 甲「灰皮虚影」+ 越往上越虚；ad-037 甲「立体铜盾·莲瓣尖顶鈕」+ 再厚一点）=====
++  const FXR = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
++  const fxCanvas = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
++  // 半透明虚影材质：边缘一圈米白光，从 f0 到 f1（腿自己的高度）越往上越淡
++  function ghostMat({ map = null, color = 0xffffff, rim = 0xf0e7d2, rimK = .8, op = .82, f0 = .35, f1 = 2.9, curve = 1.6 }) {
++    return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: false,
++      uniforms: { map: { value: map }, useMap: { value: map ? 1 : 0 }, color: { value: new THREE.Color(color) }, rim: { value: new THREE.Color(rim) }, rimK: { value: rimK }, op: { value: op }, f0: { value: f0 }, f1: { value: f1 }, curve: { value: curve }, k: { value: 1 } },
++      vertexShader: 'varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vUv=uv; vec4 wp=modelMatrix*vec4(position,1.); vY=position.y; vN=normalize(mat3(modelMatrix)*normal); vV=normalize(cameraPosition-wp.xyz); gl_Position=projectionMatrix*viewMatrix*wp; }',
++      fragmentShader: 'uniform sampler2D map; uniform float useMap, rimK, op, f0, f1, curve, k; uniform vec3 color, rim; varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vec4 t = useMap>.5 ? texture2D(map, vUv) : vec4(1.); float fr = pow(1.-abs(dot(normalize(vN), normalize(vV))), 2.2); float fy = pow(clamp((vY-f0)/(f1-f0),0.,1.), 1./curve); vec3 c = color*t.rgb + rim*fr*rimK; float a = (op*t.a + fr*.6*(1.-fy*.7))*(1.-fy)*k; gl_FragColor = vec4(c, clamp(a,0.,1.)); }' });
++  }
++  let legParts = null;
++  function legKit() {
++    if (legParts) return legParts;
++    const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
++    // 轮廓：脚掌外撑、脚踝收、膝盖鼓、往上变粗；脚踝、膝盖两圈深褶；膝盖以上往后折
++    const prof = [[0, 0], [.5, 0], [.58, .03], [.61, .1], [.6, .2], [.54, .34], [.49, .5], [.47, .75], [.5, .95], [.55, 1.12], [.53, 1.3], [.5, 1.55], [.53, 2.0], [.62, 2.7], [.76, 3.5], [.92, 4.4], [1.05, 5.6]].map(([r, y]) => new THREE.Vector2(r, y));
++    const geo = new THREE.LatheGeometry(prof, 96), p = geo.attributes.position;
++    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x); let r = Math.hypot(x, z); if (r < 1e-4) continue;
++      const zone = Math.exp(-Math.pow((y - .42) / .2, 2)) + Math.exp(-Math.pow((y - 1.18) / .28, 2)) * 1.1 + .18 * sm(1.5, 3, y);
++      const ph = Math.sin(a * 2 + y * .7) * 1.2 + Math.sin(a * 5) * .35, crease = Math.pow(Math.abs(Math.sin(y * 30 + ph)), 7);
++      const roll = .035 * Math.pow(Math.abs(Math.sin(y * 15 + ph * .5)), 2) * zone, sag = .018 * Math.sin(y * 9 + a) * zone;
++      r *= 1 - .12 * crease * zone + sag + roll + .01 * Math.sin(a * 13 + y * 7);
++      let X = Math.cos(a) * r, Y = y, Z = Math.sin(a) * r * .9; const yk = 1.2;
++      if (Y > yk) { const phi = -.42 * sm(yk, yk + 1.4, Y), dy = Y - yk; const ny = yk + dy * Math.cos(phi) - Z * Math.sin(phi), nz = dy * Math.sin(phi) + Z * Math.cos(phi); Y = ny; Z = nz; }
++      p.setXYZ(i, X, Y, Z); }
++    geo.computeVertexNormals(); geo.userData.keep = true;
++    // 象皮：灰底、龟裂网、横皱
++    const skin = fxCanvas(1024, 1024, (g, w, h) => { g.fillStyle = '#9a948b'; g.fillRect(0, 0, w, h);
++      for (let i = 0; i < 3000; i++) { g.globalAlpha = .05 + FXR() * .08; g.fillStyle = FXR() < .5 ? '#5c554d' : '#ffffff'; g.fillRect(FXR() * w, FXR() * h, 2 + FXR() * 6, 2 + FXR() * 6); }
++      g.strokeStyle = '#3e3832'; g.lineCap = 'round';
++      for (let i = 0; i < 900; i++) { let x = FXR() * w, y = FXR() * h; g.globalAlpha = .25 + FXR() * .35; g.lineWidth = .8 + FXR() * 1.6; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (FXR() - .5) * 46; y += (FXR() - .5) * 22; g.lineTo(x, y); } g.stroke(); }
++      for (let y = 0; y < h; y += 7 + FXR() * 12) { g.globalAlpha = .18 + FXR() * .3; g.lineWidth = 1.5 + FXR() * 2.5; g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= w; x += 24) g.lineTo(x, y + Math.sin(x / 60 + y) * 5 + (FXR() - .5) * 3); g.stroke(); }
++      g.globalAlpha = 1; });
++    const nail = new THREE.SphereGeometry(.17, 24, 14, 0, 6.3, 0, 1.6); nail.scale(1.15, .5, .5); nail.userData.keep = true;
++    return (legParts = { geo, skin, nail });
++  }
++  function ghostLeg(c, fall) {
++    const K = legKit(), body = ghostMat({ map: K.skin }), nm = new THREE.MeshStandardMaterial({ color: 0xd9ccb0, roughness: .55, transparent: true }), g = new THREE.Group();
++    const leg = new THREE.Mesh(K.geo, body); leg.renderOrder = 6; g.add(leg);
++    for (const a of [-1.05, -.52, 0, .52, 1.05]) { const n = new THREE.Mesh(K.nail, nm); n.position.set(Math.sin(a) * .6, 0, Math.cos(a) * .57); n.rotation.y = a; g.add(n); }
++    // 脚尖朝镜头这边（腿往后折，正面对着看的人）
++    const cam = Core.camera.position; g.rotation.y = Math.atan2(cam.x - c.x, cam.z - c.z);
++    g.position.set(c.x, TOP + 5.5, c.z); scene.add(g);
++    const fade = k => { body.uniforms.k.value = 1 - k; nm.opacity = 1 - k; };
++    const landed = tween(fall, k => { g.position.y = TOP + 5.5 * (1 - k); }, ease.in).then(() => { g.position.y = TOP; });
++    landed.then(() => sleep(0.45)).then(() => tween(0.5, k => { g.position.y = TOP + 3 * k; fade(k); })).then(() => { scene.remove(g); body.dispose(); nm.dispose(); });
++    return { landed };
++  }
++  // 立体铜盾：盾面外鼓、厚卷边、两道环棱，雷纹云纹压出凸纹，卷边 28 颗铜钉，莲瓣尖顶鈕；金属反一个暖色小环境
++  let shieldParts = null;
++  function shieldKit() {
++    if (shieldParts) return shieldParts;
++    const es = new THREE.Scene(); es.add(new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), new THREE.ShaderMaterial({ side: THREE.BackSide, vertexShader: 'varying vec3 p; void main(){ p=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }', fragmentShader: 'varying vec3 p; void main(){ float y=normalize(p).y; gl_FragColor=vec4(mix(vec3(.12,.09,.07), vec3(1.,.93,.8), smoothstep(-.3,.8,y)),1.); }' })));
++    for (const [x, y, z, w] of [[-4, 5, 3, 3], [5, 2, -2, 2], [0, -2, 6, 4]]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w), new THREE.MeshBasicMaterial({ color: y < 0 ? 0x6a4a2a : 0xfff4dc, side: THREE.DoubleSide })); m.position.set(x, y, z); m.lookAt(0, 0, 0); es.add(m); }
++    const pm = new THREE.PMREMGenerator(Core.renderer), env = pm.fromScene(es, .04).texture; pm.dispose();
++    const N = 512, cvs = document.createElement('canvas'); cvs.width = cvs.height = N; const g = cvs.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, N, N); const C = N / 2; g.strokeStyle = '#fff'; g.lineWidth = 5;
++    for (let i = 0; i < 36; i++) { const a = i / 36 * 6.283; g.save(); g.translate(C + Math.cos(a) * C * .66, C + Math.sin(a) * C * .66); g.rotate(a); g.beginPath(); g.arc(0, 0, 12, 0, 4.7); g.stroke(); g.beginPath(); g.arc(0, 0, 5, 0, 4.7); g.stroke(); g.restore(); }
++    for (let i = 0; i < 24; i++) { const a = i / 24 * 6.283; g.save(); g.translate(C + Math.cos(a) * C * .43, C + Math.sin(a) * C * .43); g.rotate(a); g.strokeRect(-9, -9, 18, 18); g.strokeRect(-4, -4, 8, 8); g.restore(); }
++    const d = g.getImageData(0, 0, N, N).data, out = g.createImageData(N, N), H = (x, y) => d[((Math.min(N - 1, Math.max(0, y))) * N + Math.min(N - 1, Math.max(0, x))) * 4] / 255;
++    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const dx = (H(x - 1, y) - H(x + 1, y)) * 2.2, dy = (H(x, y - 1) - H(x, y + 1)) * 2.2, l = Math.hypot(dx, dy, 1), o = (y * N + x) * 4; out.data[o] = (dx / l * .5 + .5) * 255; out.data[o + 1] = (dy / l * .5 + .5) * 255; out.data[o + 2] = (1 / l * .5 + .5) * 255; out.data[o + 3] = 255; }
++    g.putImageData(out, 0, 0); const relief = new THREE.CanvasTexture(cvs);
++    const R0 = .42, top = [[0, .13], [.05, .129], [.1, .125], [.15, .117], [.17, .121], [.185, .117], [.22, .106], [.27, .09], [.285, .095], [.3, .09], [.35, .072], [.375, .066], [.395, .078], [.415, .086], [.432, .078], [.442, .05], [.44, .015]], back = [[.43, -.005], [.4, 0], [.3, .03], [.15, .05], [0, .055]];
++    const body = new THREE.LatheGeometry(top.concat(back).map(([r, y]) => new THREE.Vector2(r, y)), 96), uv = body.attributes.uv, pp = body.attributes.position;
++    for (let i = 0; i < pp.count; i++) uv.setXY(i, .5 + pp.getX(i) / (2 * R0), .5 + pp.getZ(i) / (2 * R0)); body.computeVertexNormals();
++    const stud = new THREE.SphereGeometry(.018, 12, 8, 0, 6.3, 0, 1.6), pet = new THREE.SphereGeometry(.05, 16, 10); pet.scale(1, .45, .55);
++    const knob = new THREE.LatheGeometry([[0, 0], [.045, 0], [.04, .02], [.025, .045], [.012, .085], [0, .11]].map(([r, y]) => new THREE.Vector2(r, y)), 32);
++    for (const q of [body, stud, pet, knob]) q.userData.keep = true;
++    return (shieldParts = { env, relief, body, stud, pet, knob });
++  }
++  function goldShield(c, side, life = 1.6) {
++    const K = shieldKit(), mats = [], bronze = (col, rough) => { const m = new THREE.MeshStandardMaterial({ color: col, metalness: .9, roughness: rough, envMap: K.env, envMapIntensity: 1.3, transparent: true }); mats.push(m); return m; };
++    const sh = new THREE.Group(), bm = bronze(0xc8a052, .32); bm.normalMap = K.relief; bm.normalScale = new THREE.Vector2(.8, .8); sh.add(new THREE.Mesh(K.body, bm));
++    const sm = bronze(0xe8c87a, .25); for (let i = 0; i < 28; i++) { const a = i / 28 * 6.283, m = new THREE.Mesh(K.stud, sm); m.position.set(Math.cos(a) * .405, .078, Math.sin(a) * .405); sh.add(m); }
++    const pm = bronze(0xd8b060, .28); for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283, m = new THREE.Mesh(K.pet, pm); m.position.set(Math.cos(a) * .055, .138, Math.sin(a) * .055); m.rotation.set(0, -a, .35); sh.add(m); }
++    const kn = new THREE.Mesh(K.knob, bronze(0xf0d080, .22)); kn.position.y = .13; sh.add(kn);
++    const g = new THREE.Group(); g.add(sh); scene.add(g);
++    const up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3();
++    // 悬在帅头顶一格高，盾面朝镜头（偏上），轻轻摇；从上方落下定住，停一会儿淡出
++    const set = (k, a, t) => { g.position.set(c.x, TOP + 1.0 + .6 * (1 - k) + Math.sin(t * 4) * .02, c.z); dir.copy(Core.camera.position).sub(g.position).normalize(); g.quaternion.setFromUnitVectors(up, dir); sh.rotation.z = Math.sin(t * 1.6) * .18; g.scale.setScalar(Math.max(.01, .6 + .4 * k)); mats.forEach(m => { m.opacity = a; }); };
++    let t = 0; set(0, 0, 0);
++    return tween(0.4, (k, raw) => { t = raw * 0.4; set(ease.outBack(k), Math.min(1, k * 2), t); }, ease.linear)
++      .then(() => tween(life - 0.4, (k, raw) => { set(1, 1, 0.4 + raw * (life - 0.4)); }, ease.linear))
++      .then(() => tween(0.5, (k, raw) => { set(1, 1 - k, life + raw * 0.5); }, ease.linear))
++      .then(() => { scene.remove(g); mats.forEach(m => m.dispose()); });
++  }
+   // 楚战象「践踏」：一跺地，周围一圈烟尘冲天、碎石乱飞；被踩死的整队掀飞，场边的人全被震倒
+   async function trampleFx(ev, side, act = {}) {
+     const sp = ev.find(e => e.e === 'splash' && e.how === 'jianta');
+@@ -111,10 +196,12 @@ const BFX = (() => {
+       if (el) { el.rearK = k; el.trumpetK = k; }
+       else if (m) { m.rotation.x = -0.5 * k * sg; m.position.y = y0 + 0.4 * k; }
+     };
++    const gl = ghostLeg(c, 0.66);   // 0.38 抬 + 0.16 停 + 0.12 跺 = 0.66，和跺地同一刻落地
+     await tween(0.38, rear, ease.out);
+     await sleep(0.16);
+     await tween(0.12, k => rear(1 - k), ease.in);
+     rear(0); if (el) el.trumpetK = 0;
++    await gl.landed;
+     Sfx.unit('ele').stomp(); Sfx.B.boom(0, 0.7); Sfx.B.taiko(0, 1, 0.6); Sfx.B.thud(0.05, 1);
+     Cam.shake(0.6); Fx.slowmo(0.25, 0.25);
+     ring(sp.at, 0x5a4a38, 3.4); Fx.ring(G, 5.2, 1.0, 0x8b7e68, 0.7); Fx.ring(G, 2.2, 0.5, 0x3a2f24, 0.9);
+@@ -439,6 +526,8 @@ const BFX = (() => {
+       Sfx.B.shout(0.05, 6, 0.08, 0.5);
+       await sleep(0.25);
+       if (sq.troop) Squads.jmForm(sq, true); else if (sq.setPose) sq.setPose('brace');
++      // 拒马·甲（显示士兵时，美术总监，Ham ad-022 / ad-028）：木拒马一段段从地里顶出来，尘土四溅
++      if (sq.wall) { const ws = sq.wall.pieces.map(g => g.scale.x); tween(0.8, (k, raw) => sq.wall.pieces.forEach((g, i) => { const q = Math.max(0, Math.min(1, (raw * 0.8 - i * 0.08) / 0.45)); g.scale.setScalar(Math.max(0.001, ws[i] * ease.outBack(q))); }), ease.linear); }
+       for (let i = 0; i < 4; i++) Sfx.B.wood(0.1 + i * 0.15, 0.4);
+       for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28; P.dust(A.clone().add(new V3(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5)), 1, null, 0.15); }
+       await sleep(1.1);
+@@ -532,6 +621,7 @@ const BFX = (() => {
+         if (mb) { mb.position.lerpVectors(B, A, k); mb.position.y = TOP + Math.sin(k * Math.PI) * 0.45; }
+       }, ease.inOut);
+       Sfx.place(ma); ring(sw.pb, 0xc9a045, 1.6);
++      goldShield(A, side); Sfx.B.clang(0.05, 0.5);   // 铜盾悬在帅新位置的头顶（不等它淡完）
+       if (info.extra && info.extra.rescue) {
+         // 樊哙闯帐：护驾破了鸿门宴——锁链崩断，项羽喝问，张良作答
+         title('樊哙闯帐', '汉士护驾 · 鸿门宴破', 3000);
+diff --git a/source/src/board.js b/source/src/board.js
+index 7554793..2979f1c 100644
+--- a/source/src/board.js
++++ b/source/src/board.js
+@@ -738,10 +738,6 @@ const Board = (() => {
+   })();
+   const starMat = new THREE.MeshBasicMaterial({ color: 0xffd25a, polygonOffset: true, polygonOffsetFactor: -4 });
+   const starRim = new THREE.MeshBasicMaterial({ color: 0x5a3a10, polygonOffset: true, polygonOffsetFactor: -3 });
+-  const stakeGeo = new THREE.CylinderGeometry(0.012, 0.02, 0.36, 5); stakeGeo.translate(0, 0.18, 0); stakeGeo.userData.keep = true;
+-  const stakeMat = toon(0x6e4a2c);
+-  const ropeGeo = new THREE.TorusGeometry(0.5, 0.012, 4, 32); ropeGeo.rotateX(Math.PI / 2); ropeGeo.userData.keep = true;
+-  const ropeMat = toon(0x8e2a1a);
+   const sealTex = (ch, col) => canvasTex(128, 128, (g, w) => {
+     g.fillStyle = col; rrect(g, 8, 8, w - 16, w - 16, 14); g.fill();
+     g.strokeStyle = '#f7ead0'; g.lineWidth = 5; rrect(g, 18, 18, w - 36, w - 36, 8); g.stroke();
+@@ -1333,6 +1329,31 @@ const Board = (() => {
+   }
+   const chainMat = new THREE.MeshStandardMaterial({ color: 0x565b63, metalness: 0.75, roughness: 0.4, emissive: 0x08090b });
+   const chains = new Set(), chainBorn = new Map();
++  // 拒马·虚影矛阵（美术总监，Ham 审批台 ad-022 定方向、ad-028 选交叉过渡）：只有棋子时，兵四周一圈半透明长矛斜指出去；
++  //   显示士兵（兵种模型）时让给木拒马，两边 0.4 秒交叉过渡。第一次架起时矛从地里斜刺出来、矛尖一闪，约 1.7 秒后收成淡矛影
++  //   Ham ad-030：棋子模式下改成实心的木杆铁矛、缩短（0.72 → 0.44），矛头下系一撮朱缨
++  const jmPoleGeo = (() => { const g = new THREE.CylinderGeometry(0.014, 0.018, 0.44, 6); g.translate(0, 0.22, 0); g.userData.keep = true; return g; })();
++  const jmTipGeo = (() => { const g = new THREE.ConeGeometry(0.03, 0.11, 6); g.translate(0, 0.495, 0); g.userData.keep = true; return g; })();
++  const jmTasselGeo = (() => { const g = new THREE.ConeGeometry(0.03, 0.05, 6); g.rotateX(Math.PI); g.translate(0, 0.43, 0); g.userData.keep = true; return g; })();
++  const jmGhosts = new Set(), jmBorn = new Map();
++  const jmBack = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
++  Core.onFrame(dt => {
++    if (!jmGhosts.size) return;
++    const now = performance.now() / 1000;
++    for (const g of jmGhosts) {
++      const u = g.userData;
++      if (!g.parent || !g.parent.parent) { if (u.seen) { jmGhosts.delete(g); u.pole.dispose(); u.tip.dispose(); u.tassel.dispose(); } continue; }   // 换装时整个 deco 被拿掉
++      u.seen = true;
++      const body = g.parent.parent.children[0], want = body && body.visible ? 1 : 0;
++      if (u.k !== want) u.k += Math.sign(want - u.k) * Math.min(Math.abs(want - u.k), dt / 0.4);
++      const age = now - u.born, rise = age < 0.4 ? jmBack(Math.max(0, age / 0.4)) : 1, settle = Math.max(0, Math.min(1, (age - 1.1) / 0.6));
++      const k = u.k, km = 0.08 + 0.92 * jmBack(k);
++      g.visible = k > 0.01;
++      const sc = (0.4 + 0.6 * rise + 0.15 * (1 - settle) * Math.min(1, rise)) / 1.0 * km, tilt = 0.55 * Math.min(1, rise) * k, fade = Math.min(1, k * 1.5);
++      for (const m of [u.pole, u.tip, u.tassel]) { m.opacity = fade; m.transparent = fade < 0.999; m.depthWrite = fade >= 0.999; }
++      for (const sp of g.children) { sp.scale.setScalar(Math.max(0.001, sc)); sp.rotation.set(0, -sp.userData.a, -tilt); }
++    }
++  });
+   // 召回的金光：两道细金环交错着转，金星绕着飞
+   const auras = new Set();
+   const auraGeo = (() => { const g = new THREE.TorusGeometry(0.56, 0.012, 6, 72); g.rotateX(Math.PI / 2); g.userData.keep = true; return g; })();
+@@ -1394,13 +1415,17 @@ const Board = (() => {
+       ring.userData.hpBar = { hp: p.hp, max }; d.add(ring);
+     }
+     if (o.jm) {
++      if (!jmBorn.has(p.id)) jmBorn.set(p.id, performance.now() / 1000);
++      const pole = new THREE.MeshStandardMaterial({ color: 0x6b4426, roughness: 0.8, transparent: true, opacity: 0 }), tip = new THREE.MeshStandardMaterial({ color: 0xcfc8b8, metalness: 0.6, roughness: 0.35, transparent: true, opacity: 0 }), tassel = new THREE.MeshStandardMaterial({ color: 0xa8281c, roughness: 0.9, transparent: true, opacity: 0 });
++      const g = new THREE.Group(), shown = !(typeof Squads !== 'undefined' && Squads.Stand && Squads.Stand.on);
+       for (let i = 0; i < 10; i++) {
+-        const a = i / 10 * Math.PI * 2, sk = new THREE.Mesh(stakeGeo, stakeMat);
+-        sk.position.set(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5); sk.rotation.set(Math.sin(a) * 0.55, 0, -Math.cos(a) * 0.55);
+-        d.add(sk);
++        const a = i / 10 * Math.PI * 2, sp = new THREE.Group();
++        sp.add(new THREE.Mesh(jmPoleGeo, pole), new THREE.Mesh(jmTipGeo, tip), new THREE.Mesh(jmTasselGeo, tassel)); sp.children.forEach(c => { c.castShadow = true; });
++        sp.position.set(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5); sp.userData.a = a; g.add(sp);
+       }
+-      const rope = new THREE.Mesh(ropeGeo, ropeMat); rope.position.y = 0.14; d.add(rope);
+-    }
++      g.userData = { jmGhost: true, born: jmBorn.get(p.id), k: shown ? 1 : 0, pole, tip, tassel }; g.visible = false;
++      d.add(g); jmGhosts.add(g);
++    } else jmBorn.delete(p.id);
+     if (o.hm) {
+       if (!feastTex) feastTex = sealTex('宴', '#8e2418');
+       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: feastTex, transparent: true, depthWrite: false }));
+diff --git a/source/src/fx.js b/source/src/fx.js
+index ec2ca50..ba8d273 100644
+--- a/source/src/fx.js
++++ b/source/src/fx.js
+@@ -615,9 +615,10 @@ const Fx = (() => {
+     const { A, B, d, m, tgt, info } = c;
+     const su = Sfx.unit(unitKey(info.piece.t, c.s));
+     if (c.ranged) {
+-      su.release && su.release(); Sfx.B.arrows(0, 10);
+-      for (let i = 0; i < 10; i++) spawn({ pos: A.clone().setY(TOP + 0.3), vel: B.clone().sub(A).multiplyScalar(R(2.6, 3.2)).add(rv(0.3, 1.2, 0.3)), color: 0x3a2a1a, size: 0.05, size2: 0.02, life: 0.35, g: 4 });
+-      await sleep(0.32);
++      su.release && su.release();
++      // 齐射·乱箭点落（美术总监，Ham ad-027）：箭从相身上几乎垂直冲天，静一拍，再一支支扎到目标棋子上
++      const top = Board.PH ? TOP + Board.PH : TOP + 0.2;
++      await Squads.skyVolley([A.clone().setY(TOP + 0.3)], B.clone().setY(top), { rad: 0.28, follow: () => tgt ? () => tgt.parent ? tgt.getWorldPosition(new V3()) : null : null, onLand: (i, last) => { if (!last && tgt) tween(0.12, k => { tgt.position.y = TOP + Math.sin(k * Math.PI) * 0.05; tgt.position.x = B.x + Math.sin(k * Math.PI * 3) * 0.03; }); } });   // 箭钉在棋子上，跟着棋子一起抖
+       Sfx.B.thunks(0, 6); P.ink(B.clone().setY(TOP + 0.15), 8, 0.4, 0.3);
+       if (tgt && !c.survive) { const cc = tgt.position.clone(); removePiece(tgt); chunks(cc, d, 0.6, 8, { of: tgt }); flyFace(tgt, cc, d, 0.6, false); P.blood(cc, 10, 0.7, d); }
+       else if (tgt) { P.blood(B.clone().setY(TOP + 0.2), 8, 0.5, d); await tween(0.25, k => { tgt.position.copy(B).addScaledVector(d, Math.sin(k * Math.PI) * 0.12); }); }
+diff --git a/source/src/main.js b/source/src/main.js
+index a7b2fa3..0e47cc9 100644
+--- a/source/src/main.js
++++ b/source/src/main.js
+@@ -1996,6 +1996,65 @@
+     const xb = e.target.closest('[data-xi]'); if (xb) { e.stopPropagation(); anaPick(+xb.dataset.xi); anaExplain(+xb.dataset.xi); return; }
+     const r = e.target.closest('.ar'); if (r) anaPick(+r.dataset.i);
+   });
++  // 复盘令牌条（美术总监，Ham 审批台 ad-025 / ad-029 甲）：按住整条左右滑，选中的那一步跟着手指 / 鼠标走；
++  //   电脑上鼠标悬在哪一枚，那枚和选中的一样大、显出字，两边各两枚依次过渡；放不下时一起收窄、再不够就叠起；
++  //   手机按住时手指上方浮出放大镜（选中那步居中、前后各 4 步全尺寸带字）；标题右边 ‹ › 一下走一步
++  if (ANAV === 3) (() => {
++    const L = $('anaList'), anaA = () => { const real = RP ? RP.real : game; return real && real.__ana; };
++    const tks = () => L.querySelectorAll('.ar.tk');
++    let down = false, touch = false, hover = -1, sel = -1;
++    const lp = document.createElement('div'); lp.id = 'anaLoupe'; lp.className = 'hidden'; lp.innerHTML = '<div class="row"></div><div class="lb"></div>'; document.body.appendChild(lp);
++    const nav = document.createElement('span'); nav.className = 'anaNav'; nav.innerHTML = '<button type="button" data-d="-1" aria-label="上一步">‹</button><button type="button" data-d="1" aria-label="下一步">›</button>';
++    $('ana').appendChild(nav);   // 放在令牌条右头（第三列）
++    nav.addEventListener('click', e => { const b = e.target.closest('[data-d]'), A = anaA(); if (!b || !A || !A.n) return; anaPick(Math.max(0, Math.min(A.n - 1, (A.sel < 0 ? 0 : A.sel) + +b.dataset.d))); });
++    function fit() {
++      const n = tks().length; if (n < 2) { L.classList.remove('dense'); return; }
++      const per = (L.clientWidth - 4 - 28) / (n - 1);
++      L.style.setProperty('--gap', per >= 6 ? '2px' : per >= 4 ? '1px' : (per - 4).toFixed(2) + 'px'); L.classList.toggle('dense', per < 16);
++    }
++    // 第几枚：密的时候按位置占全条的比例算（选中那枚变宽会把旁边挤开，按最近的找会来回跳）；不密时找中线最近的那枚
++    function idxAt(x) {
++      const t = tks(), n = t.length; if (!n) return -1;
++      const r = L.getBoundingClientRect();
++      if (L.classList.contains('dense')) return Math.max(0, Math.min(n - 1, Math.round((x - r.left - 2 - 13) / (L.clientWidth - 30) * (n - 1))));
++      let best = 0, bd = 1e9; t.forEach((q, i) => { const b = q.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - x); if (d < bd) { bd = d; best = i; } }); return best;
++    }
++    // 悬停按「没放大」的排法算，放大后令牌不会在鼠标下来回跳
++    function baseIdx(x) {
++      const n = tks().length, A = anaA(), s = A ? A.sel : -1, r = L.getBoundingClientRect(), Wc = L.clientWidth - 4, g = parseFloat(L.style.getPropertyValue('--gap')) || 0;
++      const wb = Math.min(22, (Wc - 26 - g * (n - 1)) / Math.max(1, n - 1)), st = wb + g, u = x - r.left - 2;
++      const i = s < 0 ? Math.floor(u / st) : u < s * st ? Math.floor(u / st) : u < s * st + 26 + g ? s : s + 1 + Math.floor((u - s * st - 26 - g) / st);
++      return Math.max(0, Math.min(n - 1, i));
++    }
++    function paintHover() { tks().forEach((q, i) => { const d = hover < 0 || q.classList.contains('on') ? 9 : Math.abs(i - hover); q.classList.toggle('h0', d === 0); q.classList.toggle('h1', d === 1); q.classList.toggle('h2', d === 2); }); }
++    function showLoupe(x) {
++      const A = anaA(); if (!A || A.sel < 0) return;
++      let h = ''; for (let i = A.sel - 4; i <= A.sel + 4; i++) { const s = A.steps[i], g = s && s.grade; h += s ? `<div class="tk ${s.side}${i === A.sel ? ' on' : ''}">${g == null ? '' : `<i class="g${g}" data-c="${ANA1[g]}">${g >= 3 ? ANA1[g] : ''}</i>`}</div>` : '<div class="tk no"></div>'; }
++      const s = A.steps[A.sel], g = s.grade;
++      lp.querySelector('.row').innerHTML = h; lp.querySelector('.lb').textContent = `${A.bf ? '第 ' + (A.sel + 1) + ' 回合' : '第 ' + (Math.floor(A.sel / 2) + 1) + ' 步'} · ${SIDE_CN[s.side]}${g == null ? '' : ' · ' + ANA.tags[g]}`;
++      lp.classList.remove('hidden');
++      const r = L.getBoundingClientRect(), half = lp.offsetWidth / 2;
++      let left = Math.max(half + 4, Math.min(innerWidth - half - 4, x)); lp.style.left = left + 'px'; lp.style.top = (r.top - lp.offsetHeight - 12) + 'px';
++      const b = lp.getBoundingClientRect(); if (b.left < 4) left += 4 - b.left; else if (b.right > innerWidth - 4) left -= b.right - innerWidth + 4; lp.style.left = left + 'px';   // 贴边时收在屏内
++    }
++    function go(i) { if (i < 0 || i === sel) return; sel = i; anaPick(i); try { if (touch && navigator.vibrate) navigator.vibrate(4); } catch (e) { } }
++    L.addEventListener('pointerdown', e => {
++      if (e.button > 0) return;
++      down = true; touch = e.pointerType !== 'mouse'; try { L.setPointerCapture(e.pointerId); } catch (er) { }
++      L.classList.add('drag'); hover = -1; const A = anaA(); sel = A ? A.sel : -1; go(idxAt(e.clientX)); paintHover();
++      if (touch) showLoupe(e.clientX);
++    });
++    L.addEventListener('pointermove', e => {
++      if (down) { go(idxAt(e.clientX)); if (touch) showLoupe(e.clientX); }
++      else if (e.pointerType === 'mouse') { const j = baseIdx(e.clientX); if (j !== hover) { hover = j; paintHover(); } }
++    });
++    const up = () => { down = false; L.classList.remove('drag'); lp.classList.add('hidden'); };
++    L.addEventListener('pointerup', up); L.addEventListener('pointercancel', up);
++    L.addEventListener('pointerleave', () => { if (!down && hover >= 0) { hover = -1; paintHover(); } });
++    // 每次重画令牌（换了一步、分析出新结果）后重新收窄、补上悬停
++    new MutationObserver(() => { fit(); if (hover >= 0) paintHover(); }).observe(L, { childList: true });
++    new ResizeObserver(fit).observe(L);
++  })();
+   $('anaChart').addEventListener('click', e => {
+     const real = RP ? RP.real : game, A = real && real.__ana; if (!A || !A.n) return;
+     const b = $('anaChart').getBoundingClientRect(), i = Math.round((e.clientX - b.left) / b.width * A.n);
+diff --git a/source/src/squads.js b/source/src/squads.js
+index 33f5b76..73dd40a 100644
+--- a/source/src/squads.js
++++ b/source/src/squads.js
+@@ -395,6 +395,60 @@ const Squads = (() => {
+     for (const x of bolts) { if (Math.random() < 0.5) Fx.Marks.hole(x.p1); Fx.throwObj(x.b, new V3(), { life: 10, g: 0, w: new V3() }); Fx.bits[Fx.bits.length - 1].rest = true; }
+     if (!quiet) X.impact();
+   }
++  // 齐射·乱箭点落（Ham 审批台 ad-027 选乙 + 备注「几乎垂直向上冲」，美术总监）：
++  //   箭从放箭的人（或相这颗子）身上错开时刻、几乎垂直地冲上天，飞出画面；静一拍；再从高处一支支垂直扎下来，
++  //   拍子「嗒 — 嗒嗒 — 嗒 — 嗒嗒嗒 — 咚」，全落在目标身上，最后一支正中。onLand(i, last, p)：每扎中一支调一次。返回最后一支扎中时。
++  const SKY_GAPS = [0, 0.14, 0.05, 0.17, 0.12, 0.045, 0.045, 0.19];   // Ham ad-030：落箭太慢 → 整体快一倍，节奏不变
++  // 扎上去的箭跟着目标走（Ham ad-030：要跟着棋子、模型一起抖）：每帧按目标现在的位置加上扎中时的偏移摆；3 秒后缩掉收走
++  const stuck = [];
++  onFrame(dt => {
++    for (let i = stuck.length - 1; i >= 0; i--) { const s = stuck[i]; s.t += dt;
++      const a = s.at(); if (a) s.b.position.copy(a).add(s.off);
++      if (s.t > 3) { const k = Math.max(0, 1 - (s.t - 3) / 0.3); s.b.scale.setScalar(s.sc * k); if (k <= 0) { scene.remove(s.b); stuck.splice(i, 1); } } }
++  });
++  // 齐射专用的箭：比弩箭粗长，远镜头也看得清（箭杆 0.9、铁箭头、朱色箭羽）；尖头朝 +y
++  const skyGeo = (() => { const g = Core.merge([Models.P(Models.G.cyl(0.018, 0.018, 0.9, 5), 0x5a3a20, 0, 0, 0), Models.P(Models.G.cone(0.045, 0.14, 6), 0x2a2a2a, 0, 0.52, 0), Models.P(Models.G.box(0.09, 0.16, 0.004), 0xa8281c, 0, -0.36, 0), Models.P(Models.G.box(0.004, 0.16, 0.09), 0xa8281c, 0, -0.36, 0)]); g.userData.keep = true; return g; })();
++  async function skyVolley(from, at, opts = {}) {
++    const n = SKY_GAPS.length, H = Math.max(14, Core.camera.position.y * 1.4 + 4), FALL = 0.06 + H / 260, sc = opts.scale || 1, rad = opts.rad || 0.3, onLand = opts.onLand;
++    const up = [], down = [], tip = new V3(0, 1, 0), dn = new V3(0, -1, 0);
++    let t1 = 0;
++    for (let i = 0; i < n; i++) {
++      const p0 = from[i % from.length].clone(), az = R(0, 6.283), tilt = R(0.015, 0.075);
++      const dir = new V3(Math.cos(az) * Math.sin(tilt), Math.cos(tilt), Math.sin(az) * Math.sin(tilt));
++      const b = new THREE.Mesh(skyGeo, Models.vcMat); b.scale.setScalar(sc); b.quaternion.setFromUnitVectors(tip, dir); b.visible = false; b.userData.sky = 1; scene.add(b);
++      const t0 = R(0, 0.5); t1 = Math.max(t1, t0); up.push({ b, p0, dir, t0, v: R(28, 38) });
++    }
++    Sfx.B.xbow(0); Sfx.B.whoosh(0.05, 0.6, 0.4);
++    const UP = t1 + H / 26 + 0.1;   // 最慢的一支也飞到 H 以上（画面外）
++    await tween(UP, (k, raw) => {
++      const t = raw * UP;
++      for (const u of up) { const dt = t - u.t0; u.b.visible = dt > 0 && u.b.position.y < u.p0.y + H; if (dt > 0) u.b.position.copy(u.p0).addScaledVector(u.dir, u.v * dt * (0.6 + 0.4 * Math.min(1, dt * 3))); }
++    }, ease.linear);
++    up.forEach(u => { scene.remove(u.b); });
++    await sleep(0.35);   // 天上没有箭的那一拍
++    let tl = 0;
++    for (let i = 0; i < n; i++) {
++      tl += SKY_GAPS[i]; const last = i === n - 1, rr = last ? 0 : R(0.08, rad), an = R(0, 6.283);
++      const c = (typeof at === 'function' ? at() : at).clone().add(new V3(Math.cos(an) * rr, 0, Math.sin(an) * rr));
++      const b = new THREE.Mesh(skyGeo, Models.vcMat); b.scale.setScalar(last ? sc * 1.3 : sc); b.quaternion.setFromUnitVectors(tip, dn); b.visible = false; b.userData.sky = 1; scene.add(b);
++      down.push({ b, c, t: tl, last, done: false });
++    }
++    const L = 0.59 * sc;   // 箭尖到中心的长度
++    await tween(tl + 0.02, (k, raw) => {
++      const t = raw * (tl + 0.02);
++      for (const d of down) {
++        const q = (t - (d.t - FALL)) / FALL; d.b.visible = q > 0;
++        if (q > 0 && q < 1) d.b.position.copy(d.c).setY(d.c.y + L + H * (1 - q));
++        else if (q >= 1 && !d.done) {
++          d.done = true; d.b.position.copy(d.c).setY(d.c.y + L * 0.8);   // 扎进去一点
++          const at = opts.follow ? opts.follow(d.b.position) : null, a0 = at && at();   // 跟着目标：记下和目标的相对位置
++          stuck.push({ b: d.b, at: at || (() => null), off: a0 ? d.b.position.clone().sub(a0) : new V3(), t: 0, sc: d.b.scale.x });
++          Sfx.B.thunks(0, 1); P.ink(d.c.clone(), 3, 0.2, 0.15);
++          if (onLand) onLand(down.indexOf(d), d.last, d.c);
++        }
++      }
++    }, ease.linear);
++  }
+   // 汉军弩手（相）
+   // 汉相：谋士车驾——羽扇谋士立在华盖轺车上，弩手随护两侧（放箭的是弩手）
+   class Crossbow extends TroopSquad {
+@@ -490,12 +544,13 @@ const Squads = (() => {
+         this.guard.setPose('aim'); Sfx.unit('xbow').draw(); tween(0.3, k => { m.roarK = k * 0.5; });
+         if (target.brace) target.brace();
+         await sleep(0.45);
+-        await boltVolley(this.guard, target, 10, dist);
+-        const dead = target.die('bolts', d, 1, B);
+-        await sleep(0.25);
+-        this.guard.setPose('aim');
+-        await boltVolley(this.guard, target, 6, dist);
+-        await dead;
++        // 乱箭点落：两侧弩手朝天放箭，静一拍后从天上一支支扎到目标那队身上，最后一支落下时才倒
++        const ups = this.guard.units.filter(u => !u.dead).map(u => this.guard.troop.worldPos(u.i, 1.25));
++        this.guard.troop.actAll('shoot', 0.25, 0.1);
++        // 扎中的箭跟着离它最近的那名兵走（兵是成批画的，没有单独的物体可挂，按位置每帧跟）
++        const follow = p => { const tr = target.troop; if (!tr) return () => target.center(0); let bi = 0, bd = 1e9; tr.units.forEach((u, i) => { const d = u.p.distanceToSquared(p); if (d < bd) { bd = d; bi = i; } }); return () => tr.worldPos(bi, 0); };
++        await skyVolley(ups.length ? ups : [this.center(0.6)], () => target.center(0.12), { rad: 0.32, follow });
++        await target.die('bolts', d, 1, B);
+         this.guard.setPose('idle'); tween(0.3, k => { m.roarK = 0.5 * (1 - k); });
+         await sleep(0.4);
+         return;
+@@ -1535,7 +1590,7 @@ const Squads = (() => {
+   //  常规 / 揭棋按原编制出模型，兵法按等级出（几级几个人，四级换装）；揭棋的暗子还没翻开，仍然是扣着的棋子
+   // ======================================================================
+   const Stand = (() => {
+-    let on = false, acc = 0, t = 0;
++    let on = false, acc = 0, t = 0, fading = false;   // fading：刚切回棋子模式，各队先 0.25 秒内化掉（拒马路障跟着沉下去），再收走（美术总监，Ham ad-028 交叉过渡）
+     const map = new Map();   // 棋子 mesh → { sq, key, k, ph }
+     const faceYaw = s => yawOf(new V3(0, 0, s === 'r' ? -1 : 1));
+     const FLAG_S = 0.15, RING_D = 0.62;
+@@ -1598,9 +1653,15 @@ const Squads = (() => {
+       }
+     }
+     onFrame((dt, raw) => {
+-      if (!on) return;
++      if (!on && !fading) return;
+       const rdt = raw == null ? dt : raw;
+       t += rdt; acc += rdt;
++      if (fading) {
++        let left = 0;
++        for (const [m, st] of map) { showDisc(m, true); if (st.k > 0.001) { st.k = Math.max(0, st.k - rdt * 4); vis(st, Math.max(0.001, st.k)); if (st.flag) st.flag.group.scale.setScalar(Math.max(0.001, FLAG_S * st.k)); st.ring.material.opacity *= st.k; left++; } }
++        if (!left) { fading = false; for (const m of [...map.keys()]) drop(m); }
++        return;
++      }
+       if (acc > 0.25) { acc = 0; reconcile(); }
+       const ending = typeof Ending !== 'undefined' && Ending.running;   // 结算演出时让位：模型收起，棋子照常
+       for (const [m, st] of map) {
+@@ -1641,12 +1702,12 @@ const Squads = (() => {
+       },
+       set(v) {
+         v = !!v; if (v === on) return; on = v;
+-        if (on) reconcile();
+-        else { for (const m of [...map.keys()]) { showDisc(m, true); drop(m); } for (const m of Board.pieces.values()) showDisc(m, true); }
++        if (on) { if (fading) { fading = false; for (const m of [...map.keys()]) drop(m); } reconcile(); }
++        else { fading = map.size > 0; for (const m of Board.pieces.values()) showDisc(m, true); if (!fading) for (const m of [...map.keys()]) drop(m); }
+       },
+       reconcile, get count() { return map.size; },
+     };
+   })();
+ 
+-  return { get finalMode() { return finalMode; }, set finalMode(v) { finalMode = !!v; }, rubble, Stand, move, capture, pieceBoat, heroDefeat, make, jmForm, standYaw, charge, retreat, hurtSquad, yawOf, knightCorner, Shade, Infantry, Guards, Crossbow, TigerRider, Elephant, Chariot, Cavalry, Cannon, General, killUnit, walkPath, turnTo, TroopSquad };
++  return { get finalMode() { return finalMode; }, set finalMode(v) { finalMode = !!v; }, rubble, skyVolley, Stand, move, capture, pieceBoat, heroDefeat, make, jmForm, standYaw, charge, retreat, hurtSquad, yawOf, knightCorner, Shade, Infantry, Guards, Crossbow, TigerRider, Elephant, Chariot, Cavalry, Cannon, General, killUnit, walkPath, turnTo, TroopSquad };
+ })();
+diff --git a/source/src/template.html b/source/src/template.html
+index 26fedd3..b897917 100644
+--- a/source/src/template.html
++++ b/source/src/template.html
+@@ -1360,6 +1360,47 @@ html:has(#endcard:not(.hidden)),html:has(#endcard:not(.hidden)) body,html:has(#e
+ #ana.v3 #anaDet .db.b,#ana.v3 #anaDet .db.r{color:#f0e7d2}#ana.v3 #anaDet .db.r{border-color:#a8281c}
+ #ana.v3 #anaDet .dp em{background:#f0e7d2;color:#141311;border-radius:0}#ana.v3 #anaDet .dp b{color:#f0e7d2;font-weight:bold}#ana.v3 #anaDet .dw{color:rgba(240,231,210,.7)}
+ #ana.v3 #anaList .ar.tk.on,#ana.v3 #anaList .ar.tk.on i{border-radius:0}
++/* 复盘令牌条（美术总监，Ham 审批台 ad-025 / ad-029 甲）：不再横向滚动；放不下时没选中的令牌一起收窄、再不够就叠起，选中的那枚始终全宽。
++   按住整条左右滑，选中跟着走；电脑上鼠标悬在哪枚，那枚和选中的一样大、显出字，两边各两枚依次过渡；手机按住时手指上方浮出放大镜 */
++#ana.v3 #anaList{overflow:visible;gap:0;height:46px;min-height:0;padding:0 2px;align-items:flex-end;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;position:relative}
++#ana.v3 #anaList.drag{cursor:grabbing}
++#ana.v3 #anaList .ar.tk{flex:1 1 0;min-width:0;max-width:22px;height:20px;margin:0 var(--gap,2px) 0 0;border-radius:0;transition:height .12s ease-out,flex-basis .12s ease-out,max-width .12s ease-out}
++#ana.v3 #anaList .ar.tk i{inset:3px 1px 1px;font-size:10px}
++#ana.v3 #anaList .ar.tk:hover{height:20px}
++#ana.v3 #anaList .ar.tk.on,#ana.v3 #anaList .ar.tk.h0{flex:0 0 26px;max-width:26px;min-width:26px;height:34px;z-index:3}
++#ana.v3 #anaList .ar.tk.h0{outline:none}
++#ana.v3 #anaList .ar.tk.h1{flex:0 0 18px;max-width:18px;height:28px;z-index:2}
++#ana.v3 #anaList .ar.tk.h2{flex:0 0 13px;max-width:13px;height:24px;z-index:1}
++#ana.v3 #anaList .ar.tk.on i,#ana.v3 #anaList .ar.tk.h0 i{font-size:15px}
++#ana.v3 #anaList .ar.tk.on i::after{content:none}
++#ana.v3 #anaList .ar.tk.on i:empty::after,#ana.v3 #anaList .ar.tk.h0 i:empty::after{content:attr(data-c);font-size:15px;line-height:1;color:inherit;text-shadow:none}
++#ana.v3 #anaList.dense .ar.tk:not(.on):not(.h0) i{font-size:0}
++#ana.v3{grid-template-columns:150px 1fr auto}#ana.v3 #anaChart{grid-column:2/4}
++#ana.v3 .anaNav{grid-column:3;grid-row:2;align-self:end;display:flex;gap:6px;margin-bottom:2px}
++#ana.v3 .anaNav button{width:40px;height:32px;border:2px solid rgba(240,231,210,.55);background:none;color:#f0e7d2;font:900 18px/1 var(--ef);display:grid;place-items:center;padding:0;cursor:pointer;touch-action:manipulation}
++#ana.v3 .anaNav button:active{background:rgba(240,231,210,.12)}
++#anaLoupe{position:fixed;z-index:60;width:max-content;transform:translateX(-50%);background:#141311;border:2px solid #f0e7d2;padding:6px 8px 5px;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.5);color:#f0e7d2}
++#anaLoupe.hidden{display:none}
++#anaLoupe .row{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:3px}
++#anaLoupe .tk{position:relative;width:22px;height:28px;background:#2a2723}
++#anaLoupe .tk.r{box-shadow:inset 0 2px 0 #a8281c}#anaLoupe .tk.b{box-shadow:inset 0 2px 0 #f0e7d2}
++#anaLoupe .tk i{position:absolute;inset:3px 1px 1px;display:grid;place-items:center;box-sizing:border-box;font:900 13px/1 var(--ef);font-style:normal;color:#f0e7d2}
++#anaLoupe .tk i:empty::after{content:attr(data-c)}
++#anaLoupe .g0{background:#f0e7d2;color:#141311!important}#anaLoupe .g1{border:2px solid #f0e7d2}#anaLoupe .g2{background:#6b6458}#anaLoupe .g3{border:2px solid #a8281c}#anaLoupe .g4{background:#a8281c}
++#anaLoupe .tk.on{width:28px;height:36px;outline:2px solid #f0e7d2;outline-offset:1px}#anaLoupe .tk.on i{font-size:16px}
++#anaLoupe .tk.no{visibility:hidden}
++#anaLoupe .lb{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
++@media (max-width:760px){
++  #ana.v3{grid-template-columns:1fr auto}#ana.v3 .anaH,#ana.v3 #anaSum,#ana.v3 #anaChart{grid-column:1/3}
++  #ana.v3 .anaNav{grid-column:2;grid-row:3}
++  #ana.v3 #anaList{gap:0;height:46px;min-height:0;padding:0 2px}
++  #ana.v3 #anaList .ar.tk{min-width:0;max-width:22px;height:20px;border-radius:0}
++  #ana.v3 #anaList .ar.tk i{inset:3px 1px 1px;border-radius:0;font-size:10px}
++  #ana.v3 #anaList .ar.tk:hover{height:20px;background:#2a2723}
++  #ana.v3 #anaList .ar.tk.on{flex:0 0 26px;max-width:26px;min-width:26px;height:34px;margin:0 var(--gap,2px) 0 0;border-radius:0}
++  #ana.v3 #anaList .ar.tk.on i{inset:3px 1px 1px;font-size:15px}
++}
++@media (pointer:coarse){#ana.v3 #anaList{height:56px}}
+ #ana.v3 #anaList .tk .g3{border-width:3px}
+ #mSet .e-body{display:flex;flex-direction:column}
+ #mSet .e-body>.note{flex:1 0 auto;display:flex;align-items:flex-end;justify-content:center;margin:0!important;padding:14px;border:2px solid var(--c);border-top:0;opacity:1!important}
