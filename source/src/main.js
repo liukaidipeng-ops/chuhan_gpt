@@ -3796,7 +3796,7 @@
       if (hostSeat) {
         const back = room.host && hostOut ? ' data-back tabindex="0" role="button"' : '';
         if (!hostOut) { who = room.host ? '你' : '房主'; st = '房主'; if (room.host) cls = ' me'; }
-        else if (ai2) { who = LV[ai2] || '人机'; st = `人机 <span class="st">${STAR[ai2] || ''}</span>${room.host ? ' · 点我坐回' : ' · 房主观战'}`; cls = ' ai' + (back ? ' back' : ''); attr = back; }
+        else if (ai2) { who = LV[ai2] || '人机'; st = `人机 <span class="st">${STAR[ai2] || ''}</span>${room.host ? '' : ' · 房主观战'}`;   // 房主自己看：不写「点我坐回」（Ham 10-11），圆还是可以点、悬停变亮 cls = ' ai' + (back ? ' back' : ''); attr = back; }
         else { who = '空位'; st = room.host ? '点这里坐回' : '房主在观战席'; cls = ' empty' + (back ? ' back' : ''); attr = back; }
       } else {
         const ai = room.ai, taken = room.seated || ai, mine = !room.host && room.seated && !ai;
