@@ -1357,7 +1357,17 @@ const Squads = (() => {
       if (ranged) Fx.shot(mid.clone().addScaledVector(side, 2.2 + c.dist * 0.55).addScaledVector(d, -0.5).add(new V3(0, 1.1 + c.dist * 0.12, 0)), mid.clone().add(new V3(0, 0.2, 0)), 0.6);
       else Fx.shot(A.clone().lerp(B, 0.7).addScaledVector(side, 2.3).addScaledVector(d, -0.6).add(new V3(0, 0.95, 0)), A.clone().lerp(B, 0.82).add(new V3(0, 0.25, 0)), 0.6);
     }
-    await att.attack(def, c);
+    // 兵卒对打（角色部 M34，Ham 角色部审批台 char-024）：技能模式里兵 / 卒小队之间，换成全屏的精细小人对打，烟尘一遮切进切出
+    const duel = window.Duel && c.lv && t === 'p' && dt_ === 'p' && !c.counter && !c.ranged && cine && att.troop && def.troop;
+    if (duel) {
+      P.dust(mid.clone().setY(TOP), 18, null, 0.5); Cam.shake(0.08); await sleep(0.25);
+      const SND = { parry: () => Sfx.B.clang(0, 0.4), block: () => Sfx.B.block(0, 0.6), clank: () => Sfx.B.clang(0, 0.5), hit: () => { Sfx.B.stab(0, 0.5); Sfx.B.sgrunt(0, 0.45); }, kill: () => Sfx.B.stab(0, 0.6), thud: () => Sfx.B.thud(0, 0.5) };
+      try { await Duel.play({ lv: Math.max(1, Math.min(4, c.lv)), kill: !c.survive, att: s, speed: Core.Time.boost || 1.5, onEvent: k => { const f = SND[k]; if (f) try { f(); } catch (e) { } } }); } catch (e) { }
+      P.dust(B.clone().setY(TOP), 14, null, 0.45);
+      if (c.survive) def.die('stab', d, 1, B);   // 扣血：回到棋盘上小队少几个人、脚下血圈少一段，跟别的扣血一样
+      else { def.setVis(0.001); def.dead = true; Fx.Marks.blood(B.clone().setY(Fx.groundAt(B)), 1.0, d); }
+      att.setPose && att.setPose(c.survive ? 'ready' : 'wave');
+    } else await att.attack(def, c);
     if (c.onImpact) await c.onImpact({ att });   // 践踏：打完就地跺脚、结算四周，之后才撤回 / 收场
     // 兵法·攻击未下：攻方撤回原位，守方带伤留在原地；远射（齐射）攻方不动
     if (c.survive || c.ranged) {
