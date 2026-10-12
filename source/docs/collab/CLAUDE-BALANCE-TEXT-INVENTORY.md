@@ -262,3 +262,40 @@
 4. 破釜组合枚举在“汉走且楚破釜在手”的 29 个固定局面中占总 CPU 40%；seed 21 ply 16 单步总 CPU 4768 ms，其中 `pofuPairs` 3272 ms、组合数 79426。将军延伸 CX=2 相对 CX=0 节点 +33%，而新候选每节点 CPU 也比旧版贵 62%；性能问题不是单一节点上限能说明。
 5. `exam_multiplicity.txt` 显示多道“别走某步”的题拥有极多可判对着法：20 题 440/450、实2 435/450、26 题 50/51；它们适合作回归约束，不适合作强弱区分。相反，机制唯一解题和战略题的候选空间、判定器与反题必须单独核查。
 6. 这些材料属于 b18c278/25eb911/73eb7d4/16aacba 的历史证据，不能替代当前 H70 的性能样本、有效考题结果或 600 局换边准入。
+
+
+### 2026-10-13 · 第8批
+
+已完整复核 20 个 Fable 原始脚本：
+
+- `source/docs/collab/fable/01-材料/skeptic_a7/check2.js`
+- `source/docs/collab/fable/01-材料/skeptic_a7/check.js`
+- `source/docs/collab/fable/01-材料/skeptic_a5.js`
+- `source/docs/collab/fable/01-材料/exam_chain.sh`
+- `source/docs/collab/fable/01-材料/c_worst.js`
+- `source/docs/collab/fable/01-材料/skeptic_b8/cov.js`
+- `source/docs/collab/fable/01-材料/skeptic_b11/sim.js`
+- `source/docs/collab/fable/01-材料/c_worst2.js`
+- `source/docs/collab/fable/01-材料/exam_multiplicity.js`
+- `source/docs/collab/fable/01-材料/skeptic_c20/layers.js`
+- `source/docs/collab/fable/01-材料/skeptic_a7/q21swap.js`
+- `source/docs/collab/fable/01-材料/sprt_sim.js`
+- `source/docs/collab/fable/01-材料/same_moves.js`
+- `source/docs/collab/fable/01-材料/skeptic_c7/worst16_loose.js`
+- `source/docs/collab/fable/01-材料/skeptic_c7/worst16.js`
+- `source/docs/collab/fable/01-材料/skeptic_c20/layers40.js`
+- `source/docs/collab/fable/01-材料/pento.js`
+- `source/docs/collab/fable/01-材料/exam_mirror.js`
+- `source/docs/collab/fable/01-材料/worst_rev.js`
+- `source/docs/collab/fable/01-材料/skeptic_c8/decomp.js`
+
+累计完整复核：78 / 122。
+
+新增脚本层核对：
+
+1. 镜像核查脚本证明仅翻转棋盘坐标不够：阵亡名单中的棋子 ID 和召回行动 ID 也必须按开局左右对称位互换；`q21swap.js` 正是对旧 `exam_mirror.js` 缺口的修复性复核。
+2. `sprt_sim.js`、`skeptic_b8/cov.js` 和 `skeptic_b11/sim.js` 都按实际工具的偶数局检查、经验方差和 ±ln(19) 边界建模；它们用于说明提前停偏差、朴素区间覆盖和“通过只是不明显弱”。`pento.js` 进一步按完整 seed pair 比较配对与单局方差，但脚本本身不等于项目已切换到配对检验。
+3. `c_worst*.js`、`skeptic_c7/worst16*.js`、`skeptic_c20/layers*.js` 通过固定种子重建最坏局面，分离破釜枚举、前两层、第三层、CPU、墙钟和节点。它们支持“第三层兜底治不了前两层已耗时的最坏局面”，并说明缓存命中必须按完整状态内容核对。
+4. `skeptic_c8/decomp.js` 将根节点升级分支、破釜搜索和将军延伸逐项剥离；`same_moves.js` 同时比较着法与节点数。历史性能结论来自受控消融，不应只看总节点或单局墙钟。
+5. `exam_multiplicity.js` 枚举先升级加主行动的全候选并逐个交给原判题器；`skeptic_a5.js`、`skeptic_a7/*` 则检查宽判题、题目走子方、阵亡 ID 与镜像召回。这些脚本说明考卷质量问题来自题目/判题结构，不应归咎于候选 AI。
+6. 这些脚本含旧容器绝对路径和历史提交副本，只能作为快照证据；没有本轮云端运行结果时，不把“读过脚本”写成“已复跑”或“当前版本验证通过”。
