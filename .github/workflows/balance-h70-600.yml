@@ -1,0 +1,80 @@
+name: Balance H70 600-game gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/balance-a6-20261012
+    paths:
+      - source/tools/h70_match_collect.js
+      - .github/workflows/balance-h70-600.yml
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      chunks: ${{ steps.plan.outputs.chunks }}
+    steps:
+      - id: plan
+        run: echo 'chunks=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]' >> "$GITHUB_OUTPUT"
+
+  match:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: ${{ fromJSON(needs.plan.outputs.chunks) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run 12 games as 6 swapped pairs
+        working-directory: source
+        run: |
+          mkdir -p ../match-part
+          seed=$((500000 + ${{ matrix.chunk }} * 6))
+          node tools/bfsim.js --match git:97a43005662ab923cd5dd0f4fea6fa5d83477a5b,git:11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5 --games 12 --seed "$seed" --level hard --nodes hard=100000 --open 10 --open-ai tools/variants/bfai_t3p.js --open-nodes 60000 --fixed --jobs 4 --quiet --json "../match-part/chunk-${{ matrix.chunk }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: h70-chunk-${{ matrix.chunk }}
+          path: match-part/
+          retention-days: 7
+
+  collect:
+    needs: match
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: h70-chunk-*
+          path: match-parts
+          merge-multiple: true
+      - name: Aggregate and validate
+        run: node source/tools/h70_match_collect.js match-parts h70-match-results
+      - uses: actions/upload-artifact@v4
+        with:
+          name: h70-600-game-gate
+          path: h70-match-results/
+      - name: Save qualification evidence
+        run: |
+          mkdir -p docs/codex/h70
+          cp h70-match-results/* docs/codex/h70/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/codex/h70
+          git commit -m "test(h70): record 600-game swapped qualification"
+          git pull --rebase origin codex/balance-a6-20261012
+          git push origin HEAD:codex/balance-a6-20261012
