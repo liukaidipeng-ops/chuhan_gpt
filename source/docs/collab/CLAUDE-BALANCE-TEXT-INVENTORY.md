@@ -37,14 +37,14 @@
 | `source/docs/collab/decisions.md` | 37,171 | **已完整复核** | 批准项、否决项、原编号 |
 | `source/docs/collab/code-to-chat.md` | 121,620 | 已定位，待逐页复核 | Claude 数值部对用户的交付与承诺 |
 | `source/docs/collab/chat-to-code.md` | 115,767 | 已定位，待逐页复核 | 用户原话、约束和任务来源 |
-| `source/docs/ai-playbook.md` | 15,659 | 已用于当前工作 | AI训练、评测与版本纪律 |
+| `source/docs/ai-playbook.md` | 15,659 | **已完整复核** | AI训练、评测与版本纪律 |
 | `source/docs/bfai-qualification.md` | 7,424 | **已完整复核** | 600局换边准入、统计口径 |
-| `source/docs/collab/WORKFLOW.md` | 19,248 | 已读最新补充 | 持续工作、审批和交接规则 |
+| `source/docs/collab/WORKFLOW.md` | 19,248 | **已完整复核** | 持续工作、审批和交接规则 |
 | `source/docs/collab/handoff-2026-10-08.md` | 4,444 | **已完整复核** | 历史交接点和未完成项 |
 | `source/docs/collab/advisors/handoff.md` | 11,203 | **已完整复核** | 顾问交接与数值依赖 |
 | `source/docs/collab/advisors/numbers-to-advisors.md` | 18,285 | **已完整复核** | 数值部给顾问部的结论 |
 | `NOTES.md` | 141,402 | 已定位，待逐页复核 | 仓库早期总记录 |
-| `README.md` | 10,387 | 已定位 | 仓库入口和版本说明 |
+| `README.md` | 10,387 | **已完整复核** | 仓库入口和版本说明 |
 
 ### B. Fable 审查与设计主文档
 
@@ -120,3 +120,24 @@
 5. 历史交接列出的升级盲区、一步杀、搜索深度和网页耗时问题，必须按后续 C/H 交付及当前 H70 证据判断是否已关闭。
 
 `chat-to-code.md` 已开始分段读取，但由于单次返回截断，本批不把它标成完整复核；后续改用更小行段逐段确认。
+
+
+### 2026-10-13 · 第2批
+
+已完整复核 7 个文件：
+
+- `source/docs/ai-playbook.md`
+- `source/docs/collab/WORKFLOW.md`
+- `README.md`
+- `source/docs/TODO-v3.md`
+- `source/docs/TODO-v4.md`
+- `source/docs/TODO-v5.md`
+- `source/docs/TODO-v6.md`
+
+累计完整复核：12 / 122。
+
+新增确认：
+
+- 旧项目不是神经网络训练，而是搜索、估值权重拟合、考卷、复盘和对打组成的持续工程；不能用“训练百分比”描述总完成度。
+- 多数历史 TODO 已完成，但 v6 曾留过模型细化和最终部署占位；是否实际关闭必须以其后的 TD H/C 记录和部署提交为准。
+- 旧手册把“同种子换边至少600局、考卷不作排名、页面耗时必须实测”写成固定验收纪律，H70继续沿用。
