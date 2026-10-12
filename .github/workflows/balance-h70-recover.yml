@@ -2,6 +2,11 @@ name: Balance H70 missing-pair recovery
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/balance-h70-20261012
+    paths:
+      - .github/workflows/balance-h70-recover.yml
 
 permissions:
   contents: read
@@ -24,11 +29,11 @@ jobs:
           run-id: ${{ env.ORIGINAL_RUN_ID }}
           pattern: h70-chunk-*
           path: original-parts
-      - name: Verify the 35 completed original chunks and their payloads
+      - name: Verify the 36 completed original chunks and their payloads
         run: |
           node - <<'NODE'
           const fs=require('fs'),path=require('path');
-          const required=[0,2,3,4,6,7,8,10,11,12,14,15,16,17,19,20,22,23,24,25,27,29,31,33,34,35,36,37,38,39,40,44,45,46,47];
+          const required=[0,2,3,4,6,7,8,9,10,11,12,14,15,16,17,19,20,22,23,24,25,27,29,31,33,34,35,36,37,38,39,40,44,45,46,47];
           const candidate='97a43005662ab923cd5dd0f4fea6fa5d83477a5b';
           const baseline='11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5';
           const files=[];
