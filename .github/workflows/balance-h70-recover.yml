@@ -2,11 +2,6 @@ name: Balance H70 missing-pair recovery
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - codex/balance-h70-20261012
-    paths:
-      - .github/workflows/balance-h70-recover.yml
 
 permissions:
   contents: read
