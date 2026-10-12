@@ -7,5 +7,5 @@
 长将限制 OK
 长捉限制 OK
 悔棋复原 OK（走了 120 步）
-随机对局 60 局 11649 步 结果 {"draw":26,"open":10,"stalemate":13,"checkmate":11} OK
+随机对局 60 局 11524 步 结果 {"stalemate":25,"draw":26,"checkmate":4,"open":5} OK
 JIEQI ALL OK

@@ -3,126 +3,126 @@
     "rep": 0,
     "state": 0,
     "version": "baseline",
-    "ms": 282.18221600000004,
+    "ms": 133.65389199999998,
     "nodes": 1305
   },
   {
     "rep": 0,
     "state": 0,
     "version": "candidate",
-    "ms": 246.28401400000007,
+    "ms": 163.54620700000004,
     "nodes": 1305
   },
   {
     "rep": 0,
     "state": 1,
     "version": "baseline",
-    "ms": 160.20143199999995,
+    "ms": 62.59488399999998,
     "nodes": 480
   },
   {
     "rep": 0,
     "state": 1,
     "version": "candidate",
-    "ms": 133.4497839999999,
+    "ms": 39.47841100000005,
     "nodes": 480
   },
   {
     "rep": 0,
     "state": 2,
     "version": "baseline",
-    "ms": 61.75009799999998,
+    "ms": 27.59351099999992,
     "nodes": 684
   },
   {
     "rep": 0,
     "state": 2,
     "version": "candidate",
-    "ms": 129.0332400000002,
+    "ms": 71.19378800000004,
     "nodes": 684
   },
   {
     "rep": 1,
     "state": 0,
     "version": "candidate",
-    "ms": 128.62348599999996,
+    "ms": 76.07587000000001,
     "nodes": 1305
   },
   {
     "rep": 1,
     "state": 0,
     "version": "baseline",
-    "ms": 91.66076700000008,
+    "ms": 52.122589999999946,
     "nodes": 1305
   },
   {
     "rep": 1,
     "state": 1,
     "version": "candidate",
-    "ms": 29.48659900000007,
+    "ms": 16.386041999999975,
     "nodes": 480
   },
   {
     "rep": 1,
     "state": 1,
     "version": "baseline",
-    "ms": 27.851924000000054,
+    "ms": 14.967378000000053,
     "nodes": 480
   },
   {
     "rep": 1,
     "state": 2,
     "version": "candidate",
-    "ms": 50.70187199999987,
+    "ms": 26.79977000000008,
     "nodes": 684
   },
   {
     "rep": 1,
     "state": 2,
     "version": "baseline",
-    "ms": 38.84142900000006,
+    "ms": 21.104557999999997,
     "nodes": 684
   },
   {
     "rep": 2,
     "state": 0,
     "version": "baseline",
-    "ms": 62.53370999999993,
+    "ms": 34.15424100000007,
     "nodes": 1305
   },
   {
     "rep": 2,
     "state": 0,
     "version": "candidate",
-    "ms": 72.35100499999999,
+    "ms": 39.395476999999914,
     "nodes": 1305
   },
   {
     "rep": 2,
     "state": 1,
     "version": "baseline",
-    "ms": 28.323495999999977,
+    "ms": 16.467442000000005,
     "nodes": 480
   },
   {
     "rep": 2,
     "state": 1,
     "version": "candidate",
-    "ms": 29.897907000000032,
+    "ms": 16.5466899999999,
     "nodes": 480
   },
   {
     "rep": 2,
     "state": 2,
     "version": "baseline",
-    "ms": 36.77160200000003,
+    "ms": 21.086411,
     "nodes": 684
   },
   {
     "rep": 2,
     "state": 2,
     "version": "candidate",
-    "ms": 44.652237000000014,
+    "ms": 25.46176700000001,
     "nodes": 684
   }
 ]
