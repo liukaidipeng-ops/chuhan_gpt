@@ -1,0 +1,54 @@
+name: Balance uploaded games regression
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/balance-a6-20261012
+    paths:
+      - .github/workflows/balance-uploaded-games.yml
+
+permissions:
+  contents: write
+
+jobs:
+  historical-games:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BFAI_NEXT_BASE: 54ba8bc
+      BFAI_TUNE_W: tools/tune/w_t6.json
+      BFAI_TUNE_FAST: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Restore current rules
+        run: git checkout 11738bf -- source/src
+      - name: Test current candidate on all uploaded-game exam points
+        working-directory: source
+        run: |
+          mkdir -p ../game-results
+          node tools/bfai_exam.js tools/variants/bfai_next.js --level hard --runs 3 --nodes 100000 --only 实战 | tee ../game-results/uploaded-games-exam.log
+      - name: Save evidence
+        if: success()
+        run: |
+          mkdir -p docs/codex/uploaded-games
+          cp game-results/uploaded-games-exam.log docs/codex/uploaded-games/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/codex/uploaded-games
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "test(balance): record uploaded-game regression"
+          git pull --rebase origin codex/balance-a6-20261012
+          git push origin HEAD:codex/balance-a6-20261012
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: balance-uploaded-games
+          path: game-results/
+          if-no-files-found: warn
