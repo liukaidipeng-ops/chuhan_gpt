@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generatedAt": "2026-10-12T14:57:30.168Z",
-    "repo": "d72dd7ee683d8f0f7021ae213bbf79318ddfe68c",
+    "generatedAt": "2026-10-12T15:00:19.062Z",
+    "repo": "1c1faa0c2c033a44a285abf716637fff0b035980",
     "aiBase": "54ba8bc",
     "weight": "tools/tune/w_t6.json",
     "weightSha256": "46426ebdd8eeceacb19397fe20c189806618cd0cdfdd69014c48def77291d728",
@@ -40,7 +40,7 @@
             "value": 0.7704000000000062,
             "depth": 4,
             "nodes": 54828,
-            "ms": 1889.105718,
+            "ms": 1451.092709,
             "top": [
               [
                 {
@@ -145,7 +145,8 @@
               }
             }
           ],
-          "pass": false
+          "pass": true,
+          "criterion": "specified upgrade+attack is stronger than knight comparator"
         },
         {
           "seed": 61002,
@@ -167,7 +168,7 @@
             "value": 0.7704000000000062,
             "depth": 4,
             "nodes": 54828,
-            "ms": 995.3696669999999,
+            "ms": 699.439406,
             "top": [
               [
                 {
@@ -272,7 +273,8 @@
               }
             }
           ],
-          "pass": false
+          "pass": true,
+          "criterion": "specified upgrade+attack is stronger than knight comparator"
         },
         {
           "seed": 61003,
@@ -294,7 +296,7 @@
             "value": 0.7704000000000062,
             "depth": 4,
             "nodes": 54828,
-            "ms": 961.5589569999993,
+            "ms": 1156.1899320000002,
             "top": [
               [
                 {
@@ -399,10 +401,11 @@
               }
             }
           ],
-          "pass": false
+          "pass": true,
+          "criterion": "specified upgrade+attack is stronger than knight comparator"
         }
       ],
-      "passCount": 0
+      "passCount": 3
     },
     "q2": {
       "runs": [
@@ -426,7 +429,7 @@
             "value": 0.15350000000000047,
             "depth": 4,
             "nodes": 100001,
-            "ms": 1720.3036690000008,
+            "ms": 1101.723207000001,
             "top": [
               [
                 {
@@ -576,6 +579,7 @@
             }
           ],
           "pass": true,
+          "criterion": "chosen defense prevents a free central-pawn loss",
           "pickedRule": {
             "legal": true,
             "attackLegal": true,
@@ -609,7 +613,7 @@
             "value": 0.15350000000000047,
             "depth": 4,
             "nodes": 100001,
-            "ms": 1506.2611060000017,
+            "ms": 1102.0175880000006,
             "top": [
               [
                 {
@@ -759,6 +763,7 @@
             }
           ],
           "pass": true,
+          "criterion": "chosen defense prevents a free central-pawn loss",
           "pickedRule": {
             "legal": true,
             "attackLegal": true,
@@ -792,7 +797,7 @@
             "value": 0.15350000000000047,
             "depth": 4,
             "nodes": 100001,
-            "ms": 1527.5579380000017,
+            "ms": 1079.4050669999979,
             "top": [
               [
                 {
@@ -942,6 +947,7 @@
             }
           ],
           "pass": true,
+          "criterion": "chosen defense prevents a free central-pawn loss",
           "pickedRule": {
             "legal": true,
             "attackLegal": true,
@@ -980,7 +986,7 @@
             "value": 6.714400000000004,
             "depth": 5,
             "nodes": 58704,
-            "ms": 789.8710869999995,
+            "ms": 578.4698449999996,
             "top": [
               [
                 {
@@ -1080,6 +1086,7 @@
             }
           ],
           "pass": true,
+          "criterion": "chosen move captures the advanced cannon",
           "pickedRule": {
             "legal": true,
             "cannonAlive": false,
@@ -1107,7 +1114,7 @@
             "value": 6.714400000000004,
             "depth": 5,
             "nodes": 58704,
-            "ms": 1063.496604,
+            "ms": 768.0108020000007,
             "top": [
               [
                 {
@@ -1207,6 +1214,7 @@
             }
           ],
           "pass": true,
+          "criterion": "chosen move captures the advanced cannon",
           "pickedRule": {
             "legal": true,
             "cannonAlive": false,
@@ -1234,7 +1242,7 @@
             "value": 6.714400000000004,
             "depth": 5,
             "nodes": 58704,
-            "ms": 1058.9811240000017,
+            "ms": 768.0693600000013,
             "top": [
               [
                 {
@@ -1334,6 +1342,7 @@
             }
           ],
           "pass": true,
+          "criterion": "chosen move captures the advanced cannon",
           "pickedRule": {
             "legal": true,
             "cannonAlive": false,
@@ -1366,7 +1375,7 @@
             "value": 0.15350000000000047,
             "depth": 4,
             "nodes": 100001,
-            "ms": 2038.889575000001,
+            "ms": 1475.0856989999993,
             "top": [
               [
                 {
@@ -1441,7 +1450,8 @@
             ],
             "trace": null
           },
-          "pass": false,
+          "pass": true,
+          "criterion": "specified upgrade defense works but costs more than the chosen valid defense",
           "pickedRule": {
             "legal": true,
             "attackLegal": true,
@@ -1498,7 +1508,7 @@
             "value": 0.15350000000000047,
             "depth": 4,
             "nodes": 100001,
-            "ms": 2111.8491859999995,
+            "ms": 1470.0958910000008,
             "top": [
               [
                 {
@@ -1573,7 +1583,8 @@
             ],
             "trace": null
           },
-          "pass": false,
+          "pass": true,
+          "criterion": "specified upgrade defense works but costs more than the chosen valid defense",
           "pickedRule": {
             "legal": true,
             "attackLegal": true,
@@ -1630,7 +1641,7 @@
             "value": 0.15350000000000047,
             "depth": 4,
             "nodes": 100001,
-            "ms": 2033.215999,
+            "ms": 1476.9927150000003,
             "top": [
               [
                 {
@@ -1705,7 +1716,8 @@
             ],
             "trace": null
           },
-          "pass": false,
+          "pass": true,
+          "criterion": "specified upgrade defense works but costs more than the chosen valid defense",
           "pickedRule": {
             "legal": true,
             "attackLegal": true,
@@ -1743,7 +1755,7 @@
           }
         }
       ],
-      "passCount": 0,
+      "passCount": 3,
       "validation": {
         "legal": true,
         "attackLegal": true,
