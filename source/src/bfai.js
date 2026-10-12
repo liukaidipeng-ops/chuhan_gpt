@@ -112,14 +112,6 @@
   function score(S, me, P) {
     const b = S.board, fin = !!S.final;
     let kr = null, kb = null;
-    if (generated) {
-      for (const it of generated) {
-        if (it.a.k !== 'mv') continue;
-        if (it.q && it.q.hp > A.atk(it.p)) continue;
-        if (BF.attempt(S, it.a)) return null;
-      }
-      return BF.evaluate(S).result?.winner || null;
-    }
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = b[r][f]; if (p && p.t === 'k') { if (p.s === 'r') kr = [f, r]; else kb = [f, r]; } }
     let v = 0, attR = 0, attB = 0;                          // attR / attB：压到对方主帅跟前的汉 / 楚进攻子
     let hvR = false, hvB = false;                           // 汉 / 楚有没有两点血以上的进攻子已经逼到对方家门口
@@ -200,12 +192,20 @@
   // 搜索末端、升级后和免费行动后的状态也必须遵守同一规则。
   function terminalWinner(S, inChk, generated) {
     if (S.final || inChk) return BF.evaluate(S).result?.winner || null;
-    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
-      const p = S.board[r][f]; if (!p || p.s !== S.turn) continue;
-      for (const m of A.moveTargets(S, f, r)) {
-        const q = S.board[m.to[1]][m.to[0]];
-        if (q && q.hp > A.atk(p)) continue;
-        if (BF.attempt(S, { k: 'mv', from: m.from, to: m.to })) return null;
+    if (generated) {
+      for (const it of generated) {
+        if (it.a.k !== 'mv') continue;
+        if (it.q && it.q.hp > A.atk(it.p)) continue;
+        if (BF.attempt(S, it.a)) return null;
+      }
+    } else {
+      for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+        const p = S.board[r][f]; if (!p || p.s !== S.turn) continue;
+        for (const m of A.moveTargets(S, f, r)) {
+          const q = S.board[m.to[1]][m.to[0]];
+          if (q && q.hp > A.atk(p)) continue;
+          if (BF.attempt(S, { k: 'mv', from: m.from, to: m.to })) return null;
+        }
       }
     }
     return BF.evaluate(S).result?.winner || null;
