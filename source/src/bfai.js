@@ -112,6 +112,14 @@
   function score(S, me, P) {
     const b = S.board, fin = !!S.final;
     let kr = null, kb = null;
+    if (generated) {
+      for (const it of generated) {
+        if (it.a.k !== 'mv') continue;
+        if (it.q && it.q.hp > A.atk(it.p)) continue;
+        if (BF.attempt(S, it.a)) return null;
+      }
+      return BF.evaluate(S).result?.winner || null;
+    }
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = b[r][f]; if (p && p.t === 'k') { if (p.s === 'r') kr = [f, r]; else kb = [f, r]; } }
     let v = 0, attR = 0, attB = 0;                          // attR / attB：压到对方主帅跟前的汉 / 楚进攻子
     let hvR = false, hvB = false;                           // 汉 / 楚有没有两点血以上的进攻子已经逼到对方家门口
@@ -192,11 +200,13 @@
   // 搜索末端、升级后和免费行动后的状态也必须遵守同一规则。
   function terminalWinner(S, inChk, generated) {
     if (S.final || inChk) return BF.evaluate(S).result?.winner || null;
-    const list = generated || A.gen(S, false);
-    for (const it of list) {
-      if (it.a.k !== 'mv') continue;
-      if (it.q && it.q.hp > A.atk(it.p)) continue;
-      if (BF.attempt(S, it.a)) return null;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f]; if (!p || p.s !== S.turn) continue;
+      for (const m of A.moveTargets(S, f, r)) {
+        const q = S.board[m.to[1]][m.to[0]];
+        if (q && q.hp > A.atk(p)) continue;
+        if (BF.attempt(S, { k: 'mv', from: m.from, to: m.to })) return null;
+      }
     }
     return BF.evaluate(S).result?.winner || null;
   }
@@ -223,14 +233,14 @@
   // 吃子静态搜索：只接着算“打到敌子”的着法，直到局面安静下来
   function qs(S, alpha, beta, ply, qd) {
     if (++nodes > nodeCap || ((nodes & 63) === 0 && now() > deadline)) throw TIMEOUT;
-    const side = S.turn, all = A.gen(S, false);
-    const winner = terminalWinner(S, A.inCheck(S, side), all);
+    const side = S.turn;
+    const winner = terminalWinner(S, A.inCheck(S, side));
     if (winner) return winner === side ? WIN - ply : -WIN + ply;
     const stand = score(S, side);
     if (qd >= qMax) return stand;
     if (stand >= beta) return stand;
     if (stand > alpha) alpha = stand;
-    const caps = order(all.filter(it => it.q));
+    const caps = order(A.gen(S, true));
     let best = stand, n = 0;
     for (const it of caps) {
       if (n >= 6) break;
