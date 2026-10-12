@@ -1,0 +1,53 @@
+name: Balance A6 Q1-Q4
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/balance-a6-20261012
+    paths:
+      - source/tools/a6_exam.js
+      - .github/workflows/balance-a6.yml
+
+permissions:
+  contents: write
+
+jobs:
+  exam:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BFAI_NEXT_BASE: 54ba8bc
+      BFAI_TUNE_W: tools/tune/w_t6.json
+      BFAI_TUNE_FAST: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Restore current rules and tests
+        run: git checkout 11738bf -- source/src source/test
+      - name: Run A6 Q1-Q4 at hard 100k nodes
+        run: node source/tools/a6_exam.js
+      - name: Save reproducible evidence
+        if: success()
+        run: |
+          mkdir -p docs/codex/a6
+          cp a6-results/a6-q1-q4.json docs/codex/a6/
+          cp a6-results/A6-Q1-Q4-成绩.md docs/codex/a6/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add source/src source/test docs/codex/a6
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "test(a6): record Q1-Q4 w_t6 results"
+          git pull --rebase origin codex/balance-a6-20261012
+          git push origin HEAD:codex/balance-a6-20261012
+      - name: Upload raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: balance-a6-q1-q4
+          path: a6-results/
+          if-no-files-found: warn

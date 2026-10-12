@@ -1,0 +1,1773 @@
+{
+  "meta": {
+    "generatedAt": "2026-10-12T15:00:19.062Z",
+    "repo": "1c1faa0c2c033a44a285abf716637fff0b035980",
+    "aiBase": "54ba8bc",
+    "weight": "tools/tune/w_t6.json",
+    "weightSha256": "46426ebdd8eeceacb19397fe20c189806618cd0cdfdd69014c48def77291d728",
+    "tuneFast": "1",
+    "nodes": 100000,
+    "seeds": [
+      61001,
+      61002,
+      61003
+    ],
+    "rules": {
+      "bs": true,
+      "r6": true
+    }
+  },
+  "questions": {
+    "q1": {
+      "runs": [
+        {
+          "seed": 61001,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  4,
+                  2
+                ],
+                "to": [
+                  4,
+                  6
+                ]
+              }
+            ],
+            "line": "mv(4,2>4,6)",
+            "value": 0.7704000000000062,
+            "depth": 4,
+            "nodes": 54828,
+            "ms": 1451.092709,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    4,
+                    2
+                  ],
+                  "to": [
+                    4,
+                    6
+                  ]
+                },
+                0.77
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    8,
+                    0
+                  ],
+                  "to": [
+                    8,
+                    1
+                  ]
+                },
+                0.74
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    0
+                  ],
+                  "to": [
+                    0,
+                    1
+                  ]
+                },
+                0.74
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    2
+                  ],
+                  "to": [
+                    8,
+                    2
+                  ]
+                },
+                0.73
+              ],
+              [
+                {
+                  "up": [
+                    0,
+                    3
+                  ],
+                  "k": "mv",
+                  "from": [
+                    0,
+                    3
+                  ],
+                  "to": [
+                    0,
+                    4
+                  ]
+                },
+                0.71
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "升中兵后炮打中卒",
+              "seq": "up(4,3) + mv(4,2>4,6)",
+              "evaluation": {
+                "legal": true,
+                "value": 0.7867999999999942,
+                "reply": "mv(3,9>4,8)",
+                "replyValue": -0.7867999999999942,
+                "replyDepth": 5,
+                "replyNodes": 51894
+              }
+            },
+            {
+              "name": "马二进三",
+              "seq": "mv(1,0>2,2)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.526299999999999,
+                "reply": "mv(7,9>6,7)",
+                "replyValue": 0.526299999999999,
+                "replyDepth": 5,
+                "replyNodes": 87589
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "specified upgrade+attack is stronger than knight comparator"
+        },
+        {
+          "seed": 61002,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  4,
+                  2
+                ],
+                "to": [
+                  4,
+                  6
+                ]
+              }
+            ],
+            "line": "mv(4,2>4,6)",
+            "value": 0.7704000000000062,
+            "depth": 4,
+            "nodes": 54828,
+            "ms": 699.439406,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    4,
+                    2
+                  ],
+                  "to": [
+                    4,
+                    6
+                  ]
+                },
+                0.77
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    8,
+                    0
+                  ],
+                  "to": [
+                    8,
+                    1
+                  ]
+                },
+                0.74
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    0
+                  ],
+                  "to": [
+                    0,
+                    1
+                  ]
+                },
+                0.74
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    2
+                  ],
+                  "to": [
+                    8,
+                    2
+                  ]
+                },
+                0.73
+              ],
+              [
+                {
+                  "up": [
+                    0,
+                    3
+                  ],
+                  "k": "mv",
+                  "from": [
+                    0,
+                    3
+                  ],
+                  "to": [
+                    0,
+                    4
+                  ]
+                },
+                0.71
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "升中兵后炮打中卒",
+              "seq": "up(4,3) + mv(4,2>4,6)",
+              "evaluation": {
+                "legal": true,
+                "value": 0.7867999999999942,
+                "reply": "mv(3,9>4,8)",
+                "replyValue": -0.7867999999999942,
+                "replyDepth": 5,
+                "replyNodes": 51894
+              }
+            },
+            {
+              "name": "马二进三",
+              "seq": "mv(1,0>2,2)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.526299999999999,
+                "reply": "mv(7,9>6,7)",
+                "replyValue": 0.526299999999999,
+                "replyDepth": 5,
+                "replyNodes": 87589
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "specified upgrade+attack is stronger than knight comparator"
+        },
+        {
+          "seed": 61003,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  4,
+                  2
+                ],
+                "to": [
+                  4,
+                  6
+                ]
+              }
+            ],
+            "line": "mv(4,2>4,6)",
+            "value": 0.7704000000000062,
+            "depth": 4,
+            "nodes": 54828,
+            "ms": 1156.1899320000002,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    4,
+                    2
+                  ],
+                  "to": [
+                    4,
+                    6
+                  ]
+                },
+                0.77
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    8,
+                    0
+                  ],
+                  "to": [
+                    8,
+                    1
+                  ]
+                },
+                0.74
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    0
+                  ],
+                  "to": [
+                    0,
+                    1
+                  ]
+                },
+                0.74
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    2
+                  ],
+                  "to": [
+                    8,
+                    2
+                  ]
+                },
+                0.73
+              ],
+              [
+                {
+                  "up": [
+                    0,
+                    3
+                  ],
+                  "k": "mv",
+                  "from": [
+                    0,
+                    3
+                  ],
+                  "to": [
+                    0,
+                    4
+                  ]
+                },
+                0.71
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "升中兵后炮打中卒",
+              "seq": "up(4,3) + mv(4,2>4,6)",
+              "evaluation": {
+                "legal": true,
+                "value": 0.7867999999999942,
+                "reply": "mv(3,9>4,8)",
+                "replyValue": -0.7867999999999942,
+                "replyDepth": 5,
+                "replyNodes": 51894
+              }
+            },
+            {
+              "name": "马二进三",
+              "seq": "mv(1,0>2,2)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.526299999999999,
+                "reply": "mv(7,9>6,7)",
+                "replyValue": 0.526299999999999,
+                "replyDepth": 5,
+                "replyNodes": 87589
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "specified upgrade+attack is stronger than knight comparator"
+        }
+      ],
+      "passCount": 3
+    },
+    "q2": {
+      "runs": [
+        {
+          "seed": 61001,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  1,
+                  9
+                ],
+                "to": [
+                  2,
+                  7
+                ]
+              }
+            ],
+            "line": "mv(1,9>2,7)",
+            "value": 0.15350000000000047,
+            "depth": 4,
+            "nodes": 100001,
+            "ms": 1101.723207000001,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    9
+                  ],
+                  "to": [
+                    2,
+                    7
+                  ]
+                },
+                0.15
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    1,
+                    3
+                  ]
+                },
+                0.08
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    7,
+                    3
+                  ]
+                },
+                0.08
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "马8进7",
+              "seq": "mv(7,9>6,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.04009999999999869,
+                "reply": "mv(4,2>4,1)",
+                "replyValue": 0.04009999999999869,
+                "replyDepth": 4,
+                "replyNodes": 100001
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": false,
+                "recapture": true,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": true,
+                  "pawnAt46": false
+                }
+              }
+            },
+            {
+              "name": "马2进3",
+              "seq": "mv(1,9>2,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.04009999999999736,
+                "reply": "mv(4,2>4,1)",
+                "replyValue": 0.04009999999999736,
+                "replyDepth": 4,
+                "replyNodes": 53997
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": false,
+                "recapture": true,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": true,
+                  "pawnAt46": false
+                }
+              }
+            },
+            {
+              "name": "升中卒并炮8平5",
+              "seq": "up(4,6) + mv(7,7>4,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -1.7824000000000009,
+                "reply": "mv(1,0>2,2)",
+                "replyValue": 1.7824000000000009,
+                "replyDepth": 5,
+                "replyNodes": 56417
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": true,
+                "recapture": false,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": false,
+                  "pawnAt46": true
+                }
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "chosen defense prevents a free central-pawn loss",
+          "pickedRule": {
+            "legal": true,
+            "attackLegal": true,
+            "pawnAlive": false,
+            "recapture": true,
+            "preventsFreePawn": true,
+            "after": {
+              "turn": "b",
+              "cannonAt46": true,
+              "pawnAt46": false
+            }
+          }
+        },
+        {
+          "seed": 61002,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  1,
+                  9
+                ],
+                "to": [
+                  2,
+                  7
+                ]
+              }
+            ],
+            "line": "mv(1,9>2,7)",
+            "value": 0.15350000000000047,
+            "depth": 4,
+            "nodes": 100001,
+            "ms": 1102.0175880000006,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    9
+                  ],
+                  "to": [
+                    2,
+                    7
+                  ]
+                },
+                0.15
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    1,
+                    3
+                  ]
+                },
+                0.08
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    7,
+                    3
+                  ]
+                },
+                0.08
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "马8进7",
+              "seq": "mv(7,9>6,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.04009999999999869,
+                "reply": "mv(4,2>4,1)",
+                "replyValue": 0.04009999999999869,
+                "replyDepth": 4,
+                "replyNodes": 100001
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": false,
+                "recapture": true,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": true,
+                  "pawnAt46": false
+                }
+              }
+            },
+            {
+              "name": "马2进3",
+              "seq": "mv(1,9>2,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.04009999999999736,
+                "reply": "mv(4,2>4,1)",
+                "replyValue": 0.04009999999999736,
+                "replyDepth": 4,
+                "replyNodes": 53997
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": false,
+                "recapture": true,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": true,
+                  "pawnAt46": false
+                }
+              }
+            },
+            {
+              "name": "升中卒并炮8平5",
+              "seq": "up(4,6) + mv(7,7>4,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -1.7824000000000009,
+                "reply": "mv(1,0>2,2)",
+                "replyValue": 1.7824000000000009,
+                "replyDepth": 5,
+                "replyNodes": 56417
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": true,
+                "recapture": false,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": false,
+                  "pawnAt46": true
+                }
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "chosen defense prevents a free central-pawn loss",
+          "pickedRule": {
+            "legal": true,
+            "attackLegal": true,
+            "pawnAlive": false,
+            "recapture": true,
+            "preventsFreePawn": true,
+            "after": {
+              "turn": "b",
+              "cannonAt46": true,
+              "pawnAt46": false
+            }
+          }
+        },
+        {
+          "seed": 61003,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  1,
+                  9
+                ],
+                "to": [
+                  2,
+                  7
+                ]
+              }
+            ],
+            "line": "mv(1,9>2,7)",
+            "value": 0.15350000000000047,
+            "depth": 4,
+            "nodes": 100001,
+            "ms": 1079.4050669999979,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    9
+                  ],
+                  "to": [
+                    2,
+                    7
+                  ]
+                },
+                0.15
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    1,
+                    3
+                  ]
+                },
+                0.08
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    7,
+                    3
+                  ]
+                },
+                0.08
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "马8进7",
+              "seq": "mv(7,9>6,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.04009999999999869,
+                "reply": "mv(4,2>4,1)",
+                "replyValue": 0.04009999999999869,
+                "replyDepth": 4,
+                "replyNodes": 100001
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": false,
+                "recapture": true,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": true,
+                  "pawnAt46": false
+                }
+              }
+            },
+            {
+              "name": "马2进3",
+              "seq": "mv(1,9>2,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -0.04009999999999736,
+                "reply": "mv(4,2>4,1)",
+                "replyValue": 0.04009999999999736,
+                "replyDepth": 4,
+                "replyNodes": 53997
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": false,
+                "recapture": true,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": true,
+                  "pawnAt46": false
+                }
+              }
+            },
+            {
+              "name": "升中卒并炮8平5",
+              "seq": "up(4,6) + mv(7,7>4,7)",
+              "evaluation": {
+                "legal": true,
+                "value": -1.7824000000000009,
+                "reply": "mv(1,0>2,2)",
+                "replyValue": 1.7824000000000009,
+                "replyDepth": 5,
+                "replyNodes": 56417
+              },
+              "rule": {
+                "legal": true,
+                "attackLegal": true,
+                "pawnAlive": true,
+                "recapture": false,
+                "preventsFreePawn": true,
+                "after": {
+                  "turn": "b",
+                  "cannonAt46": false,
+                  "pawnAt46": true
+                }
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "chosen defense prevents a free central-pawn loss",
+          "pickedRule": {
+            "legal": true,
+            "attackLegal": true,
+            "pawnAlive": false,
+            "recapture": true,
+            "preventsFreePawn": true,
+            "after": {
+              "turn": "b",
+              "cannonAt46": true,
+              "pawnAt46": false
+            }
+          }
+        }
+      ],
+      "passCount": 3
+    },
+    "q3": {
+      "runs": [
+        {
+          "seed": 61001,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  6,
+                  7
+                ],
+                "to": [
+                  4,
+                  6
+                ]
+              }
+            ],
+            "line": "mv(6,7>4,6)",
+            "value": 6.714400000000004,
+            "depth": 5,
+            "nodes": 58704,
+            "ms": 578.4698449999996,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    6,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    6
+                  ]
+                },
+                6.71
+              ],
+              [
+                {
+                  "up": [
+                    6,
+                    6
+                  ],
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.67
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.66
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    8
+                  ]
+                },
+                6.66
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    2,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.66
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "马吃中炮",
+              "seq": "mv(6,7>4,6)",
+              "evaluation": {
+                "legal": true,
+                "value": 5.779100000000006,
+                "reply": "mv(7,2>4,2)",
+                "replyValue": -5.779100000000006,
+                "replyDepth": 5,
+                "replyNodes": 100001
+              },
+              "rule": {
+                "legal": true,
+                "cannonAlive": false,
+                "knightAt46": true,
+                "redCanRetake": false
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "chosen move captures the advanced cannon",
+          "pickedRule": {
+            "legal": true,
+            "cannonAlive": false,
+            "knightAt46": true,
+            "redCanRetake": false
+          }
+        },
+        {
+          "seed": 61002,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  6,
+                  7
+                ],
+                "to": [
+                  4,
+                  6
+                ]
+              }
+            ],
+            "line": "mv(6,7>4,6)",
+            "value": 6.714400000000004,
+            "depth": 5,
+            "nodes": 58704,
+            "ms": 768.0108020000007,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    6,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    6
+                  ]
+                },
+                6.71
+              ],
+              [
+                {
+                  "up": [
+                    6,
+                    6
+                  ],
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.67
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.66
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    8
+                  ]
+                },
+                6.66
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    2,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.66
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "马吃中炮",
+              "seq": "mv(6,7>4,6)",
+              "evaluation": {
+                "legal": true,
+                "value": 5.779100000000006,
+                "reply": "mv(7,2>4,2)",
+                "replyValue": -5.779100000000006,
+                "replyDepth": 5,
+                "replyNodes": 100001
+              },
+              "rule": {
+                "legal": true,
+                "cannonAlive": false,
+                "knightAt46": true,
+                "redCanRetake": false
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "chosen move captures the advanced cannon",
+          "pickedRule": {
+            "legal": true,
+            "cannonAlive": false,
+            "knightAt46": true,
+            "redCanRetake": false
+          }
+        },
+        {
+          "seed": 61003,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  6,
+                  7
+                ],
+                "to": [
+                  4,
+                  6
+                ]
+              }
+            ],
+            "line": "mv(6,7>4,6)",
+            "value": 6.714400000000004,
+            "depth": 5,
+            "nodes": 58704,
+            "ms": 768.0693600000013,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    6,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    6
+                  ]
+                },
+                6.71
+              ],
+              [
+                {
+                  "up": [
+                    6,
+                    6
+                  ],
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.67
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.66
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    0,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    8
+                  ]
+                },
+                6.66
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    2,
+                    9
+                  ],
+                  "to": [
+                    0,
+                    7
+                  ]
+                },
+                6.66
+              ]
+            ],
+            "trace": null
+          },
+          "forced": [
+            {
+              "name": "马吃中炮",
+              "seq": "mv(6,7>4,6)",
+              "evaluation": {
+                "legal": true,
+                "value": 5.779100000000006,
+                "reply": "mv(7,2>4,2)",
+                "replyValue": -5.779100000000006,
+                "replyDepth": 5,
+                "replyNodes": 100001
+              },
+              "rule": {
+                "legal": true,
+                "cannonAlive": false,
+                "knightAt46": true,
+                "redCanRetake": false
+              }
+            }
+          ],
+          "pass": true,
+          "criterion": "chosen move captures the advanced cannon",
+          "pickedRule": {
+            "legal": true,
+            "cannonAlive": false,
+            "knightAt46": true,
+            "redCanRetake": false
+          }
+        }
+      ],
+      "passCount": 3
+    },
+    "q4": {
+      "runs": [
+        {
+          "seed": 61001,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  1,
+                  9
+                ],
+                "to": [
+                  2,
+                  7
+                ]
+              }
+            ],
+            "line": "mv(1,9>2,7)",
+            "value": 0.15350000000000047,
+            "depth": 4,
+            "nodes": 100001,
+            "ms": 1475.0856989999993,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    9
+                  ],
+                  "to": [
+                    2,
+                    7
+                  ]
+                },
+                0.15
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    1,
+                    3
+                  ]
+                },
+                0.08
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    7,
+                    3
+                  ]
+                },
+                0.08
+              ]
+            ],
+            "trace": null
+          },
+          "pass": true,
+          "criterion": "specified upgrade defense works but costs more than the chosen valid defense",
+          "pickedRule": {
+            "legal": true,
+            "attackLegal": true,
+            "pawnAlive": false,
+            "recapture": true,
+            "preventsFreePawn": true,
+            "after": {
+              "turn": "b",
+              "cannonAt46": true,
+              "pawnAt46": false
+            }
+          },
+          "target": {
+            "seq": "up(4,6) + mv(7,7>4,7)",
+            "rule": {
+              "legal": true,
+              "attackLegal": true,
+              "pawnAlive": true,
+              "recapture": false,
+              "preventsFreePawn": true,
+              "after": {
+                "turn": "b",
+                "cannonAt46": false,
+                "pawnAt46": true
+              }
+            },
+            "evaluation": {
+              "legal": true,
+              "value": -1.7824000000000009,
+              "reply": "mv(1,0>2,2)",
+              "replyValue": 1.7824000000000009,
+              "replyDepth": 5,
+              "replyNodes": 56417
+            }
+          }
+        },
+        {
+          "seed": 61002,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  1,
+                  9
+                ],
+                "to": [
+                  2,
+                  7
+                ]
+              }
+            ],
+            "line": "mv(1,9>2,7)",
+            "value": 0.15350000000000047,
+            "depth": 4,
+            "nodes": 100001,
+            "ms": 1470.0958910000008,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    9
+                  ],
+                  "to": [
+                    2,
+                    7
+                  ]
+                },
+                0.15
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    1,
+                    3
+                  ]
+                },
+                0.08
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    7,
+                    3
+                  ]
+                },
+                0.08
+              ]
+            ],
+            "trace": null
+          },
+          "pass": true,
+          "criterion": "specified upgrade defense works but costs more than the chosen valid defense",
+          "pickedRule": {
+            "legal": true,
+            "attackLegal": true,
+            "pawnAlive": false,
+            "recapture": true,
+            "preventsFreePawn": true,
+            "after": {
+              "turn": "b",
+              "cannonAt46": true,
+              "pawnAt46": false
+            }
+          },
+          "target": {
+            "seq": "up(4,6) + mv(7,7>4,7)",
+            "rule": {
+              "legal": true,
+              "attackLegal": true,
+              "pawnAlive": true,
+              "recapture": false,
+              "preventsFreePawn": true,
+              "after": {
+                "turn": "b",
+                "cannonAt46": false,
+                "pawnAt46": true
+              }
+            },
+            "evaluation": {
+              "legal": true,
+              "value": -1.7824000000000009,
+              "reply": "mv(1,0>2,2)",
+              "replyValue": 1.7824000000000009,
+              "replyDepth": 5,
+              "replyNodes": 56417
+            }
+          }
+        },
+        {
+          "seed": 61003,
+          "picked": {
+            "seq": [
+              {
+                "k": "mv",
+                "from": [
+                  1,
+                  9
+                ],
+                "to": [
+                  2,
+                  7
+                ]
+              }
+            ],
+            "line": "mv(1,9>2,7)",
+            "value": 0.15350000000000047,
+            "depth": 4,
+            "nodes": 100001,
+            "ms": 1476.9927150000003,
+            "top": [
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    9
+                  ],
+                  "to": [
+                    2,
+                    7
+                  ]
+                },
+                0.15
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    4,
+                    7
+                  ]
+                },
+                0.14
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    1,
+                    7
+                  ],
+                  "to": [
+                    1,
+                    3
+                  ]
+                },
+                0.08
+              ],
+              [
+                {
+                  "k": "mv",
+                  "from": [
+                    7,
+                    7
+                  ],
+                  "to": [
+                    7,
+                    3
+                  ]
+                },
+                0.08
+              ]
+            ],
+            "trace": null
+          },
+          "pass": true,
+          "criterion": "specified upgrade defense works but costs more than the chosen valid defense",
+          "pickedRule": {
+            "legal": true,
+            "attackLegal": true,
+            "pawnAlive": false,
+            "recapture": true,
+            "preventsFreePawn": true,
+            "after": {
+              "turn": "b",
+              "cannonAt46": true,
+              "pawnAt46": false
+            }
+          },
+          "target": {
+            "seq": "up(4,6) + mv(7,7>4,7)",
+            "rule": {
+              "legal": true,
+              "attackLegal": true,
+              "pawnAlive": true,
+              "recapture": false,
+              "preventsFreePawn": true,
+              "after": {
+                "turn": "b",
+                "cannonAt46": false,
+                "pawnAt46": true
+              }
+            },
+            "evaluation": {
+              "legal": true,
+              "value": -1.7824000000000009,
+              "reply": "mv(1,0>2,2)",
+              "replyValue": 1.7824000000000009,
+              "replyDepth": 5,
+              "replyNodes": 56417
+            }
+          }
+        }
+      ],
+      "passCount": 3,
+      "validation": {
+        "legal": true,
+        "attackLegal": true,
+        "pawnAlive": true,
+        "recapture": false,
+        "preventsFreePawn": true,
+        "after": {
+          "turn": "b",
+          "cannonAt46": false,
+          "pawnAt46": true
+        }
+      }
+    }
+  }
+}
