@@ -32,7 +32,7 @@ jobs:
         working-directory: source
         run: |
           mkdir -p ../game-results
-          node tools/bfai_exam.js tools/variants/bfai_next.js --level hard --runs 3 --nodes 100000 --only 实战 | tee ../game-results/uploaded-games-exam.log
+          node tools/bfai_exam.js src/bfai.js tools/variants/bfai_next.js --level hard --runs 3 --nodes 100000 --only 实战 | tee ../game-results/uploaded-games-exam.log
       - name: Save evidence
         if: success()
         run: |
