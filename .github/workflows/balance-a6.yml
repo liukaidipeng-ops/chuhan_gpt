@@ -10,7 +10,7 @@ on:
       - .github/workflows/balance-a6.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   exam:
@@ -31,19 +31,12 @@ jobs:
         run: git checkout 11738bf -- source/src source/test
       - name: Run A6 Q1-Q4 at hard 100k nodes
         run: node source/tools/a6_exam.js
-      - name: Save reproducible evidence
+      - name: Verify tracked evidence matches this run
         if: success()
         run: |
-          mkdir -p docs/codex/a6
-          cp a6-results/a6-q1-q4.json docs/codex/a6/
-          cp a6-results/A6-Q1-Q4-成绩.md docs/codex/a6/
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add source/src source/test docs/codex/a6
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "test(a6): record Q1-Q4 w_t6 results"
-          git pull --rebase origin codex/balance-a6-20261012
-          git push origin HEAD:codex/balance-a6-20261012
+          cmp a6-results/a6-q1-q4.json docs/codex/a6/a6-q1-q4.json
+          cmp a6-results/A6-Q1-Q4-成绩.md docs/codex/a6/A6-Q1-Q4-成绩.md
+          git diff --exit-code -- source/src source/test
       - name: Upload raw evidence
         if: always()
         uses: actions/upload-artifact@v4
