@@ -18,7 +18,8 @@ function load(src){
 `+anchor);
  const ctx={BF,console,performance,Math,process,module:{exports:{}},require}; vm.runInNewContext(src,ctx);return ctx.module.exports;
 }
-const engines={baseline:load(original),candidate:load(candidate)};
+const previous=cp.execFileSync('git',['show','97a43005662ab923cd5dd0f4fea6fa5d83477a5b:source/src/bfai.js'],{encoding:'utf8'});
+const engines={baseline:load(original),v1:load(previous),candidate:load(candidate)};
 let id=100;
 const piece=(s,t,lv=1)=>({s,t,id:id++,lv,hp:BF.hpOf(t,lv),cd:0,jm:0,xp:0,kills:0});
 function fixture(n){
@@ -76,8 +77,8 @@ const g=new BF.Game();for(let i=0;i<8&&!g.result;i++){
  if(i===3||i===7)states.push(BF.cloneState(g.S));
 }
 const timings=[];
-for(let rep=0;rep<3;rep++) for(let si=0;si<states.length;si++) for(const version of (rep%2?['candidate','baseline']:['baseline','candidate'])){
- const AI=engines[version],t=performance.now();AI.probe(states[si],2);
+for(let rep=0;rep<7;rep++) for(let si=0;si<states.length;si++) for(const version of (rep%2?['candidate','v1','baseline']:['baseline','v1','candidate'])){
+ const AI=engines[version],t=performance.now();AI.probe(states[si],3);
  timings.push({rep,state:si,version,ms:performance.now()-t,nodes:AI.probeNodes()});
 }
 fs.writeFileSync('h70-results/timings.json',JSON.stringify(timings,null,2));
