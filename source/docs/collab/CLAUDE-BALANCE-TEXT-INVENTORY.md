@@ -34,15 +34,15 @@
 
 | 文件 | 字节 | 状态 | 复核目标 |
 |---|---:|---|---|
-| `source/docs/collab/decisions.md` | 37,171 | 已用于当前工作，待逐条复核 | 批准项、否决项、原编号 |
+| `source/docs/collab/decisions.md` | 37,171 | **已完整复核** | 批准项、否决项、原编号 |
 | `source/docs/collab/code-to-chat.md` | 121,620 | 已定位，待逐页复核 | Claude 数值部对用户的交付与承诺 |
 | `source/docs/collab/chat-to-code.md` | 115,767 | 已定位，待逐页复核 | 用户原话、约束和任务来源 |
 | `source/docs/ai-playbook.md` | 15,659 | 已用于当前工作 | AI训练、评测与版本纪律 |
-| `source/docs/bfai-qualification.md` | 7,424 | 已用于当前工作 | 600局换边准入、统计口径 |
+| `source/docs/bfai-qualification.md` | 7,424 | **已完整复核** | 600局换边准入、统计口径 |
 | `source/docs/collab/WORKFLOW.md` | 19,248 | 已读最新补充 | 持续工作、审批和交接规则 |
-| `source/docs/collab/handoff-2026-10-08.md` | 4,444 | 已用于当前工作 | 历史交接点和未完成项 |
-| `source/docs/collab/advisors/handoff.md` | 11,203 | 已用于当前工作，待逐条复核 | 顾问交接与数值依赖 |
-| `source/docs/collab/advisors/numbers-to-advisors.md` | 18,285 | 已用于当前工作，待逐条复核 | 数值部给顾问部的结论 |
+| `source/docs/collab/handoff-2026-10-08.md` | 4,444 | **已完整复核** | 历史交接点和未完成项 |
+| `source/docs/collab/advisors/handoff.md` | 11,203 | **已完整复核** | 顾问交接与数值依赖 |
+| `source/docs/collab/advisors/numbers-to-advisors.md` | 18,285 | **已完整复核** | 数值部给顾问部的结论 |
 | `NOTES.md` | 141,402 | 已定位，待逐页复核 | 仓库早期总记录 |
 | `README.md` | 10,387 | 已定位 | 仓库入口和版本说明 |
 
@@ -97,3 +97,26 @@
 - 历史上传对局：25个压力点的复现与主线/候选对照。
 
 后续发现旧文本与当前结论冲突时，保留旧编号和批准状态，单列冲突、证据与影响，不静默改写历史记录。
+
+
+## 补读进度日志
+
+### 2026-10-13 · 第1批
+
+已完整复核 5 个主文档：
+
+- `source/docs/collab/decisions.md`
+- `source/docs/bfai-qualification.md`
+- `source/docs/collab/handoff-2026-10-08.md`
+- `source/docs/collab/advisors/handoff.md`
+- `source/docs/collab/advisors/numbers-to-advisors.md`
+
+已确认的关键约束：
+
+1. 600局换边对打、固定节点和同一批开局是棋力/平衡结论的核心口径；考卷是回归标尺，不能单独给版本排序。
+2. 历史批准项必须保留原编号和状态；Plan C、未定规则、已否决变体不能因重新阅读而恢复为有效任务。
+3. 用户目标是先把电脑练到充分理解机制，再用强电脑判断平衡；历史数据显示开局策略与先手会让汉胜率波动十几个到几十个百分点。
+4. `N11` 记录的“到位四条满足”仍带开局强着保留意见，不能改写成“完美AI已完成”。
+5. 历史交接列出的升级盲区、一步杀、搜索深度和网页耗时问题，必须按后续 C/H 交付及当前 H70 证据判断是否已关闭。
+
+`chat-to-code.md` 已开始分段读取，但由于单次返回截断，本批不把它标成完整复核；后续改用更小行段逐段确认。
