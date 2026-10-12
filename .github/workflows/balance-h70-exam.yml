@@ -1,0 +1,53 @@
+name: Balance H70 exam comparison
+on:
+  push:
+    branches: [codex/balance-h70-20261012]
+    paths: ['.github/workflows/balance-h70-exam.yml']
+permissions:
+  contents: write
+concurrency:
+  group: balance-h70-exam
+  cancel-in-progress: false
+jobs:
+  exam:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare unchanged baseline and explicitly validated exam subset
+        run: |
+          mkdir -p h70-exam
+          git show 11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5:source/src/bfai.js > source/src/bfai_h70_baseline.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const excluded=["30 防贴脸将军","31 护驾被封：马闷杀","32 飞越被封：车进象口抢杀","34 踏营被封：车捉双","35 踏营被封：关门打马","36 吃炮不怕破釜：护驾被封就闷杀","37 先吃炮：破釜之后再防也来得及"];
+          const src=fs.readFileSync('source/tools/bfai_exam.js','utf8');
+          const target="const list = (opt.only ? Q.filter(q => q.name.includes(opt.only) || q.cat === opt.only) : Q).filter(q => !q.disabled);";
+          if(!src.includes(target))throw Error('exam entry point changed');
+          const replacement=target.slice(0,-1)+'.filter(q => !'+JSON.stringify(excluded)+'.includes(q.name));';
+          fs.writeFileSync('source/tools/h70_exam_ephemeral.js',src.replace(target,replacement));
+          fs.writeFileSync('h70-exam/scope.json',JSON.stringify({baseline:'11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5',nodes:6000,runs:3,excluded,reason:'These seven baseline fixtures fail their own answer/negative-example checks. This subset is preliminary evidence, not full exam or 600-game qualification.'},null,2));
+          NODE
+      - name: Same seeds and node budgets for baseline and candidate
+        working-directory: source
+        run: node tools/h70_exam_ephemeral.js src/bfai_h70_baseline.js src/bfai.js --level mid --runs 3 --nodes 6000 > ../h70-exam/comparison.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: h70-exam-comparison
+          path: h70-exam/
+      - name: Persist comparison evidence
+        run: |
+          mkdir -p docs/codex/h70/exam
+          cp h70-exam/* docs/codex/h70/exam/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/codex/h70/exam
+          git diff --cached --quiet || git commit -m "Record preliminary H70 exam comparison"
+          git pull --rebase origin codex/balance-h70-20261012
+          git push origin HEAD:codex/balance-h70-20261012
