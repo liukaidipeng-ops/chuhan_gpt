@@ -6,6 +6,6 @@
 40 回合无吃子判和 OK
 长将限制 OK
 长捉限制 OK
-悔棋复原 OK（走了 76 步）
-随机对局 60 局 10886 步 结果 {"stalemate":13,"checkmate":14,"draw":26,"open":7} OK
+悔棋复原 OK（走了 120 步）
+随机对局 60 局 10797 步 结果 {"stalemate":14,"draw":29,"checkmate":15,"open":2} OK
 JIEQI ALL OK
