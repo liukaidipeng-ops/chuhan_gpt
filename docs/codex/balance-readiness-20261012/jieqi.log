@@ -1,0 +1,11 @@
+开局布子 OK
+暗子按位置走 OK
+翻子 OK
+士象过河 OK
+士象将军 OK
+40 回合无吃子判和 OK
+长将限制 OK
+长捉限制 OK
+悔棋复原 OK（走了 120 步）
+随机对局 60 局 11094 步 结果 {"draw":25,"checkmate":13,"stalemate":15,"open":7} OK
+JIEQI ALL OK

@@ -1,0 +1,7 @@
+第 1/2 段：种子 812000～812000（1 局），2 核
+node tools/bfsim.js --level mid --nodes 3000 --max-rounds 35 --open 4 --open-ai src/bfai.js --open-nodes 3000 --ai-b src/bfai.js --ai-r git:510857a --seed 812000 --games 1 --jobs 2 --quiet --json /home/runner/work/chuhan_gpt/chuhan_gpt/out/codex-ready-b-0.json
+进度 1/1  8s  汉 0 楚 0 和 1
+== current | mid vs mid  [汉 git:510857a | 楚 src/bfai.js]  [开局 4 步由 src/bfai.js 挑]  [开局按 3000 节点] | 1 局 | 8s ==
+胜负：汉 0  楚 0  和/超时 1   汉方胜率（分胜负的局）0.0%  95%CI 0–0%
+结局：-:cap 1
+回合：平均 36.0  中位 36  P90 36  60 回合内结束 100.0%  进入决战 0.0%

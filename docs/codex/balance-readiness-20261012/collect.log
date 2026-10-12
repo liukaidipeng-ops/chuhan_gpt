@@ -1,0 +1,12 @@
+# codex-ready-b（GitHub Actions 运行 38249400751）
+# 请求：{"args":"--games 2 --seed 812000 --level mid --nodes 3000 --max-rounds 35 --open 4 --open-ai src/bfai.js --open-nodes 3000 --ai-b src/bfai.js --ai-r git:510857a","chunks":2,"note":"Readiness smoke: main vs historical AI, swapped sides; capped games are not strength evidence."}
+# 收到 2/2 段
+== current | mid vs mid  [汉 git:510857a | 楚 src/bfai.js] | 2 局 | 0s ==
+胜负：汉 0  楚 0  和/超时 2   汉方胜率（分胜负的局）0.0%  95%CI 0–0%
+结局：-:cap 2
+# codex-ready-r（GitHub Actions 运行 38249400751）
+# 请求：{"args":"--games 2 --seed 812000 --level mid --nodes 3000 --max-rounds 35 --open 4 --open-ai src/bfai.js --open-nodes 3000 --ai-r src/bfai.js --ai-b git:510857a","chunks":2,"note":"Readiness smoke: main vs historical AI, swapped sides; capped games are not strength evidence."}
+# 收到 2/2 段
+== current | mid vs mid  [汉 src/bfai.js | 楚 git:510857a] | 2 局 | 0s ==
+胜负：汉 0  楚 0  和/超时 2   汉方胜率（分胜负的局）0.0%  95%CI 0–0%
+结局：-:cap 2

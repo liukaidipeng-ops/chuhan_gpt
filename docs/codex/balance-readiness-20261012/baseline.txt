@@ -1,0 +1,1 @@
+Game baseline: 11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5; tools from department branch. Infrastructure smoke only, not strength qualification.
