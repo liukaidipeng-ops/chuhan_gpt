@@ -1,0 +1,68 @@
+name: Balance readiness
+on:
+  push:
+    branches: [codex/balance-readiness-20261012]
+    paths: ['.github/workflows/balance-readiness.yml']
+permissions:
+  contents: write
+concurrency:
+  group: balance-readiness-20261012
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pin imported main game and tests
+        run: |
+          git restore --source=11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5 --worktree source/src source/test
+          mkdir -p readiness
+          echo 'Game baseline: 11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5; tools from department branch. Infrastructure smoke only, not strength qualification.' > readiness/baseline.txt
+      - name: Eight regression suites
+        working-directory: source
+        shell: bash
+        run: |
+          set -o pipefail
+          for suite in rules jieqi bingfa beishui r6 engine bfai bfai.policy; do
+            timeout 360 node "test/$suite.test.js" 2>&1 | tee "../readiness/$suite.log"
+          done
+      - name: Two-sided small match and split collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const side of ['r','b']){
+            const j={args:'--games 2 --seed 812000 --level mid --nodes 3000 --max-rounds 35 --open 4 --open-ai src/bfai.js --open-nodes 3000 --ai-'+side+' src/bfai.js --ai-'+(side==='r'?'b':'r')+' git:510857a',chunks:2,note:'Readiness smoke: main vs historical AI, swapped sides; capped games are not strength evidence.'};
+            fs.writeFileSync('source/tools/simjobs/codex-ready-'+side+'.json',JSON.stringify(j,null,2));
+          }
+          NODE
+          for side in r b; do
+            for chunk in 0 1; do
+              timeout 180 node source/tools/ci_sim.js run "source/tools/simjobs/codex-ready-$side.json" "$chunk" 2>&1 | tee "readiness/match-$side-$chunk.log"
+            done
+          done
+          CI_SIM_RES="$PWD/readiness/results" node source/tools/ci_sim.js collect out | tee readiness/collect.log
+          cd source
+          node tools/simpair.js ../readiness/results/codex-ready-r.json.gz ../readiness/results/codex-ready-b.json.gz > ../readiness/pair.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: balance-readiness
+          path: readiness/
+          retention-days: 14
+      - name: Save verified results on validation branch
+        run: |
+          mkdir -p docs/codex/balance-readiness-20261012
+          cp -r readiness/. docs/codex/balance-readiness-20261012/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/codex/balance-readiness-20261012
+          git commit -m "Record Balance readiness results"
+          git push origin HEAD:codex/balance-readiness-20261012
