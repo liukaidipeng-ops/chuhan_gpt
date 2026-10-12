@@ -1,0 +1,25 @@
+'use strict';
+const fs=require('fs'),path=require('path');
+const root=process.argv[2]||'match-parts', outDir=process.argv[3]||'h70-match-results';
+function walk(d){let a=[];for(const n of fs.readdirSync(d)){const p=path.join(d,n),s=fs.statSync(p);a=s.isDirectory()?a.concat(walk(p)):a.concat(p)}return a}
+const files=walk(root).filter(f=>f.endsWith('.json')).sort();
+const parts=files.map(f=>JSON.parse(fs.readFileSync(f,'utf8')));
+const results=parts.flatMap(x=>x.results||[]), errors=parts.flatMap(x=>x.errors||[]);
+const key=r=>r.seed+'|'+!!r.flip, uniq=new Set(results.map(key));
+const Awin=r=>r.winner&&(r.winner===(r.flip?'b':'r')), draw=r=>!r.winner;
+const xs=results.map(r=>draw(r)?.5:(Awin(r)?1:0)), n=xs.length;
+const avg=xs.reduce((a,b)=>a+b,0)/Math.max(1,n), v=xs.reduce((a,b)=>a+b*b,0)/Math.max(1,n)-avg*avg;
+const se=Math.sqrt(Math.max(v,1e-6)/Math.max(1,n));
+const elo=p=>-400*Math.log10(1/Math.min(.999,Math.max(.001,p))-1);
+const sprt=[-30,10],s0=1/(1+10**(-sprt[0]/400)),s1=1/(1+10**(-sprt[1]/400));
+const llr=v>1e-9?(s1-s0)*(2*avg*n-n*(s0+s1))/(2*v):0,bound=Math.log(.95/.05);
+const verdict=llr>=bound?'PASS':llr<=-bound?'FAIL':'INCONCLUSIVE';
+const side=s=>{const g=results.filter(r=>(r.flip?'b':'r')===s);return{games:g.length,wins:g.filter(r=>r.winner===s).length,draws:g.filter(draw).length}};
+const meta={generatedAt:new Date().toISOString(),runId:process.env.GITHUB_RUN_ID||null,candidate:'97a43005662ab923cd5dd0f4fea6fa5d83477a5b',baseline:'11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5',games:n,unique:uniq.size,errors:errors.length,score:avg,elo:elo(avg),elo95:[elo(avg-1.96*se),elo(avg+1.96*se)],sprt:{bounds:sprt,llr,bound,verdict},asRed:side('r'),asBlack:side('b'),seeds:[Math.min(...results.map(r=>r.seed)),Math.max(...results.map(r=>r.seed))],nodes:100000,open:10,openNodes:60000};
+fs.mkdirSync(outDir,{recursive:true});
+fs.writeFileSync(path.join(outDir,'h70-match-600.json'),JSON.stringify({meta,results,errors},null,2));
+const pct=x=>(100*x).toFixed(2)+'%';
+const md=['# H70 600 局换边棋力准入','',`候选 ${meta.candidate} 对基线 ${meta.baseline}；hard 100000 节点；每个种子换边各一局。`,'',`- 完整性：${n}/600 局；唯一 seed/换边键 ${uniq.size}；错误 ${errors.length}` ,`- 候选得分率：${pct(avg)}；Elo ${meta.elo.toFixed(1)}（95% 区间 ${meta.elo95[0].toFixed(1)} ～ ${meta.elo95[1].toFixed(1)}）`,`- 候选执汉：${meta.asRed.games} 局，胜 ${meta.asRed.wins}，和 ${meta.asRed.draws}`,`- 候选执楚：${meta.asBlack.games} 局，胜 ${meta.asBlack.wins}，和 ${meta.asBlack.draws}`,`- 非劣准入 SPRT（Elo -30 对 +10）：LLR ${llr.toFixed(3)}，界值 ±${bound.toFixed(3)}，结论 ${verdict}`,'',`运行：https://github.com/liukaidipeng-ops/chuhan_gpt/actions/runs/${meta.runId}`,'',`参数：seeds ${meta.seeds[0]}–${meta.seeds[1]}；open=10；开局 60000 节点；正式搜索 100000 节点；fixed=true。`];
+fs.writeFileSync(path.join(outDir,'H70-600局换边准入.md'),md.join('\n'));
+console.log(md.join('\n'));
+if(n!==600||uniq.size!==600||errors.length)process.exit(1);
