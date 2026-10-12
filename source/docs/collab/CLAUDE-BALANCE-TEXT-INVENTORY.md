@@ -214,3 +214,51 @@
 3. 这些设计的共同门禁不是平均节点，而是分边报告第 3 层节点 P90、最大值、未算满深度数量和真实页面耗时。G3/G2 的实战改变率很低，定稿明确要求按触发计数，不为测不出的单项盲跑 SPRT；G1/G4 的额外搜索必须受预算上限并用最坏局面复核。
 4. `fable-notes.md` 再次确认：旧考卷是机制回归，不是强弱排序；旧 [-30,10] SPRT 通过只表示“不明显弱于上一版”；`humanSignoff` 当时必须保持空；网页时间模式是独立门禁。它记录的是 b18c278/73eb7d4 时点的历史状态，后续是否关闭必须以更新提交、运行和当前 H70/A6 证据判断。
 5. 历史悬而未决项包括最坏破釜枚举耗时、漏着率容差、颜色基线、是否另跑“证明更强”的固定局数、保留题裁判和战略题门槛。当前不能把这些旧建议恢复成已批准任务，也不能用旧版 60/107 局结果代替 H70 的 600 局换边准入。
+
+
+### 2026-10-13 · 第7批
+
+已完整复核 31 个 Fable 原始证据文件：
+
+- `source/docs/collab/fable/01-材料/README.md`
+- `source/docs/collab/fable/01-材料/rerun_seed7001.txt`
+- `source/docs/collab/fable/01-材料/rerun_seed7001_fixed60.txt`
+- `source/docs/collab/fable/01-材料/mirror_b18c278.txt`
+- `source/docs/collab/fable/01-材料/c_timing_live.txt`
+- `source/docs/collab/fable/01-材料/c_timing_dev.txt`
+- `source/docs/collab/fable/01-材料/c_pofu_cost.txt`
+- `source/docs/collab/fable/01-材料/exam_multiplicity.txt`
+- `source/docs/collab/fable/01-材料/page_timing/` 下全部 23 个文本：
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_25eb911_hard_b_1.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_25eb911_hard_b_2.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_25eb911_mid_b_1.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_25eb911_mid_b_2.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_73eb7d4_hard_b_1.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_73eb7d4_hard_b_2.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_73eb7d4_mid_b_1.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_73eb7d4_mid_b_2.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page2_git_73eb7d4_mid_r.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_16aacba_hard_b.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_16aacba_mid_b_1.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_16aacba_mid_b_2.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_16aacba_mid_b_3.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_16aacba_mid_r.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_25eb911_hard_b.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_25eb911_mid_b_1.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_25eb911_mid_b_2.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page4_git_25eb911_mid_b_3.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page_bfai_b18c278_hard_b.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page_bfai_b18c278_mid_b.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page_git_25eb911_hard_b.txt`
+- `source/docs/collab/fable/01-材料/page_timing/page_git_25eb911_mid_b.txt`
+
+累计完整复核：58 / 122。
+
+新增原始证据核对：
+
+1. seed 7001 的固定 60 局结果是 39/60、65.0%、Elo +108（名义区间 +20～+211），执汉 16/30、执楚 23/30；LLR 2.49 未越过 ±2.94，因此只能作为方向一致证据，不能写成序贯检验已经给出更强结论。17 局文件曾在第 16 局越界，属于提前停证据。
+2. 旧镜像考卷的 21 题原题 3/3、镜像 0/3；全卷 108/108 对 105/108。它直接支持“阵亡名单子 ID 未镜像”的历史问题，不能把旧镜像分差解释为新增区分度。
+3. `c_timing_live/dev` 与 23 份页面输出共同证明节点模式相同不代表页面耗时相同。b18c278 的校尉页面样本出现 P90 7028 ms、最长 7701 ms，霸王样本最长 6587 ms；73eb7d4 把霸王样本压到最长 5179 ms，但校尉仍出现 P90 4491 ms、最长 6346 ms。单局数据受机器负载和棋局组成影响，只能与固定局面、分边 P90/最大及未算满深度数量一起解释。
+4. 破釜组合枚举在“汉走且楚破釜在手”的 29 个固定局面中占总 CPU 40%；seed 21 ply 16 单步总 CPU 4768 ms，其中 `pofuPairs` 3272 ms、组合数 79426。将军延伸 CX=2 相对 CX=0 节点 +33%，而新候选每节点 CPU 也比旧版贵 62%；性能问题不是单一节点上限能说明。
+5. `exam_multiplicity.txt` 显示多道“别走某步”的题拥有极多可判对着法：20 题 440/450、实2 435/450、26 题 50/51；它们适合作回归约束，不适合作强弱区分。相反，机制唯一解题和战略题的候选空间、判定器与反题必须单独核查。
+6. 这些材料属于 b18c278/25eb911/73eb7d4/16aacba 的历史证据，不能替代当前 H70 的性能样本、有效考题结果或 600 局换边准入。
