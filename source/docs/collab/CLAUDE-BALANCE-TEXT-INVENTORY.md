@@ -299,3 +299,30 @@
 4. `skeptic_c8/decomp.js` 将根节点升级分支、破釜搜索和将军延伸逐项剥离；`same_moves.js` 同时比较着法与节点数。历史性能结论来自受控消融，不应只看总节点或单局墙钟。
 5. `exam_multiplicity.js` 枚举先升级加主行动的全候选并逐个交给原判题器；`skeptic_a5.js`、`skeptic_a7/*` 则检查宽判题、题目走子方、阵亡 ID 与镜像召回。这些脚本说明考卷质量问题来自题目/判题结构，不应归咎于候选 AI。
 6. 这些脚本含旧容器绝对路径和历史提交副本，只能作为快照证据；没有本轮云端运行结果时，不把“读过脚本”写成“已复跑”或“当前版本验证通过”。
+
+
+### 2026-10-13 · 第9批
+
+已完整复核 10 个协作与原始证据文件：
+
+- `source/docs/collab/main-to-perf.md`
+- `source/docs/collab/README.md`
+- `source/docs/collab/main-to-sound.md`
+- `source/docs/collab/decisions-美术总监.md`
+- `source/docs/collab/sound-to-main.md`
+- `source/docs/collab/fable/01-材料/c_pofu_cost.js`
+- `source/docs/collab/decisions-sound.md`
+- `source/docs/collab/td-handoff-checklist.md`
+- `source/docs/collab/fable/01-材料/skeptic_c8/decomp.txt`
+- `source/docs/collab/ad-to-td.md`
+
+累计完整复核：88 / 122。
+
+新增确认：
+
+1. 协作总说明和性能交接继续确认单写入者、TD 统一上线、规则/数值/发布需用户批准及提交可移植性要求；这些历史路由记录不扩大当前权限。
+2. 声音与美术文件是相关部门的批准和交接记录，不是 Claude 数值部的数值结论；保留其原编号和状态，不吸收到 Balance 决策。
+3. TD 交接检查表继续要求精确记录未结编号、云端证据、触发条件、完整测试、人工批准和回滚，不允许用模糊“已经好了”代替可验证交付。
+4. `c_pofu_cost.js` 与已复核输出的方法一致：固定种子 21/22，拆分 `pofuPairs` CPU、CX=2/0 和每节点 CPU；本次只核对快照脚本，不冒充当前重跑。
+5. `skeptic_c8/decomp.txt` 的 40 个历史局面显示：旧版平均 10,774 节点/260 ms，完整版 18,528/484 ms，去根升级 10,886/315 ms，去破釜 17,762/427 ms，去升级和破釜 10,379/273 ms，CX=0 为 15,327/405 ms；25/40 局进入根升级候选，完整/去升级根分支比平均 2.63。根升级分支是当时节点增长的主因，破釜与将军延伸也有成本。
+6. 本批材料不改变 A6 未通过、A3 正式 600 局门禁关闭或 H70 尚未完成的状态，也未授权部署。
