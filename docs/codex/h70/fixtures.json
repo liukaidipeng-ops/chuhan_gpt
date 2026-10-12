@@ -1,0 +1,1765 @@
+{
+  "over4": {
+    "board": [
+      [
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "k",
+          "id": 100,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 102,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 103,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "k",
+          "id": 101,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        {
+          "s": "r",
+          "t": "p",
+          "id": 104,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 105,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 106,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 107,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 108,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 109,
+          "lv": 3,
+          "hp": 3,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ]
+    ],
+    "turn": "r",
+    "cnt": {
+      "r": 0,
+      "b": 0
+    },
+    "merit": {
+      "r": 0,
+      "b": 0
+    },
+    "used": {
+      "art": {
+        "r": 1,
+        "b": 1
+      },
+      "ult": {
+        "r": 1,
+        "b": 1
+      }
+    },
+    "fx": {
+      "hm": 0,
+      "sm": 0,
+      "pf": 0
+    },
+    "crossed": {},
+    "dead": {
+      "r": [],
+      "b": []
+    },
+    "upgraded": false,
+    "ckHist": {
+      "r": [],
+      "b": []
+    },
+    "freeUsed": false,
+    "jmLock": null,
+    "final": false,
+    "occ": {
+      "r": 0,
+      "b": 0
+    },
+    "named": {
+      "r": {},
+      "b": {}
+    }
+  },
+  "under4": {
+    "board": [
+      [
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "k",
+          "id": 110,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 112,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 113,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "k",
+          "id": 111,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        {
+          "s": "r",
+          "t": "p",
+          "id": 114,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 115,
+          "lv": 3,
+          "hp": 3,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    ],
+    "turn": "r",
+    "cnt": {
+      "r": 0,
+      "b": 0
+    },
+    "merit": {
+      "r": 0,
+      "b": 0
+    },
+    "used": {
+      "art": {
+        "r": 1,
+        "b": 1
+      },
+      "ult": {
+        "r": 1,
+        "b": 1
+      }
+    },
+    "fx": {
+      "hm": 0,
+      "sm": 0,
+      "pf": 0
+    },
+    "crossed": {},
+    "dead": {
+      "r": [],
+      "b": []
+    },
+    "upgraded": false,
+    "ckHist": {
+      "r": [],
+      "b": []
+    },
+    "freeUsed": false,
+    "jmLock": null,
+    "final": false,
+    "occ": {
+      "r": 0,
+      "b": 0
+    },
+    "named": {
+      "r": {},
+      "b": {}
+    }
+  },
+  "escape": {
+    "board": [
+      [
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "k",
+          "id": 100,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 103,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "k",
+          "id": 101,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        {
+          "s": "r",
+          "t": "p",
+          "id": 104,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 105,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 106,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 107,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 108,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 109,
+          "lv": 3,
+          "hp": 3,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ]
+    ],
+    "turn": "r",
+    "cnt": {
+      "r": 0,
+      "b": 0
+    },
+    "merit": {
+      "r": 0,
+      "b": 0
+    },
+    "used": {
+      "art": {
+        "r": 1,
+        "b": 1
+      },
+      "ult": {
+        "r": 1,
+        "b": 1
+      }
+    },
+    "fx": {
+      "hm": 0,
+      "sm": 0,
+      "pf": 0
+    },
+    "crossed": {},
+    "dead": {
+      "r": [],
+      "b": []
+    },
+    "upgraded": false,
+    "ckHist": {
+      "r": [],
+      "b": []
+    },
+    "freeUsed": false,
+    "jmLock": null,
+    "final": false,
+    "occ": {
+      "r": 0,
+      "b": 0
+    },
+    "named": {
+      "r": {},
+      "b": {}
+    }
+  },
+  "captureKill": {
+    "board": [
+      [
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "k",
+          "id": 100,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 102,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 103,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "k",
+          "id": 101,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        {
+          "s": "r",
+          "t": "p",
+          "id": 104,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 105,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 106,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 107,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 108,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 109,
+          "lv": 3,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ]
+    ],
+    "turn": "r",
+    "cnt": {
+      "r": 0,
+      "b": 0
+    },
+    "merit": {
+      "r": 0,
+      "b": 0
+    },
+    "used": {
+      "art": {
+        "r": 1,
+        "b": 1
+      },
+      "ult": {
+        "r": 1,
+        "b": 1
+      }
+    },
+    "fx": {
+      "hm": 0,
+      "sm": 0,
+      "pf": 0
+    },
+    "crossed": {},
+    "dead": {
+      "r": [],
+      "b": []
+    },
+    "upgraded": false,
+    "ckHist": {
+      "r": [],
+      "b": []
+    },
+    "freeUsed": false,
+    "jmLock": null,
+    "final": false,
+    "occ": {
+      "r": 0,
+      "b": 0
+    },
+    "named": {
+      "r": {},
+      "b": {}
+    }
+  },
+  "upgraded": {
+    "board": [
+      [
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "k",
+          "id": 100,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 102,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 103,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "k",
+          "id": 101,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        {
+          "s": "r",
+          "t": "p",
+          "id": 104,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 105,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 106,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 107,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 108,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 109,
+          "lv": 3,
+          "hp": 3,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ]
+    ],
+    "turn": "r",
+    "cnt": {
+      "r": 0,
+      "b": 0
+    },
+    "merit": {
+      "r": 0,
+      "b": 0
+    },
+    "used": {
+      "art": {
+        "r": 1,
+        "b": 1
+      },
+      "ult": {
+        "r": 1,
+        "b": 1
+      }
+    },
+    "fx": {
+      "hm": 0,
+      "sm": 0,
+      "pf": 0
+    },
+    "crossed": {},
+    "dead": {
+      "r": [],
+      "b": []
+    },
+    "upgraded": true,
+    "ckHist": {
+      "r": [],
+      "b": []
+    },
+    "freeUsed": false,
+    "jmLock": null,
+    "final": false,
+    "occ": {
+      "r": 0,
+      "b": 0
+    },
+    "named": {
+      "r": {},
+      "b": {}
+    }
+  },
+  "freeUsed": {
+    "board": [
+      [
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "k",
+          "id": 100,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 102,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        {
+          "s": "b",
+          "t": "r",
+          "id": 103,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "k",
+          "id": 101,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        {
+          "s": "r",
+          "t": "p",
+          "id": 104,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 105,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 106,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 107,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "r",
+          "t": "p",
+          "id": 108,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 109,
+          "lv": 3,
+          "hp": 3,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ]
+    ],
+    "turn": "r",
+    "cnt": {
+      "r": 0,
+      "b": 0
+    },
+    "merit": {
+      "r": 0,
+      "b": 0
+    },
+    "used": {
+      "art": {
+        "r": 1,
+        "b": 1
+      },
+      "ult": {
+        "r": 1,
+        "b": 1
+      }
+    },
+    "fx": {
+      "hm": 0,
+      "sm": 0,
+      "pf": 0
+    },
+    "crossed": {},
+    "dead": {
+      "r": [],
+      "b": []
+    },
+    "upgraded": false,
+    "ckHist": {
+      "r": [],
+      "b": []
+    },
+    "freeUsed": true,
+    "jmLock": null,
+    "final": false,
+    "occ": {
+      "r": 0,
+      "b": 0
+    },
+    "named": {
+      "r": {},
+      "b": {}
+    }
+  },
+  "simianPass": {
+    "board": [
+      [
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "p",
+          "id": 109,
+          "lv": 3,
+          "hp": 3,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 108,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 107,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 106,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 105,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        {
+          "s": "b",
+          "t": "p",
+          "id": 104,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        }
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "k",
+          "id": 101,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        {
+          "s": "r",
+          "t": "r",
+          "id": 103,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        {
+          "s": "r",
+          "t": "r",
+          "id": 102,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        {
+          "s": "b",
+          "t": "k",
+          "id": 100,
+          "lv": 1,
+          "hp": 1,
+          "cd": 0,
+          "jm": 0,
+          "xp": 0,
+          "kills": 0
+        },
+        null,
+        null,
+        null,
+        null
+      ]
+    ],
+    "turn": "b",
+    "cnt": {
+      "r": 0,
+      "b": 0
+    },
+    "merit": {
+      "r": 0,
+      "b": 0
+    },
+    "used": {
+      "art": {
+        "r": 1,
+        "b": 1
+      },
+      "ult": {
+        "r": 1,
+        "b": 1
+      }
+    },
+    "fx": {
+      "hm": 0,
+      "sm": 100,
+      "pf": 0
+    },
+    "crossed": {},
+    "dead": {
+      "r": [],
+      "b": []
+    },
+    "upgraded": false,
+    "ckHist": {
+      "r": [],
+      "b": []
+    },
+    "freeUsed": false,
+    "jmLock": null,
+    "final": false,
+    "occ": {
+      "r": 0,
+      "b": 0
+    },
+    "named": {
+      "r": {},
+      "b": {}
+    }
+  }
+}
