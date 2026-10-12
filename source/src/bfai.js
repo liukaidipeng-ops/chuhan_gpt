@@ -190,22 +190,14 @@
   }
   // 先确认普通走子能否移动或杀死目标；没有时由规则引擎裁定困毙、将死或允许停着。
   // 搜索末端、升级后和免费行动后的状态也必须遵守同一规则。
-  function terminalWinner(S, inChk, generated) {
+  function terminalWinner(S, inChk) {
     if (S.final || inChk) return BF.evaluate(S).result?.winner || null;
-    if (generated) {
-      for (const it of generated) {
-        if (it.a.k !== 'mv') continue;
-        if (it.q && it.q.hp > A.atk(it.p)) continue;
-        if (BF.attempt(S, it.a)) return null;
-      }
-    } else {
-      for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
-        const p = S.board[r][f]; if (!p || p.s !== S.turn) continue;
-        for (const m of A.moveTargets(S, f, r)) {
-          const q = S.board[m.to[1]][m.to[0]];
-          if (q && q.hp > A.atk(p)) continue;
-          if (BF.attempt(S, { k: 'mv', from: m.from, to: m.to })) return null;
-        }
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f]; if (!p || p.s !== S.turn) continue;
+      for (const m of A.moveTargets(S, f, r)) {
+        const q = S.board[m.to[1]][m.to[0]];
+        if (q && q.hp > A.atk(p)) continue;
+        if (BF.attempt(S, { k: 'mv', from: m.from, to: m.to })) return null;
       }
     }
     return BF.evaluate(S).result?.winner || null;
@@ -381,6 +373,10 @@
       if (inChk && ply < 8) depth = 1;          // 被将军时不能“站着不动”估值：再往下应一步
       else return qs(S, alpha, beta, ply, 0);
     }
+    if (!inChk) {
+      const winner = terminalWinner(S, false);
+      if (winner) return winner === side ? WIN - ply : -WIN + ply;
+    }
     // 查表——同一局面、同样剩余层数、同样的延伸次数和“这层要不要考虑对方升级 / 破釜”
     const tkey = fp(S) + ':' + depth + ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), tte = TTB.get(tkey), a0 = alpha;
     if (tte) { const v = fromTT(tte.v, ply); if (tte.f === 0 || (tte.f === 1 && v >= beta) || (tte.f === 2 && v <= alpha)) return v; }
@@ -403,12 +399,7 @@
         if (alpha >= beta) { if (TTB.size < 300000) TTB.set(tkey, { v: toTT(best, ply), f: 1, m: null }); return best; }
       }
     }
-    const list = order(A.gen(S, false), killers[ply]);
-    if (!inChk) {
-      const winner = terminalWinner(S, false, list);
-      if (winner) return winner === side ? WIN - ply : -WIN + ply;
-    }
-    let mi = 0;
+    const list = order(A.gen(S, false), killers[ply]); let mi = 0;
     if (tte && tte.m != null) { const i = list.findIndex(it => mkey(it.a) === tte.m); if (i > 0) { const x = list[i]; list.splice(i, 1); list.unshift(x); } }   // 上次最好的一步先算
     for (const it of list) {
       const r = BF.attempt(S, it.a); if (!r || r.free) continue;
