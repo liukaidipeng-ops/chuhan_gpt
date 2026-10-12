@@ -5,31 +5,47 @@ on:
     paths: ['.github/workflows/balance-exam-readiness.yml']
 permissions:
   contents: write
-  actions: read
+concurrency:
+  group: balance-exam-readiness
+  cancel-in-progress: false
 jobs:
-  recover:
+  diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
         with:
-          name: balance-exam-readiness
-          run-id: 38252182759
-          github-token: ${{ github.token }}
-          path: exam-readiness
-      - name: Save existing diagnostics
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check internally consistent historical and main exam trees
         run: |
-          mkdir -p docs/codex/balance-readiness-20261012/exam
-          cp exam-readiness/* docs/codex/balance-readiness-20261012/exam/
-          cat exam-readiness/lint.log
+          mkdir -p exam-diagnosis
+          set +e
+          timeout 180 node source/tools/bfai_exam.js --lint > exam-diagnosis/balance.log 2>&1
+          echo $? > exam-diagnosis/balance.exit
+          set -e
+          git restore --source=11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5 --worktree source
+          set +e
+          timeout 180 node source/tools/bfai_exam.js --lint > exam-diagnosis/main.log 2>&1
+          echo $? > exam-diagnosis/main.exit
+          set -e
+          tail -n 3 exam-diagnosis/balance.log
+          tail -n 3 exam-diagnosis/main.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exam-version-diagnosis
+          path: exam-diagnosis/
+      - name: Save version diagnosis
+        run: |
+          mkdir -p docs/codex/balance-readiness-20261012/exam-version-diagnosis
+          cp exam-diagnosis/* docs/codex/balance-readiness-20261012/exam-version-diagnosis/
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/codex/balance-readiness-20261012/exam
-          git commit -m "Recover saved exam diagnostic evidence"
+          git add docs/codex/balance-readiness-20261012/exam-version-diagnosis
+          git diff --cached --quiet || git commit -m "Record consistent exam version diagnostics"
+          git restore source
           git pull --rebase origin codex/balance-readiness-20261012
           git push origin HEAD:codex/balance-readiness-20261012
-      - name: Report original lint outcome
-        run: |
-          echo "Original lint exit code: $(cat exam-readiness/exit-code.txt)"
-          test "$(cat exam-readiness/exit-code.txt)" = "0"
