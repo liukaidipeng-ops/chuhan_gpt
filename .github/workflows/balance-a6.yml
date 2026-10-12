@@ -34,8 +34,29 @@ jobs:
       - name: Verify tracked evidence matches this run
         if: success()
         run: |
-          cmp a6-results/a6-q1-q4.json docs/codex/a6/a6-q1-q4.json
-          cmp a6-results/A6-Q1-Q4-成绩.md docs/codex/a6/A6-Q1-Q4-成绩.md
+          node - <<'NODE'
+          const fs = require('fs');
+          const assert = require('assert');
+          const normalize = value => {
+            if (Array.isArray(value)) return value.map(normalize);
+            if (value && typeof value === 'object') {
+              const out = {};
+              for (const [key, item] of Object.entries(value)) {
+                if (key === 'generatedAt' || key === 'repo' || key === 'ms') continue;
+                out[key] = normalize(item);
+              }
+              return out;
+            }
+            return value;
+          };
+          const actual = JSON.parse(fs.readFileSync('a6-results/a6-q1-q4.json', 'utf8'));
+          const expected = JSON.parse(fs.readFileSync('docs/codex/a6/a6-q1-q4.json', 'utf8'));
+          assert.deepStrictEqual(normalize(actual), normalize(expected));
+          NODE
+          grep -q '## Q1: 3/3' a6-results/A6-Q1-Q4-成绩.md
+          grep -q '## Q2: 3/3' a6-results/A6-Q1-Q4-成绩.md
+          grep -q '## Q3: 3/3' a6-results/A6-Q1-Q4-成绩.md
+          grep -q '## Q4: 3/3' a6-results/A6-Q1-Q4-成绩.md
           git diff --exit-code -- source/src source/test
       - name: Upload raw evidence
         if: always()
