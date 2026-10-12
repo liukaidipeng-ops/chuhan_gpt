@@ -2,6 +2,11 @@
 
 总协调入口：https://github.com/liukaidipeng-ops/chuhan_gpt/issues/1
 
+当前八部门接管指南：`docs/collab/DEPARTMENT-HANDOVER-GUIDE.md`。所有部门开工前先读，并遵守其中的审批台唯一入口规则。
+
+**绝对规则：永远不要让用户在聊天里拍板。** 凡需用户决定、选择、批准或否决，先把完整问题和材料做成审批台卡片；聊天只提示审批台入口和待审件数。聊天回复不能算批准。唯一审批入口：https://chuhan-review-desk.alivevale513.chatgpt.site/
+
+
 ## 工作范围
 
 工作仓库是 chuhan_gpt，原 chuhan_v01 及 Claude 的文件、分支、设置、历史记录保持只读。旧部门文档作为设计与交接依据保留，Codex 新记录写在本工作流及新任务单中，不冒充原部门签署意见。
