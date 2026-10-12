@@ -190,17 +190,20 @@
   }
   // 先确认普通走子能否移动或杀死目标；没有时由规则引擎裁定困毙、将死或允许停着。
   // 搜索末端、升级后和免费行动后的状态也必须遵守同一规则。
+  let terminalCache = new WeakMap();
+  const cacheTerminal = (S, winner) => { terminalCache.set(S, winner); return winner; };
   function terminalWinner(S, inChk) {
-    if (S.final || inChk) return BF.evaluate(S).result?.winner || null;
+    if (terminalCache.has(S)) return terminalCache.get(S);
+    if (S.final || inChk) return cacheTerminal(S, BF.evaluate(S).result?.winner || null);
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
       const p = S.board[r][f]; if (!p || p.s !== S.turn) continue;
       for (const m of A.moveTargets(S, f, r)) {
         const q = S.board[m.to[1]][m.to[0]];
         if (q && q.hp > A.atk(p)) continue;
-        if (BF.attempt(S, { k: 'mv', from: m.from, to: m.to })) return null;
+        if (BF.attempt(S, { k: 'mv', from: m.from, to: m.to })) return cacheTerminal(S, null);
       }
     }
-    return BF.evaluate(S).result?.winner || null;
+    return cacheTerminal(S, BF.evaluate(S).result?.winner || null);
   }
 
   // ---------- 搜索 ----------
@@ -373,13 +376,13 @@
       if (inChk && ply < 8) depth = 1;          // 被将军时不能“站着不动”估值：再往下应一步
       else return qs(S, alpha, beta, ply, 0);
     }
+    // 查表——同一局面、同样剩余层数、同样的延伸次数和“这层要不要考虑对方升级 / 破釜”
+    const tkey = fp(S) + ':' + depth + ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), tte = TTB.get(tkey), a0 = alpha;
+    if (tte) { const v = fromTT(tte.v, ply); if (tte.f === 0 || (tte.f === 1 && v >= beta) || (tte.f === 2 && v <= alpha)) return v; }
     if (!inChk) {
       const winner = terminalWinner(S, false);
       if (winner) return winner === side ? WIN - ply : -WIN + ply;
     }
-    // 查表——同一局面、同样剩余层数、同样的延伸次数和“这层要不要考虑对方升级 / 破釜”
-    const tkey = fp(S) + ':' + depth + ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), tte = TTB.get(tkey), a0 = alpha;
-    if (tte) { const v = fromTT(tte.v, ply); if (tte.f === 0 || (tte.f === 1 && v >= beta) || (tte.f === 2 && v <= alpha)) return v; }
     // 让一步试试（只在霸王，C65）：没被将军、还剩至少 3 层、自己还有车马炮时，先假装停一手让对方连走，少算 3 层；这样对方都翻不过来，这条线就不细算了。
     //   本回合升过级、决战里不试（升级不换手、决战规则不同）；连着两手都“停”也不试
     if (lmrOn && ply >= 1 && depth >= 3 && !inChk && !wasNull[ply] && beta < WIN / 2 && !S.upgraded && !S.final) {
@@ -601,6 +604,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
+    terminalCache = new WeakMap();
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
