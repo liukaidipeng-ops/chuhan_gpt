@@ -1,7 +1,7 @@
 engine perft 1 44 OK 1ms
-engine perft 2 1920 OK 8ms
-engine perft 3 79666 OK 37ms
-engine perft 4 3290240 OK 539ms
-random games 60 plies checked 9360 OK
-hard think from 1 ply: {"from":[7,9],"to":[6,7]} depth 11 nodes 3221221 nps 1337716 time 2408
+engine perft 2 1920 OK 9ms
+engine perft 3 79666 OK 43ms
+engine perft 4 3290240 OK 568ms
+random games 60 plies checked 9501 OK
+hard think from 1 ply: {"from":[7,9],"to":[6,7]} depth 11 nodes 3221221 nps 1313712 time 2452
 ENGINE OK
