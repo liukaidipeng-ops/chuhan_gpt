@@ -1,0 +1,7 @@
+mid P6 [{"k":"up","at":[2,2]},{"k":"art","steps":[{"from":[2,2],"to":[2,5]},{"from":[2,5],"to":[0,5]}]}]
+hard P6 [{"k":"up","at":[2,2]},{"k":"art","steps":[{"from":[2,2],"to":[2,5]},{"from":[2,5],"to":[0,5]}]}]
+BFAI POLICY OK
+mid H3 [{"k":"mv","from":[4,8],"to":[4,5]}]
+BFAI HP OK
+BFAI TRACE OK 5 个局面 10 份记录
+BFAI UPESCAPE OK 3 个局面
