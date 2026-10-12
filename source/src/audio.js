@@ -223,6 +223,32 @@ const Sfx = (() => {
     sgrunt(t = 0, v = 0.5, pan) { smp('sgrunt', { t, vol: v, pan, rj: 0.05 }); },
     taunt(t = 0, v = 0.5, pan) { smp('taunt', { t, vol: v, pan, rj: 0.03 }); },
     victory(t = 0, v = 0.55, pan) { smp('victory', { t, vol: v, pan, rj: 0.03 }); },
+    // 拒马三段（Ham 10-10 试听台 b44～b48；时间点见角色部 M27 / M30）。t 都对准“那一刻”（放箭、中箭、扑起、撞上）
+    xbow(t = 0, v = 0.6, pan) {   // 放箭：三种随机轮着用（只有“嘣” / 加尖“咻” / 加闷“咔”），放箭那一下在 0.03 秒
+      smp('xbow', { t: Math.max(0, t - 0.03), vol: v, pan, rj: 0.05 });
+      const r = Math.random(); if (r < 1 / 3) smp('arrowzip', { t: t + 0.02, vol: v * 0.5, pan, rj: 0.05 }); else if (r < 2 / 3) smp('thunk', { t, vol: v * 0.5, pan });
+    },
+    arrowHit(t = 0, kind = 'shield', v = 0.6, pan) { smp({ shield: 'arrowhit', wood: 'arrowwood', flesh: 'arrowflesh' }[kind] || 'arrowhit', { t, vol: v, pan, rj: 0.05 }); },
+    tigerPounce(t = 0, v = 0.7) { smp('tigerpounce', { t, vol: v, rj: 0.03 }); },
+    tigerLand(t = 0, v = 0.65) { smp('tigerland', { t, vol: v, rj: 0.03 }); },
+    jumaShake(t = 0, v = 0.7, pan) { smp('jumashake', { t, vol: v, pan, rj: 0.03 }); },   // 象顶路障，不碎
+    jumaBreak(t = 0, big = false, v = 0.8, pan) { smp(big ? 'jumabrkbig' : 'jumabrk', { t, vol: v, pan, rj: 0.02 }); },   // 路障碎：虎扑 / 象撞（big）
+    // 兵卒对打（角色部 M34 的 Duel.play 的 onEvent 直接接这里：onEvent: (kind) => Sfx.B.duel(kind)）。
+    //   声音同 Ham 10-10 试听台 b43 通过的对打配音：拨开 = 木杆相碰，碰盾 = 盾挡声，扎中 = 入肉 + 痛叫，扎死 = 劈开 + 入肉 + 惨叫，踏地 = 闷木；
+    //   盾撞盾 = 盾挡声垫一层闷撞。同一种声音 60 毫秒内只响一次（3v3 一帧可能碰好几下）
+    duel(kind, { v = 0.6, pan } = {}) {
+      const now = ctx ? ctx.currentTime : 0, last = B._duelT || (B._duelT = {});
+      if (last[kind] != null && now - last[kind] < 0.06) return; last[kind] = now;
+      switch (kind) {
+        case 'parry': smp('plank', { vol: v * 0.7, pan, rj: 0.06 }); smp('thunk', { vol: v * 0.35, pan }); break;
+        case 'block': B.block(0, v, pan); break;
+        case 'clank': B.block(0, v, pan); smp('punch', { vol: v * 0.6, pan, rate: R(0.75, 0.9) }); smp('soft', { vol: v * 0.5, pan, rate: 0.7 }); break;
+        case 'hit': smp('arrowflesh', { vol: v, pan }); smp('chop', { vol: v * 0.4, pan }); if (Math.random() < 0.7) smp('pain', { t: 0.02, vol: v * 0.5, pan }); break;
+        case 'kill': smp('chop', { vol: v, pan }); smp('slash', { vol: v * 0.6, pan }); smp('arrowflesh', { vol: v, pan }); smp('gibs', { t: 0.02, vol: v * 0.3, pan }); if (Math.random() < 0.8) smp('death', { t: 0.02, vol: v * 0.5, pan }); break;
+        case 'thud': smp('wood', { vol: v * 0.5, pan, rate: R(0.65, 0.8) }); break;
+        case 'dust': smp('step', { vol: v * 0.2, pan, lp: 1800 }); break;
+      }
+    },
     plate(t = 0, v = 0.4) { smp('plate', { t, vol: v }); },
     ring(t = 0, v = 0.3) { smp('unsheathe', { t, vol: v }); },
     whoosh(t = 0, dur = 0.35, v = 0.35, pan) { smp('swing', { t, vol: v, pan, rate: R(0.8, 1.1) / Math.max(0.5, dur / 0.4) }); },
@@ -324,7 +350,13 @@ const Sfx = (() => {
   const U = {
     // 兵：真实的行军脚步（不擂鼓）。n = 技能模式里这一队几个人（0 = 普通模式的整队）；冲锋：一队人跑步的原声；接敌：矛刺 + 兵器碰撞 + 喊杀
     inf: {
-      move(dur = 1.3, n = 0) { B.march(0.05, dur, n || 12, 0.24); },
+      // lv：兵的等级（1～4，不给 = 照旧按人数）；hurt：残血。Ham 10-10 试听台 b49 / b50：初级兵 = 原来的行军声 / 三个人（随机），
+      //   二级 = 整齐行军，三级 = 行军 + 鼓，四级 = 重甲大队，残血的非初级兵 = 散着走
+      move(dur = 1.3, n = 0, lv = 0, hurt = false) {
+        const id = lv >= 2 && hurt ? 'marchhurt' : lv >= 4 ? 'march4' : lv === 3 ? 'march3' : lv === 2 ? 'march2' : lv === 1 && Math.random() < 0.5 ? 'march1' : null;
+        if (id && has(id)) { run(id, { t: 0.05, dur: dur + 0.35, vol: 0.24 * MARCH_GAIN, rj: 0.02 }); return; }
+        B.march(0.05, dur, n || 12, 0.24);
+      },
       charge(dur = 1, n = 0) { smp('trooprun', { t: 0, vol: 0.6 * (n ? [0.6, 0.6, 0.75, 0.9][Math.min(3, n)] : 1), rj: 0.02, dur: dur + 0.5, fade: 0.4 }); },
       impact() { for (let i = 0; i < 4; i++) B.stab(i * 0.08 + R(0, 0.04), 0.4); B.clang(0.02, 0.4); B.clang(0.12, 0.35); B.shout(0.05, 6, 0.08, 0.5); },
     },

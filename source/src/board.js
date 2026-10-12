@@ -211,7 +211,41 @@ const Board = (() => {
     const gl = new THREE.Mesh(new THREE.BoxGeometry(2 * BX + 0.37, 0.012, depth + 0.19), goldM); gl.position.set(0, 0.08, sg * 0.09); g.add(gl);
     return g;
   }
-  root.add(makeHalf(true), makeHalf(false));
+  // 静止不动的装饰合成少数几个网格（优化部 P1）：同一材质、同样影子设置的合成一个，画面不变；
+  //   两半棋盘原来每帧约 120 次绘制（金边、铜包角、木梯、台基、描边各画各的），合完二十来次。半透明的、多材质的、带贴图的不动
+  function bakeStatic(g) {
+    g.updateMatrixWorld(true);
+    const inv = g.matrixWorld.clone().invert(), buckets = new Map();
+    g.traverse(o => {
+      if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || Array.isArray(o.material) || !o.visible) return;
+      const m = o.material, th = m.userData.thick;
+      if (m.transparent || m.map) return;
+      // 描边材质每次调用都新建一个（outlineMat），粗细、颜色一样的算同一种
+      const key = (th ? 'ol' + th.value + ':' + m.color.getHex() + ':' + m.side : m.uuid) + (o.castShadow ? 'c' : '') + (o.receiveShadow ? 'r' : '');
+      let b = buckets.get(key); if (!b) buckets.set(key, b = { mat: m, list: [], cast: o.castShadow, recv: o.receiveShadow });
+      b.list.push(o);
+    });
+    for (const b of buckets.values()) {
+      if (b.list.length < 2) continue;
+      const geos = b.list.map(o => (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)));
+      if (geos.some(q => !q.attributes.position || !q.attributes.normal)) { geos.forEach(q => q.dispose()); continue; }
+      const out = new THREE.BufferGeometry();
+      for (const n of ['position', 'normal']) {
+        let len = 0; for (const q of geos) len += q.attributes[n].array.length;
+        const arr = new Float32Array(len); let off = 0;
+        for (const q of geos) { arr.set(q.attributes[n].array, off); off += q.attributes[n].array.length; }
+        out.setAttribute(n, new THREE.BufferAttribute(arr, 3));
+      }
+      out.computeBoundingSphere(); geos.forEach(q => q.dispose());
+      const mesh = new THREE.Mesh(out, b.mat); mesh.castShadow = b.cast; mesh.receiveShadow = b.recv; g.add(mesh);
+      for (const o of b.list) o.parent.remove(o);
+    }
+    // 合完剩下的空壳组（inked 的外层）拿掉
+    const prune = o => { for (const c of o.children.slice()) { prune(c); if (c.isGroup && !c.children.length) o.remove(c); } };
+    prune(g);
+    return g;
+  }
+  root.add(bakeStatic(makeHalf(true)), bakeStatic(makeHalf(false)));
 
   // ---------- 楚河汉界：流动的河水 ----------
   const riverText = canvasTex(2048, 104, (g, w, h) => {
@@ -483,6 +517,8 @@ const Board = (() => {
     g.userData.keep = true;
     return g;
   })();
+  // 棋子立体（美术总监 V10，Ham 审批台 ad-014 选乙、ad-016 选戊）：字、圈线刻下去，字单独再深、槽里柔和地暗一点；木纹带一点起伏；银金玉花纹加深 3.5 倍
+  const RL = { k: 7, blur: 1.1, grain: 0.7, skin: 3.5, ch: 2.6, ao: 0.32 };
   const pieceWood = new THREE.MeshStandardMaterial({ map: Tex.wood, color: 0xf4dcbc, roughness: 0.45, metalness: 0.0 });
   // 木棋子字面（美术 M21：审批台 078 宋体 + 072 年轮）：画法在 face.js。每颗子的年轮都不一样，所以按棋子 id 缓存；同一 id 换了兵种（揭棋翻出来）就在原画布上重画
   const faceCache = {};
@@ -493,7 +529,72 @@ const Board = (() => {
       return hit.tex;
     }
     const N = Core.quality === 'low' ? 384 : 512;
-    return (faceCache[key] = { ch, tex: canvasTex(N, N, (g, w) => Face.wood(g, w, s, ch, id)) }).tex;
+    return (faceCache[key] = { ch, tex: canvasTex(N, N, (g, w) => { Face.wood(g, w, s, ch, id); carveAO(g, w, ch, RL.ao); }) }).tex;
+  }
+  // 刻槽里的柔和暗部（不描黑边）：沿字的边往里渐暗
+  function carveAO(g, w, ch, a) {
+    const p = Face.path(ch, w); if (!p) return;
+    const sh = blurred(mkCanvas(w, w, t => { t.strokeStyle = `rgba(30,12,4,${a})`; t.lineWidth = w * 0.03; t.stroke(p); }), w * 0.012);
+    g.save(); g.clip(p); g.drawImage(sh, 0, 0); g.restore();
+  }
+  // 升级后（银、金、玉）的掐丝珐琅字也刻下去：只有字
+  const charNormCache = {};
+  function charNorm(ch) {
+    if (charNormCache[ch]) return charNormCache[ch];
+    const N = 512, hc = blurred(mkCanvas(N, N, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, N, N); const p = Face.path(ch, N); if (p) { g.fillStyle = '#000'; g.fill(p); } }), RL.blur);
+    const d = hc.getContext('2d'), im = d.getImageData(0, 0, N, N), px = im.data;
+    for (let i = 0; i < px.length; i += 4) { const v = 150 - (1 - px[i] / 255) * 110 * RL.ch; px[i] = px[i + 1] = px[i + 2] = Math.max(0, v); }
+    d.putImageData(im, 0, 0);
+    return (charNormCache[ch] = dataTex(normalFrom(hc, RL.k, false)));
+  }
+  // 木字面凹凸：圈线刻下去，字更深，木纹按明暗带一点起伏（每颗子一张，跟字面贴图一样按 id 缓存）
+  const normCache = {};
+  // 优化部 P4：木字面法线图（32 张 512）原来开局时一口气算完，手机上要好几秒、整页卡住。
+  //   改成先挂一张平的（画出来和没有法线图一样，着色器也是同一个，换图不用重编），空闲时一颗一颗算好再换上。
+  //   页面刚打开时大厅盖着棋盘，等玩家开局早就算完了；算好的照旧按 id 缓存
+  const flatNorm = (() => { const t = new THREE.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1); t.needsUpdate = true; return t; })();
+  const normQ = [];
+  let normT = 0;
+  function lazyNorm(mat, s, t, id = 0) {
+    const key = s + (id | 0) + XQ.NAMES[s][t];
+    mat.userData.normKey = key;
+    if (normCache[key]) return normCache[key];
+    normQ.push({ mat, s, t, id, key });
+    if (!normT) normT = setTimeout(normStep, 50);
+    return flatNorm;
+  }
+  function normStep() {
+    // 优化部 P5：页面刚开、大厅盖着棋盘时，先把升级皮肤预做好（原来等第一局技能模式开局 1.5 秒后才做，正好卡在开局），这一轮先不算法线图
+    if (!skins && !decorateAll.warm) { decorateAll.warm = true; prewarmSkins(); normT = setTimeout(normStep, 30); return; }
+    const t0 = performance.now();
+    while (normQ.length && performance.now() - t0 < 25) {   // 一次最多算 25 毫秒（至少一颗），剩下的下一轮
+      const q = normQ.shift();
+      if (q.mat.userData.normKey !== q.key) continue;   // 这期间换了字面（揭棋翻开、换兵种）：作废
+      q.mat.normalMap = faceNorm(q.s, q.t, q.id);
+    }
+    normT = normQ.length ? setTimeout(normStep, 30) : 0;
+  }
+  function faceNorm(s, t, id = 0) {
+    const ch = XQ.NAMES[s][t], key = s + (id | 0) + ch;
+    if (normCache[key]) return normCache[key];
+    const N = Core.quality === 'low' ? 384 : 512, C = N / 2;
+    const col = mkCanvas(N, N, g => Face.wood(g, N, s, ch, id)).getContext('2d').getImageData(0, 0, N, N).data;
+    const mask = mkCanvas(N, N, g => {
+      g.fillStyle = '#fff'; g.fillRect(0, 0, N, N); g.strokeStyle = '#000';
+      for (const [r, lw] of [[0.47, 14], [0.452, 10], [0.372, 5]]) { g.lineWidth = lw * N / 512; g.beginPath(); g.arc(C, C, N * r, 0, 7); g.stroke(); }
+    });
+    const cmask = mkCanvas(N, N, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, N, N); const p = Face.path(ch, N); if (p) { g.fillStyle = '#000'; g.fill(p); } });
+    const mb = blurred(mask, RL.blur).getContext('2d').getImageData(0, 0, N, N).data, cb = blurred(cmask, RL.blur).getContext('2d').getImageData(0, 0, N, N).data;
+    const hc = mkCanvas(N, N, g => {
+      const im = g.createImageData(N, N), d = im.data;
+      for (let i = 0; i < N * N; i++) {
+        const lum = (col[i * 4] * 0.3 + col[i * 4 + 1] * 0.59 + col[i * 4 + 2] * 0.11) / 255, m = mb[i * 4] / 255, cm = cb[i * 4] / 255;
+        const v = 150 + (lum - 0.7) * 120 * RL.grain * m * cm - (1 - m) * 110 - (1 - cm) * 110 * RL.ch;
+        d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = Math.max(0, Math.min(255, v)); d[i * 4 + 3] = 255;
+      }
+      g.putImageData(im, 0, 0);
+    });
+    return (normCache[key] = dataTex(normalFrom(hc, RL.k, false)));
   }
   // 揭棋暗子：漆面背（汉为朱漆、楚为黑漆），金边祥云，中间极淡地印着所在位置的兵种
   const backCache = {};
@@ -540,15 +641,25 @@ const Board = (() => {
   }
   const faceGeo = new THREE.CircleGeometry(0.4, 40); faceGeo.rotateX(-Math.PI / 2); faceGeo.userData.keep = true;
   const bandGeo = new THREE.CylinderGeometry(0.4222, 0.4222, 0.026, Core.quality === 'high' ? 40 : 28, 1, true); bandGeo.userData.keep = true;
+  // 贴地暗影（美术总监 V10，Ham 审批台 ad-015 选丙、ad-017 通过）：棋子脚下一圈很淡的柔影，低画质没有实时影子时也有；
+  //   棋子被提起来时暗影留在盘面上，离得越高越淡（提 0.8 完全消失）
+  const blobGeo = (() => { const q = new THREE.PlaneGeometry(1.04, 1.04); q.rotateX(-Math.PI / 2); q.userData.keep = true; return q; })();
+  const blobMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, map: canvasTex(512, 512, (g, w) => { const c = w / 2, gr = g.createRadialGradient(c, c, w * 0.36, c, c, w * 0.5); gr.addColorStop(0, 'rgba(40,24,10,.34)'); gr.addColorStop(0.2, 'rgba(40,24,10,.24)'); gr.addColorStop(0.5, 'rgba(40,24,10,.09)'); gr.addColorStop(0.8, 'rgba(40,24,10,.02)'); gr.addColorStop(1, 'rgba(40,24,10,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, w); }) });
+  Core.onFrame(() => {
+    for (const m of pieces.values()) { const bl = m.userData.blob; if (!bl) continue; const h = m.position.y - TOP, sy = m.scale.y || 1; bl.position.y = (0.003 - h) / sy; bl.material.opacity = Math.max(0, 1 - h / 0.8); const body = m.children[0]; bl.visible = !!(body && body.visible) && bl.material.opacity > 0.01; }   // 兵种模型显示时棋身藏起来，暗影也不要
+  });
   function makePiece(p) {
     const g = new THREE.Group();
     const body = new THREE.Mesh(pieceGeo, pieceWood);
     body.castShadow = true; body.receiveShadow = true;
-    const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({ map: p.h ? backTex(p.s, p.pt) : faceTex(p.s, p.t, p.id), transparent: true, roughness: p.h ? 0.32 : 0.5, polygonOffset: true, polygonOffsetFactor: -2 }));
+    const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({ map: p.h ? backTex(p.s, p.pt) : faceTex(p.s, p.t, p.id), normalMap: null, transparent: true, roughness: p.h ? 0.32 : 0.5, polygonOffset: true, polygonOffsetFactor: -2 }));
+    if (!p.h) face.material.normalMap = lazyNorm(face.material, p.s, p.t, p.id);
     face.position.y = PH + 0.001;
     const band = new THREE.Mesh(bandGeo, goldM); band.position.y = PH * 0.6;
     g.add(body, face, band);
+    const bl = new THREE.Mesh(blobGeo, blobMat.clone()); bl.position.y = 0.003; bl.renderOrder = -1; bl.userData.blob = true; g.add(bl);
     g.userData = { id: p.id, s: p.s, t: p.h ? 'h' : p.t, h: !!p.h };
+    g.userData.blob = bl;
     // 面向本方：黑方棋子旋转180°
     g.rotation.y = p.s === 'b' ? Math.PI : 0;
     return g;
@@ -558,7 +669,7 @@ const Board = (() => {
   function setFace(m, p) {
     const face = m.children[1]; if (!face) return;
     const std = m.userData.faceStd || face.material;
-    std.map = p.h ? backTex(p.s, p.pt) : faceTex(p.s, p.t, p.id);
+    std.map = p.h ? backTex(p.s, p.pt) : faceTex(p.s, p.t, p.id); std.normalMap = p.h ? null : lazyNorm(std, p.s, p.t, p.id);
     std.roughness = p.h ? 0.32 : 0.5;
     std.needsUpdate = true;
     m.userData.t = p.h ? 'h' : p.t; m.userData.h = !!p.h;
@@ -643,7 +754,7 @@ const Board = (() => {
   const hpSector = (R0, R1, a0, a1) => { const sh = new THREE.Shape(); sh.absarc(0, 0, R1, a0, a1, false); sh.absarc(0, 0, R0, a1, a0, true); sh.closePath(); return sh; };
   const ringCache = new Map();
   const ringGet = (k, mk) => { let v = ringCache.get(k); if (!v) { v = mk(); if (v.isBufferGeometry) v.userData.keep = true; ringCache.set(k, v); } return v; };
-  function footRing(hp, max, s, W = 0.045, D = 0.013, GAP = 0.3) {
+  function footRing(hp, max, s, W = 0.045, D = 0.039, GAP = 0.3) {
     const g = new THREE.Group(), R0 = 0.452, R1 = R0 + W, span = (Math.PI * 2 - GAP * max) / max;
     const baseGeo = ringGet('bg', () => { const q = new THREE.RingGeometry(R0 - 0.006, R1 + 0.006, 72); q.rotateX(-Math.PI / 2); return q; });
     const dim = ringGet('mOff', () => new THREE.MeshStandardMaterial({ color: 0x2a221c, roughness: 0.9, transparent: true, opacity: 0.35, depthWrite: false }));
@@ -698,13 +809,14 @@ const Board = (() => {
   // ---------- 棋身按等级换装：一级木 · 二级「乌银错花」· 三级「錾金」· 四级「羊脂白玉 · 金丝嵌」 ----------
   // 金属与玉要有真实反光：先做一张 HDR 影棚环境光（四面对称，换边、转视角都一样好看）
   //   天顶大柔光箱；四盏斜上方柔光箱（顶面映出大片渐变高光）；一圈竖条灯（侧壁上的竖向高光）；暗暖底（金属有深浅对比）
-  let envTex = null, skins = null, lastGame = null;
+  let envTex = null, envTop = null, skins = null, lastGame = null;
   const LOWQ = () => Core.quality === 'low';
   // 质感参数（Board.skinTune(补丁) 可以现场改了重建）：
   //   boxAz / boxEl / boxI / zen = 斜上方柔光箱的方位半宽、仰角范围、亮度，天顶灯亮度（决定金属顶面那块高光有多大、多亮）
   //   domeM = 金属顶面的弧度（略微隆起，高光才是一块有形状的光斑，而不是整面发白）
   //   jade = 玉面纹理：gu 谷纹 / pu 蒲纹 / yun 云纹 / su 素面
   const SK = { boxAz: [5.5, 8.5], boxEl: [33, 39, 51, 56], boxI: [0.9, 2.3], zen: 2.0, domeM: 0.5, anisoTop: 0.16, envS: 0.9, envG: 0.82, jade: 'yun' };   // 顶面高光占比：银约 35%、金约 25%；白玉用云纹
+  const ZEN_TOP = 0.25;   // 正上方看时天顶灯留几成
   try { const o = JSON.parse(localStorage.getItem('xq3d-sk') || 'null'); if (o) Object.assign(SK, o); } catch (e) { }
   function studioEnv() {
     const W = 512, H = 256, lin = new Float32Array(W * H * 3);
@@ -756,7 +868,8 @@ const Board = (() => {
     return t;
   }
   function sTex(c, wrap) { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; if (wrap) t.wrapS = THREE.RepeatWrapping; return t; }
-  const mkCanvas = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); draw(g, w, h); return c; };
+  // 这些画布都要读像素（getImageData）：放内存里（willReadFrequently），不放显卡上，读的时候不用等显卡（优化部 P4：手机上每次能省几到几十毫秒，开局要读一百多次）
+  const mkCanvas = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d', { willReadFrequently: true }); draw(g, w, h); return c; };
   // 高度图 → 法线贴图（横向环绕；k = 起伏强度）
   //   dome > 0：整面再叠一个微微隆起的弧面（中心平、越往边越斜）
   function normalFrom(hc, k, wrapX, dome = 0) {
@@ -778,7 +891,16 @@ const Board = (() => {
       g.putImageData(im, 0, 0);
     });
   }
-  const blurred = (c, px) => mkCanvas(c.width, c.height, g => { g.filter = `blur(${px}px)`; g.drawImage(c, 0, 0); g.filter = 'none'; });
+  // 画布模糊：ctx.filter 较老的 iOS Safari 不支持（会静默不模糊，刻痕边变硬），那时先缩小再放大来模糊，样子接近
+  const CANBLUR = (() => { try { const t = document.createElement('canvas').getContext('2d'); t.filter = 'blur(1px)'; return t.filter === 'blur(1px)'; } catch (e) { return false; } })();
+  function scaleBlur(c, px) {   // 先缩小再放大，靠图像平滑模糊；不逐像素算，旧手机上也快
+    const w = c.width, h = c.height, k = 1 + px * 0.9, sw = Math.max(1, Math.round(w / k)), sh = Math.max(1, Math.round(h / k));
+    const sm = mkCanvas(sw, sh, g => { g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(c, 0, 0, sw, sh); });
+    return mkCanvas(w, h, g => { g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(sm, 0, 0, w, h); });
+  }
+  const blurred = (c, px) => CANBLUR
+    ? mkCanvas(c.width, c.height, g => { g.filter = `blur(${px}px)`; g.drawImage(c, 0, 0); g.filter = 'none'; })
+    : scaleBlur(c, px);
   // 旋压（车床）拉丝的各向异性方向：沿同心圆切向
   function spunAniso(n) {
     return mkCanvas(n, n, g => {
@@ -854,7 +976,7 @@ const Board = (() => {
       g.lineWidth = 8; g.lineCap = 'square'; g.lineJoin = 'miter'; meanderPath(g, 34, BH - 34, 28);
     }), true);
     const hc = mkCanvas(BW, BH, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, BW, BH); g.fillStyle = g.strokeStyle = '#8a8a8a'; g.fillRect(0, 12, BW, 6); g.fillRect(0, BH - 18, BW, 6); g.lineWidth = 8; g.lineCap = 'square'; meanderPath(g, 34, BH - 34, 28); });
-    return { map: col, orm, normal: dataTex(normalFrom(blurred(hc, 1.2), 2.2, true), true) };
+    return { map: col, orm, normal: dataTex(normalFrom(blurred(hc, 1.2), 2.2 * RL.skin, true), true) };
   }
   function goldBand() {
     // 鱼子地（细密圆点錾出的哑光底）上起凸云雷纹，纹样抛光、底子哑光
@@ -877,14 +999,14 @@ const Board = (() => {
       for (let i = 0; i < BW * BH; i++) { const m = mk[i * 4] / 255; d[i * 4] = 255; d[i * 4 + 1] = 255 * (0.52 - 0.4 * m); d[i * 4 + 2] = 255; d[i * 4 + 3] = 255; }
       g.putImageData(im, 0, 0);
     }), true);
-    return { map: col, orm, normal: dataTex(normalFrom(blurred(hc, 1.4), 3.2, true), true) };
+    return { map: col, orm, normal: dataTex(normalFrom(blurred(hc, 1.4), 3.2 * RL.skin, true), true) };
   }
   function jadeBand() {
     // 金丝嵌玉：上下两道金线 + 卷草；alpha 为金丝，其余透出玉身
     const draw = (g, c) => { g.fillStyle = g.strokeStyle = c; g.fillRect(0, 8, BW, 7); g.fillRect(0, BH - 15, BW, 7); scrollPath(g, 9, 9); };
     const alpha = dataTex(mkCanvas(BW, BH, g => { g.fillStyle = '#000'; g.fillRect(0, 0, BW, BH); draw(g, '#fff'); }), true);
     const hc = mkCanvas(BW, BH, g => { g.fillStyle = '#000'; g.fillRect(0, 0, BW, BH); draw(g, '#fff'); });
-    return { alpha, normal: dataTex(normalFrom(blurred(hc, 2.2), 4.5, true), true) };
+    return { alpha, normal: dataTex(normalFrom(blurred(hc, 2.2), 4.5 * RL.skin, true), true) };
   }
   // ---- 顶面（叠在棋身顶盖与字之间） ----
   const TN = 512;
@@ -913,7 +1035,7 @@ const Board = (() => {
       else { g.fillStyle = 'rgb(255,120,255)'; g.beginPath(); g.arc(c, c, R1, 0, 7); g.arc(c, c, R0, 0, 7, true); g.fill(); for (let i = 0; i < 60; i++) { const a = i / 60 * Math.PI * 2, r = (R0 + R1) / 2; g.fillStyle = 'rgb(255,22,255)'; g.beginPath(); g.arc(c + Math.cos(a) * r, c + Math.sin(a) * r, 6, 0, 7); g.fill(); } }
     }));
     const aniso = dataTex(spunAniso(256)); aniso.minFilter = aniso.magFilter = THREE.NearestFilter; aniso.generateMipmaps = false;
-    return { map, orm, normal: dataTex(normalFrom(blurred(hc, 0.8), silver ? 1.6 : 3, false, (silver ? SK.domeS : SK.domeG) ?? SK.domeM)), aniso };
+    return { map, orm, normal: dataTex(normalFrom(blurred(hc, 0.8), (silver ? 1.6 : 3) * RL.skin, false, (silver ? SK.domeS : SK.domeG) ?? SK.domeM)), aniso };
   }
   function meanderRing(g, c, r0, r1, n) {
     g.lineJoin = 'miter'; g.lineCap = 'square';
@@ -983,23 +1105,25 @@ const Board = (() => {
   // 玉色：比先前压暗一档的暖白（不发灰、不偏绿），中心略亮；顺着同一走向的几团“棉絮”；细密的毡状结构（每枚子走向不同）
   //   素面另加几缕流云状的青灰水线
   const JADE_TONE = [['#e2dccb', '#d6ceb9', '#c8bea4', '#b4a784'], ['#e4dfd0', '#d9d2be', '#cbc2a9', '#b7ab8a'], ['#dfd8c4', '#d3cab2', '#c4b99c', '#b0a27d']];
+  // 玉色：羊脂白——偏暖的奶油白，絮纹更明显、边缘透暖光（美术总监总审第 10 条，Ham 审批台 ad-009 选甲）
+  const JP = { tone: ['#efe2c4', '#e2d0aa', '#d0b88c', '#b59a6a'], vein: ['#d4b98a', '#e9dcc2', '#cdb48a'], fluff: '#fffdf6', body: ['#e2d2b0', '#d6c29c', '#ecdfc2', '#c2a87c'], fleck: '#c8aa78', glow: 0xffc070, k: [0.1, 1.1], em: 0x30220a, fl: 3 };
   function jadeTopSet(v, style) {
     const c = TN / 2, relief = jadeRelief(style), hc = relief && blurred(relief, 1.2);
     const col = mkCanvas(TN, TN, g => {
-      const gr = g.createRadialGradient(c * (0.78 + 0.08 * v), c * 0.8, 10, c, c, c), W3 = JADE_TONE[v];
+      const gr = g.createRadialGradient(c * (0.78 + 0.08 * v), c * 0.8, 10, c, c, c), W3 = JP ? JP.tone : JADE_TONE[v];
       gr.addColorStop(0, W3[0]); gr.addColorStop(0.5, W3[1]); gr.addColorStop(0.86, W3[2]); gr.addColorStop(1, W3[3]);
       g.fillStyle = gr; g.fillRect(0, 0, TN, TN);
       const ang = rnd() * Math.PI;
       for (let k = 0; k < 5; k++) {
         const cx = c + (rnd() - 0.5) * TN * 0.7, cy = c + (rnd() - 0.5) * TN * 0.7;
-        for (let i = 0; i < 24; i++) { g.globalAlpha = 0.03 + rnd() * 0.07; g.fillStyle = '#fbf8ef'; g.beginPath(); g.ellipse(cx + (rnd() - 0.5) * 130, cy + (rnd() - 0.5) * 60, 10 + rnd() * 50, 3 + rnd() * 12, ang + (rnd() - 0.5) * 0.7, 0, 7); g.fill(); }
+        for (let i = 0; i < 24; i++) { g.globalAlpha = (0.03 + rnd() * 0.07) * (JP && JP.fl || 1); g.fillStyle = JP ? JP.fluff : '#fbf8ef'; g.beginPath(); g.ellipse(cx + (rnd() - 0.5) * 130, cy + (rnd() - 0.5) * 60, 10 + rnd() * 50, 3 + rnd() * 12, ang + (rnd() - 0.5) * 0.7, 0, 7); g.fill(); }
       }
       {
         // 天然玉理：几缕宽而淡的青灰 / 蜜黄流云带，两三道细白筋（素面明显些，有雕纹的只留一点）
         const K = style === 'su' ? 1 : 0.45;
         g.lineCap = 'round';
         for (let k = 0; k < 7; k++) {
-          g.globalAlpha = (0.1 + rnd() * 0.1) * K; g.strokeStyle = k % 3 === 0 ? '#c2a160' : k % 3 === 1 ? '#8f9a82' : '#a39c84'; g.lineWidth = 8 + rnd() * 30;
+          g.globalAlpha = (0.1 + rnd() * 0.1) * K * (JP && JP.fl || 1); g.strokeStyle = JP ? JP.vein[k % 3] : k % 3 === 0 ? '#c2a160' : k % 3 === 1 ? '#8f9a82' : '#a39c84'; g.lineWidth = 8 + rnd() * 30;
           let x = -40, y = rnd() * TN; g.beginPath(); g.moveTo(x, y);
           for (let i = 0; i < 6; i++) { const nx = x + 90 + rnd() * 50, ny = y + (rnd() - 0.5) * 120; g.bezierCurveTo(x + 40, y + (rnd() - 0.5) * 80, nx - 40, ny + (rnd() - 0.5) * 80, nx, ny); x = nx; y = ny; }
           g.save(); g.translate(c, c); g.rotate(ang); g.translate(-c, -c); g.filter = 'blur(5px)'; g.stroke(); g.filter = 'none'; g.restore();
@@ -1011,7 +1135,7 @@ const Board = (() => {
           g.filter = 'blur(0.6px)'; g.stroke(); g.filter = 'none';
         }
       }
-      for (let i = 0; i < 3000; i++) { g.globalAlpha = 0.025 + rnd() * 0.04; g.fillStyle = rnd() < 0.5 ? '#ffffff' : '#c9b78e'; g.fillRect(rnd() * TN, rnd() * TN, 1 + rnd() * 2, 1); }
+      for (let i = 0; i < 3000; i++) { g.globalAlpha = 0.025 + rnd() * 0.04; g.fillStyle = rnd() < 0.5 ? (JP ? JP.fluff : '#ffffff') : (JP ? JP.fleck : '#c9b78e'); g.fillRect(rnd() * TN, rnd() * TN, 1 + rnd() * 2, 1); }
       g.globalAlpha = 1;
       if (hc) {
         // 刻线里积色略深、略暖；凸起处磨得发亮
@@ -1030,17 +1154,17 @@ const Board = (() => {
     }));
     // 法线：浮雕 + 玉面微微隆起（像抛光的弧面）
     const flat = mkCanvas(128, 128, g => { g.fillStyle = '#808080'; g.fillRect(0, 0, 128, 128); });
-    const normal = dataTex(hc ? normalFrom(hc, style === 'pu' ? 4 : 5, false, 0.4) : normalFrom(flat, 0, false, 0.42));
+    const normal = dataTex(hc ? normalFrom(hc, (style === 'pu' ? 4 : 5) * RL.skin, false, 0.4) : normalFrom(flat, 0, false, 0.42));
     return { map: sTex(col), rough, normal };
   }
   function jadeBodyTex(v) {
     return sTex(mkCanvas(1024, 256, (g, w, h) => {
       // 车削体 UV：侧壁只占 v 0.5~0.6（画布 0.4h~0.5h 两行之间）
-      g.fillStyle = '#d6cdb7'; g.fillRect(0, 0, w, h);
+      g.fillStyle = JP ? JP.body[1] : '#d6cdb7'; g.fillRect(0, 0, w, h);
       const y0 = h * 0.39, y1 = h * 0.51;
-      const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, '#d0c5aa'); gr.addColorStop(0.45, '#dfd8c6'); gr.addColorStop(1, '#c4b693');
+      const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, JP ? JP.body[0] : '#d0c5aa'); gr.addColorStop(0.45, JP ? JP.body[2] : '#dfd8c6'); gr.addColorStop(1, JP ? JP.body[3] : '#c4b693');
       g.fillStyle = gr; g.fillRect(0, y0, w, y1 - y0);
-      for (let i = 0; i < 90; i++) { g.globalAlpha = 0.04 + rnd() * 0.08; g.fillStyle = rnd() < 0.75 ? '#faf6ec' : '#cdb98a'; g.beginPath(); g.ellipse(rnd() * w, y0 + rnd() * (y1 - y0), 14 + rnd() * 70, 2 + rnd() * 6, (rnd() - 0.5) * 0.3, 0, 7); g.fill(); }
+      for (let i = 0; i < 90; i++) { g.globalAlpha = 0.04 + rnd() * 0.08; g.fillStyle = rnd() < 0.75 ? (JP ? JP.fluff : '#faf6ec') : (JP ? JP.fleck : '#cdb98a'); g.beginPath(); g.ellipse(rnd() * w, y0 + rnd() * (y1 - y0), 14 + rnd() * 70, 2 + rnd() * 6, (rnd() - 0.5) * 0.3, 0, 7); g.fill(); }
       g.globalAlpha = 1;
     }), true);
   }
@@ -1064,14 +1188,15 @@ const Board = (() => {
   function levelSkins() {
     if (skins) return skins;
     envTex = studioEnv();
+    { const z = SK.zen; SK.zen = z * ZEN_TOP; envTop = studioEnv(); SK.zen = z; }   // 正上方看时用：天顶灯调暗（金属、玉的顶面正对天顶，原样会整片映白）
     const E = envTex ? { envMap: envTex } : {};
     const sb = silverBand(), gb = goldBand(), jb = jadeBand(), st = topSet('silver'), gt = topSet('gold');
     const MET = envTex ? 1 : 0.55;
     const metal = (color, rough, extra = {}) => phys({ color, metalness: MET, roughness: rough, envMapIntensity: 1, ...E, ...extra });
     const top = o => { const m = metal(o.color, 1, { map: o.t.map, roughnessMap: o.t.orm, metalnessMap: o.t.orm, normalMap: o.t.normal, normalScale: new THREE.Vector2(1, 1), anisotropy: SK.anisoTop, anisotropyMap: o.t.aniso, envMapIntensity: o.env, polygonOffset: true, polygonOffsetFactor: -1 }); return m; };
     const gold = metal(GOLD_RIM, 0.13);
-    const jadeBody = v => jadeGlow(phys({ map: jadeBodyTex(v), color: 0xffffff, metalness: 0, roughness: 0.4, clearcoat: 0.6, clearcoatRoughness: 0.16, sheen: 0.3, sheenColor: new THREE.Color(0xfff0d8), sheenRoughness: 0.5, emissive: 0x2a2012, emissiveIntensity: 0.25, envMapIntensity: 0.45, ...E }), 0xffcf8e, 0.04, 0.42);
-    const jadeTop = v => { const t = jadeTopSet(v, SK.jade); return jadeGlow(phys({ map: t.map, normalMap: t.normal, ...(t.rough ? { roughnessMap: t.rough, roughness: 0.4 } : { roughness: 0.36 }), color: 0xffffff, metalness: 0, clearcoat: 0.55, clearcoatRoughness: 0.18, sheen: 0.3, sheenColor: new THREE.Color(0xfff2de), emissive: 0x2a2012, emissiveIntensity: 0.22, envMapIntensity: 0.4, polygonOffset: true, polygonOffsetFactor: -1, ...E }), 0xffd49a, 0.03, 0.24); };
+    const jadeBody = v => jadeGlow(phys({ map: jadeBodyTex(v), color: 0xffffff, metalness: 0, roughness: 0.4, clearcoat: 0.6, clearcoatRoughness: 0.16, sheen: 0.3, sheenColor: new THREE.Color(0xfff0d8), sheenRoughness: 0.5, emissive: JP ? JP.em : 0x2a2012, emissiveIntensity: 0.25, envMapIntensity: 0.45, ...E }), JP ? JP.glow : 0xffcf8e, JP ? JP.k[0] : 0.04, JP ? JP.k[1] : 0.42);
+    const jadeTop = v => { const t = jadeTopSet(v, SK.jade); return jadeGlow(phys({ map: t.map, normalMap: t.normal, ...(t.rough ? { roughnessMap: t.rough, roughness: 0.4 } : { roughness: 0.36 }), color: 0xffffff, metalness: 0, clearcoat: 0.55, clearcoatRoughness: 0.18, sheen: 0.3, sheenColor: new THREE.Color(0xfff2de), emissive: JP ? JP.em : 0x2a2012, emissiveIntensity: 0.22, envMapIntensity: 0.4, polygonOffset: true, polygonOffsetFactor: -1, ...E }), JP ? JP.glow : 0xffd49a, JP ? JP.k[0] * 0.8 : 0.03, JP ? JP.k[1] * 0.6 : 0.24); };
     skins = {
       2: {
         body: metal(SILVER, 0.13),
@@ -1135,7 +1260,7 @@ const Board = (() => {
     if (!mat) {
       mat = m.userData.faceSkin = phys({ transparent: true, metalness: 1, roughness: 1, clearcoat: 0.8, clearcoatRoughness: 0.08, envMapIntensity: 1, polygonOffset: true, polygonOffsetFactor: -2, ...(envTex ? { envMap: envTex } : {}) });
     }
-    if (mat.map !== e.map) { mat.map = e.map; mat.roughnessMap = mat.metalnessMap = mat.aoMap = e.orm; mat.needsUpdate = true; }
+    if (mat.map !== e.map) { mat.map = e.map; mat.roughnessMap = mat.metalnessMap = mat.aoMap = e.orm; mat.normalMap = charNorm(XQ.NAMES[p.s][p.t]); mat.needsUpdate = true; }
     face.material = mat;
   }
   // 侧壁纹样圈、顶面贴片、金口沿
@@ -1322,8 +1447,8 @@ const Board = (() => {
         for (const key of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'alphaMap', 'anisotropyMap']) if (m[key] && !seen.has(m[key])) { seen.add(m[key]); m[key].dispose(); }
         m.dispose();
       }
-      if (envTex) envTex.dispose();
-      skins = null; envTex = null;
+      if (envTex) envTex.dispose(); if (envTop) envTop.dispose();
+      skins = null; envTex = null; envTop = null;
     }
     if (lastGame) setPosition(lastGame);
     return SK;
@@ -2010,6 +2135,30 @@ const Board = (() => {
       const env = studioEnv();
       for (const m of boardTops) { m.normalMap = nm; m.normalScale = new THREE.Vector2(0.32, 0.32); if (env) { m.envMap = env; m.envMapIntensity = 0.3; } m.needsUpdate = true; }
     } catch (e) { console.warn('polishBoard', e); }
+  })();
+  // 俯瞰 / 定盘（镜头正对下方）时棋盘顶面会把太阳和天顶灯直接反进镜头，整块泛白：镜头越朝正下，顶面越哑光、环境反光越弱；沙盘斜看不变
+  (function topDownMatte() {
+    const base = boardTops.map(m => [m.roughness, m.clearcoat || 0]), dir = new THREE.Vector3();
+    // 太阳几乎在头顶（仰角约 78°），正上方看时它在棋子平顶上的高光正好反进镜头，金属、玉、字面都发白：正上方看时把太阳压低到 SUN_EL 度（方位不变），沙盘不变
+    const sun = Core.sun, sun0 = sun.position.clone(), mine = sun0.clone(), SUN_EL = 55;
+    const h0 = Math.hypot(sun0.x, sun0.z), R0 = sun0.length(), el = SUN_EL * Math.PI / 180;
+    const sunTop = new THREE.Vector3(sun0.x / h0 * Math.cos(el) * R0, Math.sin(el) * R0, sun0.z / h0 * Math.cos(el) * R0);
+    let last = -1;
+    Core.onFrame(() => {
+      Core.camera.getWorldDirection(dir);
+      const t = Math.min(1, Math.max(0, (-dir.y - 0.86) / 0.1)), k = t * t * (3 - 2 * t);
+      if (envTex && envTop) {   // 金属、玉、珐琅字面：k 过半就换环境图（两张同尺寸，只换贴图不重编着色器）；新升级的子也在这里换上
+        const want = k > 0.5 ? envTop : envTex, from = k > 0.5 ? envTex : envTop;
+        piecesRoot.traverse(o => { const ms = o.material; if (!ms) return; for (const m of Array.isArray(ms) ? ms : [ms]) if (m.envMap === from) m.envMap = want; });
+      }
+      if (Math.abs(k - last) < 0.004) return; last = k;
+      if (sun.position.distanceTo(mine) < 1e-4) { sun.position.lerpVectors(sun0, sunTop, k); mine.copy(sun.position); }   // 结局等别处动过太阳就不管
+      boardTops.forEach((m, i) => {
+        m.roughness = base[i][0] + (0.9 - base[i][0]) * k;
+        if (base[i][1]) m.clearcoat = base[i][1] * (1 - 0.75 * k);
+        if (m.envMap) m.envMapIntensity = 0.3 * (1 - 0.7 * k);
+      });
+    });
   })();
   return {
     root, TOP, PH, HALF, X, Z, pos, setPosition, syncPosition, pieces, piecesRoot, makePiece, faceViewer,

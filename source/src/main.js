@@ -8,6 +8,36 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '俯瞰、定盘视角下金属、玉质棋子不再反光发白（美术总监）',
+      '技能模式战象背上的「象」字旗插进塔顶，不再浮在半空',
+      '技能模式里兵、卒小队互相攻击时，切到全屏的一对一近身对打（一级 1 对 1、二级 2 对 2、三级 3 对 3、四级斩马刀手），吃子打死、扣血打伤，配格挡、扎中、倒地的声音（角色部、声音部）',
+      '局势条在电脑对电脑（霸王、兵仙）的局里也能跟上了（原来和电脑抢着算，一直显示「分析中」）',
+      '俯瞰、定盘视角下棋盘不再泛白（美术总监）',
+      '技能模式的电脑在慢手机上也守时了：给了时限就一定在时限内走；电脑线程没回话时自动重来；页面切到后台时电脑的钟暂停（数值部）',
+      '技能模式的电脑偶尔给不出能走的一步时，原来会一直不走直到超时，现在会改走一步能走的（并记下来发给数值部查）',
+      '房主坐到观战席看电脑下时，也有局势条（点状态栏下的「势」展开）',
+      '观战电脑对电脑的局，结束后也能「保存」、发给数值部；标题写明两边各是哪一档（数值部）',
+      '技能模式的电脑会看钟了：房间里开了计时，时间不多时想得快些，「兵仙」不会再下到后面超时判负（数值部）',
+      '观战时顶上状态栏下多了一个「势」字，点开是实时局势条，看谁占优（只显示局势，不提示走法；技能模式要在面板里勾上才算，手机会比较热）（美术总监、TD）',
+      '电脑自言自语配上了刘邦、项羽的原声（声音部）',
+      '人机对局里电脑想得久时偶尔自言自语（想满 3 秒起，每 5 秒有三成机会说一句；刘邦、项羽各三句）',
+      '开场曲之前一直没响（总是放回老的一声锣鼓），现在修好了：开局、观战都放新开场曲。',
+      '修好上一版房间页一处写错导致页面打不开的问题。',
+      '技能模式人机新增最强一档「兵仙」：比霸王还强，每步想得更久（约九秒，难处最多二十多秒）；电脑想的时候随时能悔棋、认输，切到后台不再偷偷算；兵仙想得久，手机会比较热（数值部）',
+      '复盘分析的步数条：按住左右滑就能一步步看，电脑上鼠标悬停放大，手机上手指上方浮出放大镜，右头加了上一步 / 下一步按钮（美术总监）',
+      '技能模式：楚战象升级换成「火象」，一到四级越来越大、越来越威风（四级金鳞甲、大象牙、背上火鬃），每级一只、不再叠影（角色部）',
+      '界面小修：对方喊话时提示条让到气泡下面；弹出确认框时暂停卡先收起来；加载页的字不再忽明忽暗；电脑上技能按钮放大；没走子的复盘写明“没有可分析的”（美术总监）',
+      '技能模式开局不再卡几秒：棋子材质的准备挪到页面刚打开、空闲的时候做（优化部）',
+      '技能模式的电脑重新调了看局面的分寸，比上一版强不少（对上一版胜率约九成）（数值部）',
+      '开局换成一段约 3 秒的开场曲（大鼓、锣、编钟、古筝），汉楚各有自己的，汉方两首随机（声音部）',
+      '修好上一版棋子立体化后打开变慢、开局卡一下的问题：刻字的明暗改成空闲时一颗一颗算（优化部）',
+      '棋子更立体：字和圈线刻进去，银、金、玉的花纹更深；灯光挪高，影子收在棋子脚下，每颗子下面一片贴地暗影（美术总监）',
+      '技能模式：相、象打立着拒马的兵有了专门演出——相派弩手放两箭（三、四级两名弩手各一箭），打得死就虎扑上去砸碎路障；象只掉血时顶在路障前人立，打得死就冲进去连人带路障撞飞（角色部）。放箭、中箭、虎扑、路障碎都配了声音；兵走路按等级、残血换不同的脚步声（声音部）',
+      '技能模式：脚下的血条加厚到原来的三倍，远看也看得清（美术总监）',
+      '对局停着不动、开着省电时，每秒少画一半的帧，手机更凉；一碰屏立刻恢复（优化部）',
+      '设置页底下的版本号收进格子里；结算页竖排古文改用粗宋体；补全了粗宋字库，新加的「喜怒悲秦阳」等字不再变成系统字体（美术总监）',
+      '四级玉棋子改成羊脂白玉（原来偏绿，和朱红字配起来不好看）（美术总监）',
+      '棋盘画起来更省力，手机更凉一点（优化部）',
       '复盘分析面板换成墨底、米白双线框、直角：汉方朱底、楚方米白底，好坏着的小方块也改成朱、米白、墨三色（美术总监）',
       '技能模式：兵卒冲上去前一群人吼着嘲讽，出手带一声气声，打倒对方齐声得胜；士和金甲兵用盾挡下一击时有盾挡声。汉军胜利、失败的结算曲各多了一首（「未央」「荥阳」），随机放（声音部）',
       '技能模式：汉相虎骑一到四级换装各不相同（一级黑鞍、二级朱鞍铜甲、三级乌铁甲、四级金甲）；被炮打中炸得四分五裂、血雾一大片，被战车远远冲来会撞散飞出很远，近战打死会被打退、倒地，文臣也会断肢（角色部）。兵卒立起拒马时身前架起一排鹿角木桩，拒马兵被打死时连路障一起碎掉（角色部）',
@@ -143,7 +173,7 @@
     ['第一版', '', ['三维水墨棋盘、兵种战斗演出、联机对战']],
   ];
   const REASON = { checkmate: '将死', stalemate: '困毙', kingdead: '主帅阵亡', occupy: '夺营', resign: '认输', timeout: '超时', draw: '四十回合无吃子' };
-  const LV = { easy: '新兵', mid: '校尉', hard: '霸王' };
+  const LV = { easy: '新兵', mid: '校尉', hard: '霸王', xhard: '兵仙' };   // 兵仙：只有技能模式有（数值部 C70，Ham 审批台 td-031）
   const VIS = ['cine', 'std', 'low'], VISNAME = { cine: '完整电影镜头', std: '精简特效', low: '低特效' }, VISBADGE = { cine: '影', std: '简', low: '低' };
 
   // ---------- 本地存储与设置 ----------
@@ -347,12 +377,14 @@
     const d = document.createElement('div');
     d.style.cssText = 'position:fixed;left:6px;top:6px;z-index:99999;background:rgba(0,0,0,.75);color:#9f9;font:12px/1.45 monospace;padding:6px 9px;border-radius:6px;pointer-events:none;white-space:pre';
     document.body.appendChild(d);
-    let n = 0, t0 = performance.now(), lt = t0, worst = 0;
+    let n = 0, t0 = performance.now(), lt = t0, worst = 0, d0 = Core.drawN;
     const tick = () => {
       const t = performance.now(); worst = Math.max(worst, t - lt); lt = t; n++;
       if (t - t0 >= 1000) {
         const R = Core.renderer, i = R.info.render, c = R.domElement;
-        d.textContent = `${Math.round(n * 1000 / (t - t0))} 帧/秒  最慢一帧 ${worst.toFixed(0)} ms\n画质 ${Core.quality}  像素比 ${R.getPixelRatio()}  画布 ${c.width}×${c.height}\n每帧 ${i.calls} 次绘制  ${(i.triangles / 1000).toFixed(0)}K 三角形  影子 ${Core.sun.castShadow ? '开' : '关'}\n${Core.gpu || '显卡未知'}${Core.softGL ? '  ← 软件渲染，没用显卡！' : ''}\n后台编着色器：${Core.parallelGL ? '支持' : '不支持（换场景时可能整个浏览器顿一下）'}${[...Core.DIAG.keys()].filter(k => k !== 'perf').length ? '\n排查开关：' + [...Core.DIAG.keys()].filter(k => k !== 'perf').join(' ') : ''}\n${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 90)}`;
+        // 优化部 P3：上面一行是真画了几帧（原来数的是浏览器刷新次数，省电时也显示 60）
+        const dn = Core.drawN - d0; d0 = Core.drawN;
+        d.textContent = `画 ${Math.round(dn * 1000 / (t - t0))} 帧/秒（屏幕刷新 ${Math.round(n * 1000 / (t - t0))}）  省电${Core.ECO ? '开' : '关'}\n最慢一帧 ${worst.toFixed(0)} ms\n画质 ${Core.quality}  像素比 ${R.getPixelRatio()}  画布 ${c.width}×${c.height}\n每帧 ${i.calls} 次绘制  ${(i.triangles / 1000).toFixed(0)}K 三角形  影子 ${Core.sun.castShadow ? '开' : '关'}\n${Core.gpu || '显卡未知'}${Core.softGL ? '  ← 软件渲染，没用显卡！' : ''}\n后台编着色器：${Core.parallelGL ? '支持' : '不支持（换场景时可能整个浏览器顿一下）'}${[...Core.DIAG.keys()].filter(k => k !== 'perf').length ? '\n排查开关：' + [...Core.DIAG.keys()].filter(k => k !== 'perf').join(' ') : ''}\n${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 90)}`;
         n = 0; t0 = t; worst = 0;
       }
       requestAnimationFrame(tick);
@@ -859,7 +891,7 @@
     const s = game.turn;
     const mine = mode === 'local' || vsAI() || mode === 'watch' || s === mySide;
     if (pause) { if (pause.until && t > pause.until) { if (myPause()) resumeGame(); else setPause(null); } else paintPause(); return; }
-    const paused = busy || Ending.running || netDown();
+    const paused = busy || Ending.running || netDown() || (document.hidden && isAI(s));   // 页面在后台时电脑那一步作废了（见 visibilitychange），它的钟也停（数值部 C72）
     if (mine && !paused) {
       if (opts.total) clock[s] -= dt;
       if (opts.step) clock.step -= dt;
@@ -900,15 +932,31 @@
     bubble(s, Voice.text(id), 3600);
     return Voice.play(id);
   }
+  // 电脑一步想满 3 秒起、每次 30% 的机会，头顶冒一句自言自语（Ham 审批台 td-033）；声音部配好音（ai_l_muse1～3、ai_x_muse1～3）就连声音一起放，没配好只出气泡
+  const AI_MUSE = { l: ['呃……这步怎么下呢？', '嗯……容我三思。', '这个嘛……要是子房在就好了。'], x: ['呃……先斩哪一个？', '哼……此局倒有几分意思。', '嗯……让我想想。'] };
+  let museUntil = 0;
+  function aiMuse(id, side) {
+    if (id !== aiSeq || !aiThinking || ended || game.result || !vsAI() || game.turn !== side) return;
+    if (busy) { setTimeout(() => aiMuse(id, side), 500); return; }   // 演出还在放：等放完再说，免得和别的气泡撞
+    setTimeout(() => aiMuse(id, side), 5000);   // 还在想：每 5 秒再掷一次
+    if (Math.random() >= 0.3 || Date.now() < museUntil) return;   // 每次 30% 的机会说（Ham 10-11）；上一句还没念完就不出下一句（声音部 S7：一句 3.6～6.3 秒）
+    const k = side === 'b' ? 'x' : 'l', pool = [1, 2, 3].filter(i => i !== lastAiLine['muse' + k]);
+    const i = pool[Math.floor(Math.random() * pool.length)]; lastAiLine['muse' + k] = i;
+    const vid = `ai_${k}_muse${i}`;
+    const vo = Voice.has(vid), dur = vo ? Math.max(3.2, Voice.dur(vid) || 0) : 3.2;
+    bubble(side, vo ? Voice.text(vid) || AI_MUSE[k][i - 1] : AI_MUSE[k][i - 1], dur * 1000);
+    museUntil = Date.now() + dur * 1000;
+    if (vo) Voice.play(vid);
+  }
   // 技能模式的电脑放进 Web Worker 里算（和动画互不耽误）；开不了 Worker 就等动画放完在主线程分片算
   let bfW = null, bfWSeq = 0;
   const bfWait = new Map();
   // trace：要不要电脑的思考记录（C62 A：对局里的电脑都记，导出时带上；分析不记）
-  function bfThink(S, level, waitIdle, trace) {
-    const local = async () => { await waitIdle(); BFAI.trace = !!trace; try { const seq = await BFAI.think(S, level, () => new Promise(r => setTimeout(r, 0))); bfThink.last = BFAI.think.last; return seq; } finally { BFAI.trace = false; } };
+  function bfThink(S, level, waitIdle, trace, opt) {
+    const local = async () => { await waitIdle(); BFAI.trace = !!trace; try { const seq = await BFAI.think(S, level, () => new Promise(r => setTimeout(r, 0)), opt); bfThink.last = BFAI.think.last; return seq; } finally { BFAI.trace = false; } };
     if (bfW === null) {
       try {
-        const src = document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;try{BFAI.trace=!!d.trace;if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}const seq=await BFAI.think(d.S,d.level);postMessage({id:d.id,seq:seq,stat:BFAI.think.last});}catch(err){postMessage({id:d.id,err:String(err&&err.stack||err)});}};';
+        const src = document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;try{BFAI.trace=!!d.trace;if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}const seq=await BFAI.think(d.S,d.level,undefined,d.opt);postMessage({id:d.id,seq:seq,stat:BFAI.think.last});}catch(err){postMessage({id:d.id,err:String(err&&err.stack||err)});}};';
         bfW = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
         bfW.onmessage = e => { const w = bfWait.get(e.data.id); if (!w) return; bfWait.delete(e.data.id); if (e.data.err) w.rej(new Error(e.data.err)); else { bfThink.last = e.data.stat; w.res(e.data.seq); } };
         bfW.onerror = () => { bfW = false; for (const w of bfWait.values()) w.rej(new Error('worker')); bfWait.clear(); };
@@ -916,24 +964,48 @@
     }
     if (!bfW) return local();
     // 试验性的规则开关（背水一战等）也带给电脑线程：它那边有自己的一份配置
-    return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej }); bfW.postMessage({ id, S, level, trace: !!trace, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
+    return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej });
+      // 看门狗（数值部 C72）：电脑线程超过时限 + 3 秒（没开计时就 45 秒）还没回话，多半被手机悄悄掐了：关掉线程，这一步交给兜底（aiRescue）
+      setTimeout(() => { if (bfWait.has(id)) { console.warn('电脑线程没回话，关掉重来'); killBfWorker(); } }, opt && opt.maxMs ? opt.maxMs + 3000 : 45000);
+      bfW.postMessage({ id, S, level, trace: !!trace, opt: opt || null, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
   }
-  function cancelAI() { aiSeq++; if (aiThinking) { try { AI.cancel(); } catch (e) { } } aiThinking = false; }
+  // 技能模式的电脑线程：作废正在算的那一步（悔棋、认输、退出、切到后台时用）。按时间收手的思考不能暂停续算，回来对同一局面重新算（数值部 C70 提醒）
+  function killBfWorker() { if (!bfW) return; try { bfW.terminate(); } catch (e) { } bfW = null; for (const w of bfWait.values()) w.res(null); bfWait.clear(); }
+  function cancelAI() { aiSeq++; if (aiThinking) { try { AI.cancel(); } catch (e) { } if (game && game.bf) killBfWorker(); } aiThinking = false; }
+  // 页面切到后台 / 锁屏：电脑别在后台烧电（优化部建议）；回来接着想
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (aiThinking && game && game.bf) { cancelAI(); updateHud(); } }
+    else setTimeout(() => { try { maybeAI(); } catch (e) { } }, 300);
+  });
+  // 电脑给不出行动、或给的行动走不了时，原来就停在那里一直不走、直到超时判负（Ham 10-11：“兵仙不走棋、还是会超时”）。
+  //   兜底：按规则把能走的行动挨个试，走第一个走得通的（宁可走一步普通的，也不能站着等超时）；记一笔，导出对局时带上给数值部查
+  async function aiRescue(id, side, waitIdle, why) {
+    await waitIdle();
+    if (id !== aiSeq || ended || game.result || game.turn !== side) return;
+    (game.__rescue = game.__rescue || []).push({ why, at: game.entries.length, side });
+    let kids = []; try { kids = BF.ai.expand(BF.cloneState(game.S)) || []; } catch (e) { }
+    for (const k of kids) { if (k.up || !k.a) continue; if (doBF(JSON.parse(JSON.stringify(k.a)))) return; }
+    if (game.mustPass && game.mustPass()) doBF({ k: 'pass' });
+  }
   function maybeAI() {
     if (!(vsAI() || hostBot()) || ended || game.result || !started || !isAI(game.turn) || pendingUndo) return;
     if (aiThinking) return;
     const id = ++aiSeq, side = game.turn, lvl = aiLevel(side);
     aiThinking = true; updateHud();
     const t0 = performance.now();
+    (async () => { await anim; while (busy) await Core.sleep(0.1); setTimeout(() => aiMuse(id, side), 3000); })();   // 从对方这步演出放完算起：想满 3 秒掷一次，之后每 5 秒再掷（Ham 10-11）
     const minWait = { easy: 1100, mid: 1300, hard: 700 }[lvl] || 1000;
     if (game.bf) {
       // 技能模式：电脑给出一串行动（升级 → 拒马 → 主行动），依次执行；每一步等上一步的演出放完
       const waitIdle = async () => { await anim; while (busy) await Core.sleep(0.1); };
       (async () => {
         if (game.mustPass && game.mustPass()) return [{ k: 'pass' }];
-        return bfThink(BF.cloneState(game.S), lvl, waitIdle, true);
+        // 电脑看钟（数值部 C71）：房间开了计时就告诉电脑这一步最多能想多久（每步剩的减 3 秒、总时间剩的 1/8，取小，至少 0.3 秒），免得兵仙下到后面超时判负
+        const lim = Math.min(opts.step ? clock.step - 3000 : Infinity, opts.total ? clock[side] / 8 : Infinity);
+        return bfThink(BF.cloneState(game.S), lvl, waitIdle, true, isFinite(lim) ? { maxMs: Math.max(300, lim) } : undefined);
       })().then(async seq => {
-        if (id !== aiSeq || !seq) { if (id === aiSeq) { aiThinking = false; updateHud(); } return; }
+        if (id !== aiSeq) return;
+        if (!seq || !seq.length) { aiThinking = false; await aiRescue(id, side, waitIdle, '电脑没给出行动'); updateHud(); return; }
         // 思考记录按这一回合第一条行动的序号存（导出里的 think）
         const tr = bfThink.last && bfThink.last.trace;
         if (tr) { if (!game.__think) game.__think = {}; game.__think[game.entries.length] = tr; }
@@ -943,7 +1015,7 @@
         for (const a of seq) {
           await waitIdle();
           if (id !== aiSeq || ended || game.result || game.turn !== side || pendingUndo) break;
-          if (!doBF(a)) { console.warn('电脑行动非法', a); break; }
+          if (!doBF(a)) { console.warn('电脑行动非法', a); await aiRescue(id, side, waitIdle, '电脑行动非法'); break; }
         }
         updateHud();
       }).catch(e => { console.error(e); aiThinking = false; updateHud(); });
@@ -1103,7 +1175,9 @@
     // 开场白、「楚汉相争」题字等过场放完再出（美术总监 V1 第 4 条：不然朱底淡出时和题字的模糊底叠在一起）
     if (lzEnd) { await lzEnd; if (mode !== m) return; Core.Cam.setView(lzView, viewSide); }
     if (intro && !game.history.length) {
-      Sfx.B.gong(0, 0.9); Sfx.B.taiko(0.5, 0.8); Sfx.B.taiko(0.8, 0.8); Sfx.B.taiko(1.05, 0.9);
+      // 战局开场曲（声音部 S5，Ham 试听台 b52 / b53）：按玩家所执一方放，本地双人和观战放汉的；没有就照旧锣鼓
+      const openSide = mode === 'local' || mode === 'watch' ? 'r' : mySide;
+      if (!(typeof EndTunes !== 'undefined' && EndTunes.open && EndTunes.open(openSide))) { Sfx.B.gong(0, 0.9); Sfx.B.taiko(0.5, 0.8); Sfx.B.taiko(0.8, 0.8); Sfx.B.taiko(1.05, 0.9); }
       let sub = mode === 'local' ? '红方先行' : vsAI() ? `人机 · ${LV[opts.level]} · ${mySide === 'r' ? '你执红（汉）先行' : '你执黑（楚）后手'}` : mode === 'watch' ? '观战' : (mySide === 'r' ? '你执红（汉）· 先行' : '你执黑（楚）· 后手');
       if (game.jq) sub = '揭棋 · ' + sub;
       if (game.bf) sub = '技能模式 · ' + sub;
@@ -1449,7 +1523,7 @@
       await Ending.play(result, {
         again: W ? () => { Ending.hideCard(); toast('等待棋手开新局…'); } : requestAgain, againText: W ? '继 续 观 战' : '',
         lobby: toLobby, persp, tune, instant: endSkip || slain, review: reviewOpen,
-        extra: watching() ? [] : [{ text: '保 存', fn: () => openSave() }],   // 结算卡：复盘（带分析，Ham 10-10 13:32 合成一个）· 保存
+        extra: watching() && !(opts && opts.ai && opts.ai2) ? [] : [{ text: '保 存', fn: () => openSave() }],   // 观战电脑对电脑也能存、发给数值部（Ham 10-11，数值部 C71）   // 结算卡：复盘（带分析，Ham 10-10 13:32 合成一个）· 保存
         mine: mode === 'local' || W || aiBoth() || !result.winner ? '' : (persp === 'win' ? '你 胜 了' : '你 败 了'),
       });
       if (pendingRestart) { const st = pendingRestart; pendingRestart = null; restart(st === true ? undefined : st); if (mode === 'host') Net.send({ t: 'restart', state: snapshot() }); }
@@ -1585,6 +1659,62 @@
     }
     return out;
   }
+  // ---------- 观战实时局势条（Ham 10-11：观众只给局势条、不给走法；样子美术总监 V17，Ham 审批台 ad-039 甲）----------
+  //   观众每看到一步（技能模式每一个行动）就把当前局面交给电脑算一遍，分数换成 -1～+1（汉方看）。收起时不算，省电；揭棋不显示
+  //   技能模式默认不算（手机吃力），面板里勾「技能模式也显示」才算
+  let lbKey = null, lbBusy = false, lbW = null, lbBW = null;
+  // 技能模式的局势条也用自己的线程：和电脑走棋共用那个线程时，电脑一直在想（霸王、兵仙一步几秒到二十几秒），局势条排不上队，算出来也过时了（Ham 10-11）
+  function lbBfAnalyze(S) {
+    if (lbBW === null) { try { lbBW = new Worker(URL.createObjectURL(new Blob([document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;let st=null;try{if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}await BFAI.think(d.S,"ana");st=BFAI.think.last;}catch(err){}postMessage(st&&{v:st.v});};'], { type: 'text/javascript' }))); } catch (e) { lbBW = false; } }
+    if (!lbBW) return Promise.resolve(null);
+    return new Promise(res => { const t = setTimeout(() => res(null), 15000); lbBW.onmessage = e => { clearTimeout(t); res(e.data); }; lbBW.postMessage({ S, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); });
+  }
+  // 房主坐到观战席（自己的座位交给电脑）也显示（Ham 10-11）
+  const lbHostOut = () => mode === 'host' && !!(opts && opts.ai2);
+  // 标准象棋的局势条用自己的一个引擎线程：和电脑走棋共用那个线程会互相顶掉（同一时间只认一个请求）
+  function lbAnalyze(moves) {
+    if (lbW === null) { try { lbW = new Worker(URL.createObjectURL(new Blob([`const E = (${XQEngineFactory.toString()})(); onmessage = e => { let r = null; try { r = E.analyzePos(e.data.moves, e.data.time); } catch (err) { } postMessage(r); };`], { type: 'text/javascript' }))); } catch (e) { lbW = false; } }
+    if (!lbW) return AI.busy ? Promise.resolve(null) : AI.analyzePos(moves, 450);
+    return new Promise(res => { const t = setTimeout(() => res(null), 8000); lbW.onmessage = e => { clearTimeout(t); res(e.data); }; lbW.postMessage({ moves, time: 450 }); });
+  }
+  const LB = { std: 300, bf: 6 };   // 分数 → 条：tanh(分 / 这个)。标准象棋车约 200 → 大优；技能模式车 9 → 胜势
+  function lbSet(v, txt) {
+    const el = $('liveBar');
+    if (v != null) { el.querySelector('.trk').style.setProperty('--p', ((v + 1) * 50).toFixed(1) + '%'); const a = Math.abs(v); txt = a < 0.1 ? '均势' : `<b>${v > 0 ? '汉' : '楚'}</b> ${a < 0.3 ? '小优' : a < 0.6 ? '大优' : '胜势'}`; }
+    el.querySelector('.lb').innerHTML = txt;
+  }
+  async function liveBarTick() {
+    const el = $('liveBar'), show = (watching() || lbHostOut()) && !!game && !game.jq && !RP;
+    el.classList.toggle('hidden', !show);
+    if (!show) { lbKey = null; return; }
+    el.classList.toggle('bf', !!game.bf);
+    const st = $('status').getBoundingClientRect(); el.style.top = Math.round(st.bottom + 8) + 'px';
+    if (game.bf && !el.querySelector('.sw input').checked) { el.classList.remove('busy'); lbSet(null, '已关'); lbKey = null; return; }
+    if (!el.classList.contains('open') || lbBusy) return;   // 用自己的线程算，演出放着也照算
+    const key = game.bf ? 'b' + game.entries.length : 's' + game.history.length;
+    if (key === lbKey) return;
+    lbBusy = true; el.classList.add('busy'); lbSet(null, '分析中');
+    try {
+      let v;
+      if (game.bf) {
+        const S = BF.cloneState(game.S), g = new BF.Game(); g.reset(BF.cloneState(S));
+        if (g.status.result) v = g.status.result.winner === 'r' ? 1 : g.status.result.winner === 'b' ? -1 : 0;
+        else { const st = await lbBfAnalyze(S); if (!st) throw new Error('没算出来'); v = (S.turn === 'r' ? 1 : -1) * Math.tanh((st.v || 0) / LB.bf); }
+      } else {
+        const r = await lbAnalyze(game.history.map(h => ({ from: h.from, to: h.to })));
+        if (!r) throw new Error('没算出来');
+        const sc = r.over ? -1e5 : r.score;
+        v = (game.turn === 'r' ? 1 : -1) * Math.tanh(sc / LB.std);
+      }
+      const now = game.bf ? 'b' + game.entries.length : 's' + game.history.length;
+      if (watching() || lbHostOut()) { lbKey = key; lbSet(v); }   // 算的时候又走了一步也先显示（晚一步总比一直「分析中」好），下一轮按新局面重算
+    } catch (e) { console.warn('局势条', e); lbKey = key; }
+    finally { lbBusy = false; el.classList.remove('busy'); }
+  }
+  $('liveBar').querySelector('.seal').onclick = () => { const el = $('liveBar'), on = !el.classList.contains('open'); el.classList.toggle('open', on); store.set('liveBarOpen', on ? 1 : 0); lbKey = null; liveBarTick(); };
+  $('liveBar').querySelector('.sw input').onchange = () => { lbKey = null; liveBarTick(); };
+  if (store.get('liveBarOpen', 0)) $('liveBar').classList.add('open');
+  setInterval(() => { liveBarTick().catch(() => { }); }, 700);
   // 算一个局面：{ v（轮到的一方看）, best（主行动 from/to）, bestNote }
   async function anaPos(real, steps, i) {
     if (real.bf) {
@@ -1980,6 +2110,65 @@
     const xb = e.target.closest('[data-xi]'); if (xb) { e.stopPropagation(); anaPick(+xb.dataset.xi); anaExplain(+xb.dataset.xi); return; }
     const r = e.target.closest('.ar'); if (r) anaPick(+r.dataset.i);
   });
+  // 复盘令牌条（美术总监，Ham 审批台 ad-025 / ad-029 甲）：按住整条左右滑，选中的那一步跟着手指 / 鼠标走；
+  //   电脑上鼠标悬在哪一枚，那枚和选中的一样大、显出字，两边各两枚依次过渡；放不下时一起收窄、再不够就叠起；
+  //   手机按住时手指上方浮出放大镜（选中那步居中、前后各 4 步全尺寸带字）；标题右边 ‹ › 一下走一步
+  if (ANAV === 3) (() => {
+    const L = $('anaList'), anaA = () => { const real = RP ? RP.real : game; return real && real.__ana; };
+    const tks = () => L.querySelectorAll('.ar.tk');
+    let down = false, touch = false, hover = -1, sel = -1;
+    const lp = document.createElement('div'); lp.id = 'anaLoupe'; lp.className = 'hidden'; lp.innerHTML = '<div class="row"></div><div class="lb"></div>'; document.body.appendChild(lp);
+    const nav = document.createElement('span'); nav.className = 'anaNav'; nav.innerHTML = '<button type="button" data-d="-1" aria-label="上一步">‹</button><button type="button" data-d="1" aria-label="下一步">›</button>';
+    $('ana').appendChild(nav);   // 放在令牌条右头（第三列）
+    nav.addEventListener('click', e => { const b = e.target.closest('[data-d]'), A = anaA(); if (!b || !A || !A.n) return; anaPick(Math.max(0, Math.min(A.n - 1, (A.sel < 0 ? 0 : A.sel) + +b.dataset.d))); });
+    function fit() {
+      const n = tks().length; if (n < 2) { L.classList.remove('dense'); return; }
+      const per = (L.clientWidth - 4 - 28) / (n - 1);
+      L.style.setProperty('--gap', per >= 6 ? '2px' : per >= 4 ? '1px' : (per - 4).toFixed(2) + 'px'); L.classList.toggle('dense', per < 16);
+    }
+    // 第几枚：密的时候按位置占全条的比例算（选中那枚变宽会把旁边挤开，按最近的找会来回跳）；不密时找中线最近的那枚
+    function idxAt(x) {
+      const t = tks(), n = t.length; if (!n) return -1;
+      const r = L.getBoundingClientRect();
+      if (L.classList.contains('dense')) return Math.max(0, Math.min(n - 1, Math.round((x - r.left - 2 - 13) / (L.clientWidth - 30) * (n - 1))));
+      let best = 0, bd = 1e9; t.forEach((q, i) => { const b = q.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - x); if (d < bd) { bd = d; best = i; } }); return best;
+    }
+    // 悬停按「没放大」的排法算，放大后令牌不会在鼠标下来回跳
+    function baseIdx(x) {
+      const n = tks().length, A = anaA(), s = A ? A.sel : -1, r = L.getBoundingClientRect(), Wc = L.clientWidth - 4, g = parseFloat(L.style.getPropertyValue('--gap')) || 0;
+      const wb = Math.min(22, (Wc - 26 - g * (n - 1)) / Math.max(1, n - 1)), st = wb + g, u = x - r.left - 2;
+      const i = s < 0 ? Math.floor(u / st) : u < s * st ? Math.floor(u / st) : u < s * st + 26 + g ? s : s + 1 + Math.floor((u - s * st - 26 - g) / st);
+      return Math.max(0, Math.min(n - 1, i));
+    }
+    function paintHover() { tks().forEach((q, i) => { const d = hover < 0 || q.classList.contains('on') ? 9 : Math.abs(i - hover); q.classList.toggle('h0', d === 0); q.classList.toggle('h1', d === 1); q.classList.toggle('h2', d === 2); }); }
+    function showLoupe(x) {
+      const A = anaA(); if (!A || A.sel < 0) return;
+      let h = ''; for (let i = A.sel - 4; i <= A.sel + 4; i++) { const s = A.steps[i], g = s && s.grade; h += s ? `<div class="tk ${s.side}${i === A.sel ? ' on' : ''}">${g == null ? '' : `<i class="g${g}" data-c="${ANA1[g]}">${g >= 3 ? ANA1[g] : ''}</i>`}</div>` : '<div class="tk no"></div>'; }
+      const s = A.steps[A.sel], g = s.grade;
+      lp.querySelector('.row').innerHTML = h; lp.querySelector('.lb').textContent = `${A.bf ? '第 ' + (A.sel + 1) + ' 回合' : '第 ' + (Math.floor(A.sel / 2) + 1) + ' 步'} · ${SIDE_CN[s.side]}${g == null ? '' : ' · ' + ANA.tags[g]}`;
+      lp.classList.remove('hidden');
+      const r = L.getBoundingClientRect(), half = lp.offsetWidth / 2;
+      let left = Math.max(half + 4, Math.min(innerWidth - half - 4, x)); lp.style.left = left + 'px'; lp.style.top = (r.top - lp.offsetHeight - 12) + 'px';
+      const b = lp.getBoundingClientRect(); if (b.left < 4) left += 4 - b.left; else if (b.right > innerWidth - 4) left -= b.right - innerWidth + 4; lp.style.left = left + 'px';   // 贴边时收在屏内
+    }
+    function go(i) { if (i < 0 || i === sel) return; sel = i; anaPick(i); try { if (touch && navigator.vibrate) navigator.vibrate(4); } catch (e) { } }
+    L.addEventListener('pointerdown', e => {
+      if (e.button > 0) return;
+      down = true; touch = e.pointerType !== 'mouse'; try { L.setPointerCapture(e.pointerId); } catch (er) { }
+      L.classList.add('drag'); hover = -1; const A = anaA(); sel = A ? A.sel : -1; go(idxAt(e.clientX)); paintHover();
+      if (touch) showLoupe(e.clientX);
+    });
+    L.addEventListener('pointermove', e => {
+      if (down) { go(idxAt(e.clientX)); if (touch) showLoupe(e.clientX); }
+      else if (e.pointerType === 'mouse') { const j = baseIdx(e.clientX); if (j !== hover) { hover = j; paintHover(); } }
+    });
+    const up = () => { down = false; L.classList.remove('drag'); lp.classList.add('hidden'); };
+    L.addEventListener('pointerup', up); L.addEventListener('pointercancel', up);
+    L.addEventListener('pointerleave', () => { if (!down && hover >= 0) { hover = -1; paintHover(); } });
+    // 每次重画令牌（换了一步、分析出新结果）后重新收窄、补上悬停
+    new MutationObserver(() => { fit(); if (hover >= 0) paintHover(); }).observe(L, { childList: true });
+    new ResizeObserver(fit).observe(L);
+  })();
   $('anaChart').addEventListener('click', e => {
     const real = RP ? RP.real : game, A = real && real.__ana; if (!A || !A.n) return;
     const b = $('anaChart').getBoundingClientRect(), i = Math.round((e.clientX - b.left) / b.width * A.n);
@@ -3652,8 +3841,9 @@
   const paintVar = () => { $('varNote').textContent = VAR_NOTE[ropts.v] || ''; $('optSkin').classList.toggle('hidden', ropts.v === 'bf'); };
   bindSeg($('pCreate'), 'data-k', k => ropts[k], (k, v) => { ropts[k] = k === 'side' || k === 'v' ? v : +v; store.set('ropts', ropts); if (k === 'v') paintVar(); });
   paintVar();
-  bindSeg($('pAI'), 'data-a', k => aopts[k], (k, v) => { aopts[k] = k === 'side' ? v : +v; store.set('aopts', aopts); });
-  const paintLv = () => $('aiLv').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === aopts.level));
+  bindSeg($('pAI'), 'data-a', k => aopts[k], (k, v) => { aopts[k] = k === 'side' ? v : +v; store.set('aopts', aopts); if (k === 'bf') paintLv(); });
+  // 兵仙只有技能模式有：选普通象棋时灰掉；已选兵仙又切回象棋，就退到霸王
+  const paintLv = () => { if (!aopts.bf && aopts.level === 'xhard') aopts.level = 'hard'; $('aiLv').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.v === aopts.level); if (b.dataset.v === 'xhard') b.disabled = !aopts.bf; }); };
   $('aiLv').querySelectorAll('button').forEach(b => b.onclick = () => { aopts.level = b.dataset.v; store.set('aopts', aopts); paintLv(); Sfx.select && Sfx.select(); });
   paintLv();
   let createFor = 'host';
@@ -3719,7 +3909,7 @@
       if (hostSeat) {
         const back = room.host && hostOut ? ' data-back tabindex="0" role="button"' : '';
         if (!hostOut) { who = room.host ? '你' : '房主'; st = '房主'; if (room.host) cls = ' me'; }
-        else if (ai2) { who = LV[ai2] || '人机'; st = `人机 <span class="st">${STAR[ai2] || ''}</span>${room.host ? ' · 点我坐回' : ' · 房主观战'}`; cls = ' ai' + (back ? ' back' : ''); attr = back; }
+        else if (ai2) { who = LV[ai2] || '人机'; st = `人机 <span class="st">${STAR[ai2] || ''}</span>${room.host ? '' : ' · 房主观战'}`; cls = ' ai' + (back ? ' back' : ''); attr = back; }   // 房主自己看：不写「点我坐回」（Ham 10-11），圆还是可以点、悬停变亮
         else { who = '空位'; st = room.host ? '点这里坐回' : '房主在观战席'; cls = ' empty' + (back ? ' back' : ''); attr = back; }
       } else {
         const ai = room.ai, taken = room.seated || ai, mine = !room.host && room.seated && !ai;
@@ -4000,6 +4190,7 @@
     const kind = G.bf ? 'bf' : G.jq ? 'jq' : 'xq', KIND = { bf: '技能模式', jq: '揭棋', xq: '象棋' };
     const o = { app: 'chuhan3d', ver: APPV, when: new Date().toISOString(), kind, mode, me: mode === 'local' ? null : mySide };
     if (vsAI()) o.ai = aiBoth() ? { r: aiLevel('r'), b: aiLevel('b') } : { [aiSide()]: opts.level };
+    else if (watching() && opts.ai && opts.ai2) o.ai = { [hostSide]: opts.ai2, [other(hostSide)]: opts.ai };   // 观战房主那间电脑对电脑
     else if (online() && opts.ai2 && !opts.ai) o.ai = { [hostSide]: opts.ai2 };
     o.opts = { undo: opts.undo, total: opts.total, step: opts.step };
     if (G.bf) { o.opts.bs = +opts.bs ? 1 : 0; o.opts.r6 = +opts.r6 ? 1 : 0; }   // 这一局用的哪套规则（重放要用）
@@ -4007,6 +4198,7 @@
     o.result = G.result || null;
     // C62 A：电脑每一回合的思考记录（键是这一回合第一条行动在 entries 里的序号）、悔掉的分支；C62 C：标了“这步笨”的
     if (G.__think) o.think = G.__think;
+    if (G.__rescue) o.rescue = G.__rescue;   // 电脑卡住、靠兜底走的那几步（TD 10-11）
     if (G.__branches && G.__branches.length) o.branches = G.__branches;
     if (G.__flags && G.__flags.length) o.flags = G.__flags;
     if (G.bf) {
@@ -4073,7 +4265,7 @@
   // 标题里的几项：技能 · 霸王 · 电脑执楚 · 汉胜 · 36 回合
   function mgHead(o, rounds) {
     const ai = o.ai || null, ks = ai ? Object.keys(ai) : [];
-    const vs = o.mode === 'ai' && ks.length === 2 ? `电脑对电脑 · 汉${LV[ai.r] || ''} 楚${LV[ai.b] || ''}` : o.mode === 'ai' && ks.length ? `${LV[ai[ks[0]]] || ''} · 电脑执${SIDE_CN[ks[0]]}` : o.mode === 'local' ? '本地' : '联机';
+    const vs = ks.length === 2 ? `电脑对电脑 · 汉${LV[ai.r] || ''} 楚${LV[ai.b] || ''}` : o.mode === 'ai' && ks.length ? `${LV[ai[ks[0]]] || ''} · 电脑执${SIDE_CN[ks[0]]}` : o.mode === 'local' ? '本地' : '联机';
     const res = o.result ? (o.result.winner ? SIDE_CN[o.result.winner] + '胜' : '和棋') : '未分胜负';
     return [KIND_CN[o.kind] || o.kind, vs, res, `${rounds} 回合`].join(' · ');
   }
