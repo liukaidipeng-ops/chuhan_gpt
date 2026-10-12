@@ -54,13 +54,15 @@ function q3Check(S,seq){
   for(const seed of seeds){
    const picked=await think(S,seed),forced=[];
    for(const c of candidates[id])forced.push({name:c.name,seq:seqName(c.seq),evaluation:await valueAfter(S,c.seq,seed+1000),rule:id==='q2'?defenseAfter(S,c.seq):id==='q3'?q3Check(S,c.seq):undefined});
-   const pass=id==='q1'?(forced[0].evaluation.legal&&forced[1].evaluation.legal&&forced[0].evaluation.value>forced[1].evaluation.value):id==='q2'?defenseAfter(S,picked.seq).preventsFreePawn:id==='q3'?contains(picked.seq,[take]):false;\n   runs.push({seed,picked,forced,pass,criterion:id==='q1'?'specified upgrade+attack is stronger than knight comparator':id==='q2'?'chosen defense prevents a free central-pawn loss':'chosen move captures the advanced cannon',pickedRule:id==='q2'?defenseAfter(S,picked.seq):id==='q3'?q3Check(S,picked.seq):undefined});
+   const pass=id==='q1'?(forced[0].evaluation.legal&&forced[1].evaluation.legal&&forced[0].evaluation.value>forced[1].evaluation.value):id==='q2'?defenseAfter(S,picked.seq).preventsFreePawn:id==='q3'?contains(picked.seq,[take]):false;
+   runs.push({seed,picked,forced,pass,criterion:id==='q1'?'specified upgrade+attack is stronger than knight comparator':id==='q2'?'chosen defense prevents a free central-pawn loss':'chosen move captures the advanced cannon',pickedRule:id==='q2'?defenseAfter(S,picked.seq):id==='q3'?q3Check(S,picked.seq):undefined});
   }
   out.questions[id]={runs,passCount:runs.filter(x=>x.pass).length};
  }
  const S4=q2().S,runs4=[];
  for(const seed of seeds){
-  const picked=await think(S4,seed),rule=defenseAfter(S4,picked.seq),targetRule=defenseAfter(S4,[upB,bc]),targetEval=await valueAfter(S4,[upB,bc],seed+2000);\n  runs4.push({seed,picked,pass:targetRule.pawnAlive&&rule.preventsFreePawn&&picked.value>targetEval.value,criterion:'specified upgrade defense works but costs more than the chosen valid defense',pickedRule:rule,target:{seq:seqName([upB,bc]),rule:targetRule,evaluation:targetEval}});
+  const picked=await think(S4,seed),rule=defenseAfter(S4,picked.seq),targetRule=defenseAfter(S4,[upB,bc]),targetEval=await valueAfter(S4,[upB,bc],seed+2000);
+  runs4.push({seed,picked,pass:targetRule.pawnAlive&&rule.preventsFreePawn&&picked.value>targetEval.value,criterion:'specified upgrade defense works but costs more than the chosen valid defense',pickedRule:rule,target:{seq:seqName([upB,bc]),rule:targetRule,evaluation:targetEval}});
  }
  out.questions.q4={runs:runs4,passCount:runs4.filter(x=>x.pass).length,validation:runs4[0].target.rule};
  fs.mkdirSync('a6-results',{recursive:true});fs.writeFileSync('a6-results/a6-q1-q4.json',JSON.stringify(out,null,2));
