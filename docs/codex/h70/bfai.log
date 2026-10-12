@@ -1,5 +1,5 @@
-汉 easy vs 楚 easy： {"r:checkmate":2} 行动 156 {"mv":121,"up":32,"sk":1,"art":2} 最慢一步 130ms
-汉 mid vs 楚 easy： {"b:checkmate":1,"r:checkmate":1} 行动 144 {"mv":108,"up":28,"sk":7,"art":1} 最慢一步 5004ms
-汉 hard vs 楚 mid： {"r:checkmate":1} 行动 68 {"mv":44,"up":17,"sk":6,"art":1} 最慢一步 1973ms
-汉 mid vs 楚 hard： {"r:checkmate":1} 行动 108 {"mv":78,"up":24,"sk":5,"art":1} 最慢一步 4733ms
+汉 easy vs 楚 easy： {"b:checkmate":2} 行动 193 {"mv":148,"up":41,"art":2,"sk":2} 最慢一步 138ms
+汉 mid vs 楚 easy： {"r:checkmate":2} 行动 107 {"mv":80,"up":24,"sk":2,"art":1} 最慢一步 5023ms
+汉 hard vs 楚 mid： {"b:checkmate":1} 行动 53 {"mv":44,"up":9} 最慢一步 5110ms
+汉 mid vs 楚 hard： {"b:checkmate":1} 行动 62 {"mv":46,"up":12,"sk":4} 最慢一步 5005ms
 BFAI ALL OK
