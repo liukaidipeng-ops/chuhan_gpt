@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - codex/balance-a6-20261012
+      - codex/balance-a6-n12-20261012
     paths:
       - source/tools/a6_exam.js
       - .github/workflows/balance-a6.yml
