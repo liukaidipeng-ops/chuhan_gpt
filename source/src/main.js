@@ -186,23 +186,26 @@
     music: store.get('music', 'zen'), vMusic: store.get('vMusic', 55), vSfx: store.get('vSfx', 90), vVoice: store.get('vVoice', 100), voice: store.get('voice', 2),
     models: store.get('models', 0), eco: store.get('eco', Core.isMobile ? 1 : 0), debris: store.get('debris', 3), confirm: store.get('confirm', 1), turnfx: store.get('turnfx', 'wave'),   // confirm：落子要点两下（Ham 10-09 要的，防误触；默认开）
     vis: store.get('vis', store.get('fx', 1) === 0 ? 'low' : 'cine'), gore: store.get('gore', 3), server: store.get('server', ''),
+    environment: store.get('environment', 'day'),
     speed: store.get('speed', 1.5), // 动画播放速度
   };
   // 配音：2 = 写实版（新的默认），1 = 原版，0 = 关。老玩家存的是 1（开），头一回替他换到写实版，之后随他自己选
   if (!store.get('vreal', 0)) { if (+S.voice === 1) S.voice = 2; store.set('vreal', 1); store.set('voice', S.voice); }
   if (![1, 1.5, 2, 3].includes(+S.speed)) S.speed = 1.5;
+  if (!['day','night'].includes(S.environment)) S.environment='day';
   if (!VIS.includes(S.vis)) S.vis = 'cine';
   let ropts = Object.assign({ side: 'r', undo: 3, total: 15, step: 60, hints: 1, jq: 0, pub: 1 }, store.get('ropts', {}));
   if (!ropts.v) ropts.v = ropts.jq ? 'jq' : 'std';
   let aopts = Object.assign({ level: 'mid', side: 'r', undo: 3, total: 0, step: 0, hints: 1 }, store.get('aopts', {}));
 
   function applySettings() {
+    EnvironmentMode.set(S.environment);
     Fx.level = S.vis; Fx.gore = +S.gore; Voice.enabled = !!+S.voice; Voice.mode = +S.voice === 2 ? 'real' : 'orig';
     Squads.Stand.set(!!+S.models); Fx.keep = +S.debris || 0; Core.setEco(!!+S.eco);
     Core.Time.boost = +S.speed || 1.5;
     Sfx.setVol('music', S.vMusic / 100 * 0.9); Sfx.setVol('sfx', S.vSfx / 100); Sfx.setVol('voice', S.vVoice / 100);
     Net.custom = S.server || '';
-    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco']) store.set(k, S[k]);
+    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment']) store.set(k, S[k]);
   }
   Net.custom = S.server || '';
   Core.Time.boost = +S.speed || 1.5;
@@ -4159,7 +4162,7 @@
   // ---------- 设置 ----------
   bindSeg($('mSet'), 'data-s', k => (k === 'quality' ? Core.quality : S[k]), (k, v) => {
     if (k === 'quality') { Core.setQuality(v); autoQ = false; toast('画质已调整'); return; }   // 自己选过画质，就不再自动降
-    S[k] = (k === 'music' || k === 'vis' || k === 'turnfx') ? v : +v; applySettings();
+    S[k] = (k === 'music' || k === 'vis' || k === 'turnfx' || k === 'environment') ? v : +v; applySettings();
     if (k === 'music' && (started || !mode)) { Sfx.init(); if (mode && !Ending.running) Sfx.Music.start(finalFx && v !== 'off' ? 'final' : v); }
   });
   $('vMusic').value = S.vMusic; $('vSfx').value = S.vSfx; $('oServer').value = S.server;
