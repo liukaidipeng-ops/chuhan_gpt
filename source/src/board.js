@@ -688,6 +688,7 @@ const Board = (() => {
   const pieces = new Map(); // id -> mesh
   const piecesRoot = new THREE.Group(); root.add(piecesRoot);
   function setPosition(game) {
+    setUpgradeHints([]);
     lastGame = game;
     for (const m of pieces.values()) piecesRoot.remove(m);
     pieces.clear();
@@ -1842,10 +1843,27 @@ const Board = (() => {
       glowRoot.add(a, b);
     }
   }
+  // Separate from skill, selection, hover and check indicators. Reuse textures/geometry
+  // and the existing frame callback; only changed candidate sets allocate materials.
+  const upgradeRoot = new THREE.Group(); upgradeRoot.name = 'upgradeHints'; root.add(upgradeRoot);
+  let upgradeKey = '';
+  function setUpgradeHints(cells) {
+    const key = cells.map(c => c.join(',')).join(';');
+    if (key === upgradeKey) return;
+    upgradeKey = key;
+    upgradeRoot.traverse(o => { if (o.material) o.material.dispose(); }); upgradeRoot.clear();
+    for (const [f,r] of cells) {
+      const halo = decal(glowTex, 0xeed18c, 1.55, X(f), Z(r), TOP + 0.003, 0.22);
+      const ring = decal(ringTex, 0xffdfa0, 1.27, X(f), Z(r), TOP + 0.005, 0.4);
+      upgradeRoot.add(halo, ring);
+    }
+  }
   Core.onFrame(() => {
-    if (!glowRoot.children.length) return;
-    const k = 0.5 + 0.5 * Math.sin(performance.now() / 1000 * 3.2);
+    const t = performance.now() / 1000;
+    const k = 0.5 + 0.5 * Math.sin(t * 3.2);
     glowRoot.children.forEach((m, i) => { m.material.opacity = (i % 2 ? 0.35 + 0.6 * k : 0.15 + 0.45 * k); });
+    const breath = 0.5 + 0.5 * Math.sin(t * 2.1);
+    upgradeRoot.children.forEach((m, i) => { m.material.opacity = i % 2 ? 0.25 + 0.3 * breath : 0.12 + 0.2 * breath; });
   });
   // 背水一战走完不合法：把惹祸的子标红（脚下朱圈 + 红晕，一下一下闪），将军的那条线也用红带连起来。传空数组清掉
   const badRoot = new THREE.Group(); root.add(badRoot);
@@ -2162,7 +2180,7 @@ const Board = (() => {
   })();
   return {
     root, TOP, PH, HALF, X, Z, pos, setPosition, syncPosition, pieces, piecesRoot, makePiece, faceViewer,
-    showMoves, clearMoves, flashBad, hoverMark, showZone, showBad, showStep, setGlow, showLast, pick, meshAt, get hovered() { return hovered; }, ringTex, glowTex, wakes, water, waterMat, decal, flatGeo, pine, deco, FONT, footRing,
+    showMoves, clearMoves, flashBad, hoverMark, showZone, showBad, showStep, setGlow, setUpgradeHints, showLast, pick, meshAt, get hovered() { return hovered; }, ringTex, glowTex, wakes, water, waterMat, decal, flatGeo, pine, deco, FONT, footRing,
     viewSide: 'r', setSkin, dress, get lastGame() { return lastGame; }, skinTune, get SK() { return SK; }, pieceWood, RZ, BZ, BX, BRIDGE_X, faceTex, backTex, setFace, makeRiver, mtTex, decorate, decorateAll, decoOpts, reconcile, plateGeo, plateOn,
   };
 })();

@@ -11,7 +11,8 @@ with sync_playwright() as p:
  def page(url=BASE+'#bf',mobile=False):
   c=b.new_context(viewport={'width':390 if mobile else 1280,'height':844 if mobile else 900},is_mobile=mobile,has_touch=mobile);c.add_init_script(INIT)
   pg=c.new_page();pg.set_default_timeout(25000);pg.on('pageerror',lambda e:errors.append(str(e)))
-  pg.goto(url,wait_until='domcontentloaded');pg.wait_for_function('!!window.__xq')
+  url=url.replace(BASE,BASE+'?nobd&nopaper&').replace('&?','&')
+  pg.goto(url,wait_until='domcontentloaded');pg.wait_for_function('!!window.__xq');pg.wait_for_selector('#loading',state='detached',timeout=45000)
   pg.evaluate("BFX.play=async()=>{};__xq.Fx.level='low';__xq.Core.Time.boost=8")
   return pg
  def start(pg,mode='local',bf=1):
@@ -25,9 +26,9 @@ with sync_playwright() as p:
  assert A.evaluate('__xq.doBF('+MOVE+')')==False
  A.locator('#trNo').click();assert A.evaluate(SNAP)==old
  trial(A);A.locator('.tr-item').first.click();assert A.evaluate('__xq.game.entries.length')==0
- trial(A);A.locator('#trNever').check();assert A.evaluate("localStorage.getItem('xq3d-turnReminder')")=='0'
- assert A.locator('[data-s="turnReminder"] [data-v="0"]').get_attribute('class')=='on'
- A.locator('#trNo').click();A.evaluate('document.querySelector(\'[data-s="turnReminder"] [data-v="1"]\').click()')
+ trial(A);A.locator('#trNever').check();assert A.evaluate("localStorage.getItem('xq3d-turnReminder')")=='1'
+ assert A.locator('[data-s="turnReminder"] [data-v="1"]').get_attribute('class')=='on'
+ A.locator('#trNo').click();start(A)
  trial(A);A.evaluate("document.querySelector('#trYes').click();document.querySelector('#trYes').click()")
  A.wait_for_function('__xq.busy===0');assert A.evaluate('__xq.game.entries.length')==1 and A.evaluate('__xq.game.turn')=='b'
  start(A);trial(A);start(A,bf=0);assert not visible(A) and not A.evaluate('__xq.game.bf||false')

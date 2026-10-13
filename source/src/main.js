@@ -223,6 +223,7 @@
 
   // ---------- 场景 ----------
   let turnReviewPending = null;
+  const turnReviewScope = new TurnReview.TurnScope();
   let game = new XQ.Game();
   Board.setPosition(game);
   Core.Cam.setSide('r');
@@ -1118,7 +1119,7 @@
   }
   const nextFrames = (n = 2) => new Promise(res => { const k = () => { try { Core.poke(); } catch (e) { } if (--n < 0) res(); else requestAnimationFrame(k); }; k(); });
   async function startGame(m, side, o, { state = null, intro = true, lz = null } = {}) {
-    clearTurnReview();
+    resetTurnReview();
     cancelAI(); closeRoom();
     mode = m; mySide = side; opts = { ...o }; ended = false; started = false; lobbySpin = false;
     // 技能模式的楚方主帅兵法用哪一套，记在这一局的选项里（bs = 1 背水一战）：新开的局用背水一战；
@@ -1210,7 +1211,7 @@
     return { v: 2, code: Net.code, opts, hostSide, jq, bfe, moves: G.bf ? [] : G.history.map(h => ({ from: h.from, to: h.to, rv: h.rv, cj: h.cj })), result: G.result, undo: { ...undoUsed }, clk: { r: clock.r, b: clock.b }, step: clock.step, t: Date.now(), pz: { ...pauseUsed }, pzn: pause && pause.until ? { side: pause.by, ms: Math.max(0, pause.until - performance.now()) } : null };
   }
   function applyState(st) {
-    clearTurnReview();
+    resetTurnReview();
     game = mkGame(opts, st.layout || (game && game.opts && game.opts.layout));
     if (game.bf && st.bfbase) game.reset(st.bfbase);
     if (game.bf) for (const e of st.bfe || []) { if (!game.apply(e)) break; }
@@ -1499,7 +1500,7 @@
     setTimeout(() => done(false), (S0 + 1.5) * 1000);   // 提示框万一被别的关掉，也照样进结算
   }
   function finishGame(result) {
-    clearTurnReview();
+    resetTurnReview();
     graceTok++;
     if (ended) return;
     ended = true; endSkip = false;
@@ -1555,6 +1556,7 @@
     return g;
   }
   function rpShow(k) {
+    resetTurnReview();
     RP.k = k; game = rpBuild(k);
     Fx.clearMarks(); Board.setPosition(game); Board.faceViewer(viewSide); Board.clearMoves(); Fx.ply = game.history.length;
     const last = game.history[game.history.length - 1];
@@ -2391,6 +2393,7 @@
     if (repaint) renderBar();
   }
   function bfSelect(f, r) {
+    turnReviewScope.clearHints(); Board.setUpgradeHints([]);
     sel = [f, r];
     const me = game.at(f, r);
     selMoves = game.legalFrom(f, r).map(m => { const q = game.at(m.to[0], m.to[1]); return { ...m, atk: !!(q && q.hp > game.atkOf(me)) }; });
@@ -2815,6 +2818,8 @@
     const rsOn = game && game.bf && mode && started && !ended && !busy && !bfMode && !dbgOn && canAct();
     const rs = rsOn ? readySkills() : [];
     Board.setGlow(rs);
+    const upgradeCells = turnReviewScope.upgradeCells(game);
+    Board.setUpgradeHints(rsOn && !RP && !sel ? upgradeCells : []);
     const show = !!(game && game.bf && mode && started && !ended && !game.result && canAct() && !dbgOn);
     bar.classList.toggle('hidden', !show);
     if (!show) { $('bfRow').innerHTML = ''; $('bfHint').textContent = ''; return; }
@@ -3016,11 +3021,11 @@
     $('trTitle').textContent = '尚有未竟之策';
     $('trMessage').textContent = '您有' + [ups.length ? '未升级的棋子' : '',skills.length ? '可使用的技能' : ''].filter(Boolean).join('或') + '，\n是否结束回合？';
     const rows = [];
-    if(ups.length) rows.push({at:ups[0].at,icon:'↑',text:`可升级的棋子 × ${ups.length}`});
+    if(ups.length) rows.push({kind:'up',icon:'↑',text:`可升级的棋子 × ${ups.length}`});
     for(const label of skills) rows.push({at:p.choices.find(x=>x.kind==='sk'&&x.label===label).at,icon:'<svg viewBox="0 0 28 28" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 4 3 24M23 4l2 20M3 8h22M3 19h22M8 8v11M20 8v11"/></svg>',text:`${label}（不占回合数）`});
     $('trItems').innerHTML = rows.map((x,i)=>`<button class="tr-item" data-i="${i}" type="button"><span class="tr-stamp" aria-hidden="true">${x.icon}</span><span>${x.text}</span><em aria-hidden="true">›</em></button>`).join('');
-    $('trItems').querySelectorAll('button').forEach(b=>b.onclick=()=>turnReviewDecision(false,rows[+b.dataset.i].at));
-    $('trNever').checked = !+S.turnReminder;
+    $('trItems').querySelectorAll('button').forEach(b=>b.onclick=()=>turnReviewDecision(false,rows[+b.dataset.i]));
+    $('trNever').checked = turnReviewScope.isSuppressed(game);
     reviewEl.classList.remove('hidden');
 
     requestAnimationFrame(()=>$('trNo').focus());
@@ -3032,17 +3037,23 @@
     Board.setPosition(game); const last = game.history[game.history.length - 1]; Board.showLast(last?.from,last?.to);
     return p;
   }
-  function turnReviewDecision(accept, focusAt) {
+  function resetTurnReview() {
+    clearTurnReview(); turnReviewScope.reset(); Board.setUpgradeHints([]);
+  }
+  function turnReviewDecision(accept, item) {
     const pending = clearTurnReview(); if (!pending) return false;
     if (pending.game !== game || pending.key !== JSON.stringify(game.S) || !canAct() || netDown()) { updateHud(); return false; }
     if (accept) return doBF(pending.e,false,undefined,true);
-    bfClear(); updateHud(); if (focusAt) bfSelect(...focusAt);
+    bfClear();
+    if (item?.kind === 'up') turnReviewScope.showUpgrades(game);
+    else if (item?.at) bfSelect(...item.at);
+    updateHud();
     if (pending.focus?.isConnected) pending.focus.focus();
     return true;
   }
   $('trNo').onclick = ()=>turnReviewDecision(false);
   $('trYes').onclick = ()=>turnReviewDecision(true);
-  $('trNever').onchange = e=>{S.turnReminder=e.target.checked?0:1;applySettings();repaintSegs($('mSet'));};
+  $('trNever').onchange = e=>turnReviewScope.suppress(game,e.target.checked);
   reviewEl.addEventListener('keydown',e=>{
     if(e.key==='Escape'){e.preventDefault();e.stopPropagation();turnReviewDecision(false);}
     if(e.key==='Tab'){
@@ -3056,7 +3067,7 @@
   function doBF(e, remote = false, clk, accepted = false) {
     if (turnReviewPending) { if (!remote) return false; clearTurnReview(); }
     // Only ordinary moves are tentative. Explicit skills/arts/pass retain their own confirmation flows.
-    if (!accepted && !remote && +S.turnReminder && game.bf && e.k === 'mv' && canAct()) {
+    if (!accepted && !remote && +S.turnReminder && !turnReviewScope.isSuppressed(game) && game.bf && e.k === 'mv' && canAct()) {
       const probe = new BF.Game(game.cfg); probe.reset(game.S);
       const info = probe.apply(e);
       // Check and terminal announcements take priority over optional upgrades/skills.
@@ -3064,6 +3075,7 @@
         const choices = TurnReview.opportunities(game, probe);
         if (choices.length) {
           turnReviewPending = {e: JSON.parse(JSON.stringify(e)), choices, game, key: JSON.stringify(game.S), focus: document.activeElement};
+          turnReviewScope.clearHints(); Board.setUpgradeHints([]);
           bfMode = null; sel = null; selMoves = []; Board.clearMoves();
           Board.setPosition(probe); Board.showLast(info.from, info.to); updateHud();
           showTurnReview(); return true;
@@ -3222,6 +3234,7 @@
     $('dbgMr').value = game.merit.r; $('dbgMb').value = game.merit.b; $('dbgRound').value = game.round;
   }
   function dbgApply(fn) {
+    resetTurnReview();
     game.setup(fn); game.noCd = dbgNoCd;
     notes = []; bfUpNote = ''; renderLog();
     Board.syncPosition(game); Board.faceViewer(viewSide); Board.showLast(null);
@@ -3314,6 +3327,7 @@
   }
   // 兵法：悔棋 = 按行动序列重放到悔棋前（军功、等级、生命、冷却、状态全部还原），棋盘墨晕一下重新摆好
   async function bfRewind(n) {
+    resetTurnReview();
     bfMode = null; barKey = '';
     Sfx.B.whoosh(0, 0.5, 0.3); Sfx.B.bell(0.1, 660, 0.08);
     for (const m of Board.pieces.values()) Fx.P.ink(m.position.clone().setY(Board.TOP + 0.1), 2, 0.3, 0.25, 0.5);
@@ -3332,7 +3346,7 @@
   }
   function bfUndoTarget(plies) { return game.undoTarget(plies); }
   function applyUndo(plies, side) {
-    clearTurnReview();
+    resetTurnReview();
     undoUsed[side]++;
     Board.clearMoves(); sel = null; selMoves = [];
     busy++;
@@ -3767,7 +3781,7 @@
   // 兵法：按行动序列对齐（快照里是完整的行动序列，重放即可还原全部状态）
   function bfSync(st, watch) {
     const E = game.entries, T = st.bfe || [];
-    if (turnReviewPending && (st.result || JSON.stringify(E) !== JSON.stringify(T))) clearTurnReview();
+    if (st.result || JSON.stringify(E) !== JSON.stringify(T)) resetTurnReview();
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     const prefix = (a, b) => a.length <= b.length && a.every((x, i) => same(x, b[i]));
     // 我请求的悔棋对方已同意、但“同意”的消息丢了 → 照样悔棋
@@ -3848,7 +3862,7 @@
   $('tLaugh').onclick = specLaugh;
   // 退出对局 = 回到主菜单（不重载页面）。只有演出正放到一半、状态收不干净时才退而求其次整页重载
   function leaveGame() {
-    clearTurnReview();
+    resetTurnReview();
     document.documentElement.style.removeProperty('--below-status');
     $('viewTag').classList.remove('lc');
     if (upOpen) $('upNo').click();   // 升级确认框开着就关掉

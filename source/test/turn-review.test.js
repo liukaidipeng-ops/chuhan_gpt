@@ -25,6 +25,20 @@ for (const r6 of [false, true]) for (const side of ['r', 'b']) {
   assert.deepStrictEqual(choices(used),[],'already used upgrade/free action must not be offered again');
   const cd=make(0);cd.setup(S=>{const [f,r]=sq(0,3);S.board[r][f].c_juma=100;S.board[r][f].cd=100;});
   assert.deepStrictEqual(choices(cd),[],'cooldown cannot expire by resetting the turn');
+  const scope = new Review.TurnScope(), scoped = make(8);
+  scope.suppress(scoped,true); scope.showUpgrades(scoped);
+  assert(scope.upgradeCells(scoped).length > 1);
+  assert(scoped.apply({k:'up',at:sq(4,3)}));
+  assert(scope.isSuppressed(scoped),'upgrade retains turn suppression');
+  assert.deepStrictEqual(scope.upgradeCells(scoped),[],'availability is recomputed after upgrade');
+  assert(scoped.apply({k:'sk',at:sq(0,3)}));
+  assert(scope.isSuppressed(scoped),'free skill retains turn suppression');
+  assert(scoped.apply(mv));
+  assert(!scope.isSuppressed(scoped),'next side restores reminder');
+  assert.deepStrictEqual(scope.upgradeCells(scoped),[],'turn change clears highlights');
+  scope.suppress(scoped,true); scope.reset();
+  assert(!scope.isSuppressed(scoped),'explicit rewind/load reset clears same-counter suppression');
+  scope.suppress(scoped,true); assert(!scope.isSuppressed(make(8)),'new game never inherits suppression');
   const terminal=new BF.Game(g.cfg);terminal.reset(g.S);terminal.result={reason:'checkmate',winner:side,loser:opp};
   assert.deepStrictEqual(Review.opportunities(g,terminal),[]);
 }
