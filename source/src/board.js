@@ -1863,7 +1863,7 @@ const Board = (() => {
     const k = 0.5 + 0.5 * Math.sin(t * 3.2);
     glowRoot.children.forEach((m, i) => { m.material.opacity = (i % 2 ? 0.35 + 0.6 * k : 0.15 + 0.45 * k); });
     const breath = 0.5 + 0.5 * Math.sin(t * 2.1);
-    upgradeRoot.children.forEach((m, i) => { m.material.opacity = i % 2 ? 0.25 + 0.3 * breath : 0.12 + 0.2 * breath; });
+    upgradeRoot.children.forEach((m, i) => { m.material.opacity = 1.2 * (i % 2 ? 0.25 + 0.3 * breath : 0.12 + 0.2 * breath); });
   });
   // 背水一战走完不合法：把惹祸的子标红（脚下朱圈 + 红晕，一下一下闪），将军的那条线也用红带连起来。传空数组清掉
   const badRoot = new THREE.Group(); root.add(badRoot);
