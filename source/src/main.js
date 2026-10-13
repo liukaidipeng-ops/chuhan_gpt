@@ -652,7 +652,10 @@
       const c = cardFor(s);
       c.classList.toggle('active', started && !game.result && game.turn === s);
       c.classList.toggle('think', isAI(s) && game.turn === s && aiThinking);
-      c.querySelector('.caps').innerHTML = by[s].map(capChip).join('');
+      c.classList.toggle('skill-panel', !!game.bf);
+      c.querySelector('.caps').innerHTML = game.bf ? '' : by[s].map(capChip).join('');
+      const undo = c.querySelector('.undo'), undoHome = c.querySelector(game.bf ? '.nm' : '.meta');
+      if (undo.parentElement !== undoHome) undoHome.appendChild(undo);
       c.querySelector('.undo').textContent = opts.undo && !(vsAI() && s === aiSide()) ? (opts.undo >= 99 ? '悔棋不限' : `悔 ${Math.max(0, opts.undo - undoUsed[s])}`) : '';
       const bfm = c.querySelector('.bfm');
       bfm.classList.toggle('hidden', !game.bf);
@@ -754,7 +757,51 @@
       if (compact) $('bubMe').style.bottom = (H - Math.min(m.top, br.top) + 10) + 'px';   // 只有手机上技能栏才叠在卡片上方；电脑上它在右侧，气泡不用让
     }
     $('bfReport').style.top = compact ? (sr.bottom + 6) + 'px' : '';
+    layoutMobileBubbles();
   }
+  // Mobile speech stays outside the projected board; cramped views wait for board-free space.
+  function layoutMobileBubbles() {
+    const mobile = isCompact() || (matchMedia('(pointer:coarse)').matches && innerWidth <= 1100);
+    document.body.classList.toggle('mobile-chat', mobile);
+    const bubbles = [$('bubOpp'), $('bubMe')];
+    if (!mobile) { for (const el of bubbles) { el.classList.remove('deferred'); el.style.maxHeight = ''; el.style.height = ''; el.style.fontSize=''; if(el.id==='bubMe')el.style.top='';else el.style.bottom=''; } return; }
+    const live = bubbles.filter(el => el.classList.contains('on') || el.classList.contains('dismissing'));
+    if (!live.length) return;
+    const W=innerWidth,H=innerHeight,vv=window.visualViewport;
+    const viewTop=vv?.offsetTop||0,viewBottom=Math.min(H,viewTop+(vv?.height||H));
+    Core.camera.updateMatrixWorld();
+    const pts=[[-.7,-.7],[8.7,-.7],[-.7,9.7],[8.7,9.7]].map(([f,r])=>{
+      const v=Board.pos(f,r).clone();v.y=Board.TOP+Board.PH+.1;v.project(Core.camera);return (1-v.y)*H/2;
+    });
+    const boardTop=Math.min(...pts)-6,boardBottom=Math.max(...pts)+6;
+    const o=$('cardOpp').getBoundingClientRect(),m=$('cardMe').getBoundingClientRect(),st=$('status').getBoundingClientRect();
+    let top=Math.max(viewTop+8,o.bottom+6,st.bottom+6),bottom=Math.min(viewBottom-8,m.top-6);
+    const bar=$('bfBar');if(!bar.classList.contains('hidden'))bottom=Math.min(bottom,bar.getBoundingClientRect().top-6);
+    for(const el of live){
+      const own=el.id==='bubMe',above=Math.max(0,boardTop-top),below=Math.max(0,bottom-boardBottom);
+      const useBottom=own&&below>=40,space=useBottom?below:above;
+      el.classList.toggle('deferred',space<40);
+      if(space<40){clearTimeout(bubT[own]);el.dataset.waiting='1';continue;}
+      const h=Math.min(64,space);
+      el.style.bottom='auto';el.style.top=(useBottom?bottom-h:top)+'px';el.style.maxHeight=h+'px';el.style.height=h+'px';
+      const text=el.querySelector('span');
+      let size=17;
+      for(;size>=12;size-=.5){el.style.fontSize=size+'px';if(text.scrollHeight<=text.clientHeight&&text.scrollWidth<=text.clientWidth)break;}
+      el.style.fontSize=Math.max(12,size)+'px';
+      el.dataset.overflow=text.scrollHeight>text.clientHeight?'1':'0';
+      if(el.dataset.waiting){delete el.dataset.waiting;clearTimeout(bubT[own]);bubT[own]=setTimeout(()=>el.classList.remove('on'),+el.dataset.duration||3500);}
+      if(useBottom)bottom-=h+6;else top+=h+6;
+    }
+  }
+  let bubbleCameraKey='';
+  const previousSceneBeforeRender=Core.scene.onBeforeRender;
+  Core.scene.onBeforeRender=function(...args){
+    previousSceneBeforeRender?.apply(this,args);
+    if(!document.body.classList.contains('mobile-chat')||!document.querySelector('.bubble.on,.bubble.dismissing'))return;
+    const key=[...Core.camera.position.toArray(),...Core.camera.quaternion.toArray(),innerWidth,innerHeight].join(',');
+    if(key!==bubbleCameraKey){bubbleCameraKey=key;layoutMobileBubbles();}
+  };
+  window.visualViewport?.addEventListener('resize',()=>layoutHud());
   window.addEventListener('resize', () => setTimeout(layoutHud, 60));
   if (window.ResizeObserver) { const ro = new ResizeObserver(() => layoutHud()); ro.observe($('cardOpp')); ro.observe($('cardMe')); }
   const CN10 = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
@@ -3376,8 +3423,21 @@
     const el = mine ? $('bubMe') : $('bubOpp');
     el.querySelector('b').textContent = `${SIDE_CN[side]} · ${who || NAME[side]}`;
     el.querySelector('span').textContent = text;
-    el.classList.add('on');
-    clearTimeout(bubT[mine]); bubT[mine] = setTimeout(() => el.classList.remove('on'), ms);
+    el.dataset.side=side;el.setAttribute('aria-label',`${SIDE_CN[side]} · ${who || NAME[side]}：${text}`);
+    el.dataset.duration=String(ms);delete el.dataset.waiting;el.classList.remove('dismissing');el.classList.add('on');
+    layoutSoon();
+    clearTimeout(bubT[mine]);layoutMobileBubbles();
+    if(!el.classList.contains('deferred'))bubT[mine]=setTimeout(()=>el.classList.remove('on'),ms);else el.dataset.waiting='1';
+  }
+  for(const id of ['bubOpp','bubMe']) {
+    const el=$(id);
+    for(const type of ['pointerdown','pointerup']) el.addEventListener(type,e=>{if(document.body.classList.contains('mobile-chat'))e.stopPropagation();});
+    el.addEventListener('click',e=>{
+      if(!document.body.classList.contains('mobile-chat'))return;
+      e.preventDefault();e.stopPropagation();
+      clearTimeout(bubT[id==='bubMe']);el.classList.add('dismissing');el.classList.remove('on');
+      setTimeout(()=>el.classList.remove('dismissing'),300);
+    });
   }
   let lastEmote = 0;
   function emote(side, i, text) {

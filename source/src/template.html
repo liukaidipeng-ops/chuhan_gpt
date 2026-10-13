@@ -153,6 +153,12 @@ input.code{font-size:calc(30px * var(--fs,1));letter-spacing:.4em;text-align:cen
 .pcard .caps{display:flex;flex-wrap:wrap;gap:2px;flex:1;min-width:0}
 .capp{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ecc990,#c9a068);border:1px solid #8a6a40;display:flex;align-items:center;justify-content:center;font-size:calc(12px * var(--fs,1));font-weight:bold;flex:none;box-shadow:0 1px 1px rgba(0,0,0,.25)}
 .capp.r{color:var(--red)}.capp.b{color:var(--ink)}
+/* 技能模式不列吃子：悔棋信息并入标题行，移除整行占位。 */
+.pcard.skill-panel .meta{display:none}
+.pcard.skill-panel .nm{flex-wrap:wrap;column-gap:6px;row-gap:0;white-space:normal}
+.pcard.skill-panel .undo{font-size:calc(11px * var(--fs,1));white-space:nowrap}
+body.compact .pcard.skill-panel{max-width:350px}
+body.compact .pcard.skill-panel .who{overflow-wrap:anywhere}
 /* 兵法 */
 .pcard .bfm{display:flex;align-items:center;gap:6px;margin-top:3px;min-height:20px;flex-wrap:wrap}
 .pcard .mer{display:inline-flex;align-items:baseline;gap:2px;font-family:var(--num);color:var(--gold3);font-size:calc(15px * var(--fs,1))}
@@ -1443,6 +1449,13 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
 @media (max-width:640px){ #liveBar{--w:200px} }
 #turnReview{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;background:#10090677;padding:16px;box-sizing:border-box;font-family:var(--ef),serif;color:#ead5a2}#turnReview.hidden{display:none}.tr-dialog{box-sizing:border-box;width:310px;max-width:100%;max-height:calc(100dvh - 32px);overflow:auto;background:linear-gradient(115deg,#922b20,#7d2019);border:1px solid #c1a66c;box-shadow:0 15px 60px #0008,inset 0 0 0 4px #802319,inset 0 0 0 5px #b79b6355;padding:22px 18px 17px}.tr-head{text-align:center}.tr-head h2{font-size:23px;line-height:1.4;letter-spacing:2px;margin:0 0 15px;font-weight:600}.tr-content p{white-space:pre-line;font-size:13px;line-height:1.9;text-align:center;margin:0 7px 16px}#trItems{border-block:1px solid #d0b16c80;padding:5px 0;margin-bottom:13px}.tr-item{font-family:inherit;display:flex;gap:10px;align-items:center;width:100%;min-height:44px;text-align:left;border:0;background:none;color:inherit;padding:4px 3px;font-size:14px;cursor:pointer}.tr-item:hover{background:#eed4a212}.tr-stamp{font:25px serif;width:28px;text-align:center;flex:none;color:#ddc38b}.tr-item em{margin-left:auto;font:21px serif;color:#ead5a2}.tr-check{display:flex;align-items:center;gap:7px;font-size:12px;margin:0 0 14px;min-height:24px;cursor:pointer}.tr-check input{accent-color:#d9c793;width:16px;height:16px;margin:0}.tr-actions{display:flex;gap:12px}.tr-actions button{flex:1;min-width:0;min-height:44px;border:1px solid #b69d69;border-radius:0;font:16px var(--ef),serif;letter-spacing:1px;cursor:pointer;color:#f1dfb6;background:#25281e}.tr-actions #trYes{background:#983526}.tr-actions button:hover{filter:brightness(1.15)}.tr-actions button:focus-visible,.tr-item:focus-visible,.tr-check input:focus-visible{outline:2px solid #f6dd91;outline-offset:3px}.tr-status{display:none}@media(max-width:360px){.tr-dialog{padding:20px 15px 15px}.tr-head h2{font-size:21px}.tr-item{font-size:13px}}
 
+
+/* Mobile candidate: original speech frame, one text block, no extra labels. */
+body.mobile-chat .bubble{box-sizing:border-box;left:12px;width:min(260px,calc(100vw - 24px));max-width:none;height:64px;padding:8px 12px;font-size:17px;line-height:1.2;letter-spacing:.02em;transform:none;pointer-events:none;display:flex;align-items:stretch}
+body.mobile-chat .bubble.on,body.mobile-chat .bubble.dismissing{pointer-events:auto}
+body.mobile-chat .bubble b{display:none}
+body.mobile-chat .bubble>span{display:block;flex:1;min-width:0;overflow:auto;overflow-wrap:anywhere;overscroll-behavior:contain;touch-action:pan-y;align-content:center}
+body.mobile-chat .bubble.deferred{display:none}
 </style>
 </head>
 <body>
