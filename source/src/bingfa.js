@@ -39,7 +39,7 @@
     },
     generalArts: { fromRound: 1, xiaohe: { usesPerGame: 1 }, pofu: { usesPerGame: 1, steps: 2, mayEndInCheck: false, skillLockRounds: 3 } },
     ultimates: { cost: 20, hongmen: { usesPerGame: 1, rounds: 3 }, simian: { usesPerGame: 1, rounds: 2, radius: 2, minPiecesInRadius: 3 } },
-    longCheckLimit: 6,
+    longCheckLimit: 3,
     // 背水一战（on = true 时代替楚方的破釜沉舟；2026-10-05 起默认开，on = false 回到破釜沉舟）。开着时两边的主帅兵法都只给弱势方用：
     //   轮到自己时，己方车马炮最多还剩 maxLeft 枚、而且比对方的车马炮少，才能用——楚方的背水一战、汉方的召回良将都看这一条（每局一次照旧）；
     //   连走两步：同一枚子走两步，或两枚子各走一步（twoPieces = true 时必须是两枚不同的子）；两步合计最多吃掉 maxKills 个子（践踏踩死的也算，打伤不算）；
@@ -569,7 +569,7 @@
     if (!r) return null;
     // 不占行动的拒马：之后必须还有一步合法的棋可走（含应将），不换手
     if (r.free) { if (!legalMoves(T, T.turn).length) return null; return { S: T, ...r }; }
-    // 长将：同一子连续将军不能超过 6 回合
+    // 长将：同一子连续将军不能超过配置上限（默认 3 回合）
     const lim = CFG_CUR.longCheckLimit, side = S.turn;
     if (lim) {
       const hist = S.ckHist[side];

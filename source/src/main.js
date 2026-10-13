@@ -2522,7 +2522,7 @@
   const BS_HINT = { get 0() { return '背水一战 · 第一步：选一枚子走一步（不能取消）'; }, get 1() { return '背水一战 · 第二步：' + (BF.CFG.beishui.twoPieces ? '换一枚子再走一步' : '再走一步（这枚子、另一枚子都行）'); } };
   const BS_WHY = {
     self: '两步走完，楚将正被将军', face: '两步走完，将帅照面了', give: '背水一战走完不能将着汉帅',
-    kills: () => `背水一战合计最多吃 ${BF.CFG.beishui.maxKills} 个子`, long: '同一枚子不能一直将军', other: '这两步不合规则',
+    kills: () => `背水一战合计最多吃 ${BF.CFG.beishui.maxKills} 个子`, long: () => `同一枚子连续将军不能超过 ${BF.CFG.longCheckLimit} 次`, other: '这两步不合规则',
   };
   function bsStart() {
     Board.showBad([]); Board.showStep(null); Board.clearMoves(true); sel = null; selMoves = []; selBad = [];

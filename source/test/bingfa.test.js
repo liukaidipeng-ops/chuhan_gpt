@@ -21,6 +21,67 @@ function setup(pieces, opt = {}) {
 const K = s => P(s, 'k');
 const ok = (x, msg) => { assert(x, msg); };
 
+// 技能长将：按同一枚子、双方各自回合计数；允许第三次，拒绝第四次，悔棋按行动重放恢复。
+{
+  assert.strictEqual(BF.CFG.longCheckLimit, 3);
+  for (const r6 of [false, true]) for (const side of ['r', 'b']) {
+    BF.CFG.r6.on = r6;
+    const opp = XQ.other(side), sq = (f, r) => [f, side === 'r' ? r : 9 - r];
+    const rook = P(side, 'r');
+    const g = setup([[...sq(3, 0), K(side)], [...sq(5, 9), K(opp)], [...sq(4, 7), rook]], { turn: side });
+    const move = (f, r, tf, tr) => ({ k: 'mv', from: sq(f, r), to: sq(tf, tr) });
+    const play = a => { const i = g.apply(a); ok(i, JSON.stringify(a)); return i; };
+    const first = move(4, 7, 5, 7), reply = move(5, 9, 4, 9);
+    ok(play(first).check, '第一次将军'); play(reply);
+    ok(play(move(5, 7, 4, 7)).check, '第二次将军'); play(move(4, 9, 5, 9));
+    const beforeThird = BF.cloneState(g.S);
+    ok(g.isLegal(first), '合法着包含第三次将军');
+    ok(BF.ai.expand(g.S).some(x => JSON.stringify(x.a) === JSON.stringify(first)), 'AI 可选第三次将军');
+    ok(play(first).check, '第三次将军允许');
+    ok(g.undoActions(1), '悔掉第三次将军');
+    assert.deepStrictEqual(g.S, beforeThird, '悔棋恢复棋盘、双方将军历史和回合');
+    ok(play(first).check, '悔棋后仍可再走第三次'); play(reply);
+    const fourth = move(5, 7, 4, 7), beforeReject = BF.cloneState(g.S), entries = g.entries.length;
+    assert.deepStrictEqual(g.S.ckHist[side], [[rook.id], [rook.id], [rook.id]]);
+    assert.deepStrictEqual(g.S.ckHist[opp], [[], [], []], '对方不将军不打断本方连续计数');
+    ok(!g.isLegal(fourth), '合法着不含第四次将军');
+    ok(!BF.ai.expand(g.S).some(x => JSON.stringify(x.a) === JSON.stringify(fourth)), 'AI 不可选第四次将军');
+    assert.strictEqual(g.apply(fourth), null, '第四次拒绝，沿用非法着语义');
+    assert.deepStrictEqual(g.S, beforeReject, '拒绝不改变任何规则状态');
+    assert.strictEqual(g.entries.length, entries, '拒绝不写历史');
+    assert.strictEqual(g.result, null, '拒绝不直接判负');
+    ok(!play(move(5, 7, 5, 6)).check, '本方走非将军着法');
+    assert.deepStrictEqual(g.S.ckHist[side].slice(-1), [[]], '空记录打断连续将军');
+    play(move(4, 9, 4, 8));
+    ok(play(move(5, 6, 4, 6)).check, '中断后可再次将军');
+    ok(g.undoActions(3), '悔掉中断及后续两步');
+    assert.deepStrictEqual(g.S, beforeReject, '悔棋恢复三连将限制');
+    ok(!g.isLegal(fourth), '恢复后第四次仍禁止');
+  }
+  // 双方历史独立：对方已经三连将，不限制本方首次将军。
+  for (const side of ['r', 'b']) {
+    const opp = XQ.other(side), sq = (f, r) => [f, side === 'r' ? r : 9 - r];
+    const rook = P(side, 'r');
+    const g = setup([[...sq(3, 0), K(side)], [...sq(5, 9), K(opp)], [...sq(4, 7), rook]], { turn: side });
+    const hist = [[901], [901], [901]];
+    g.setup(S => { S.ckHist[opp] = hist.map(h => h.slice()); });
+    ok(g.apply({ k: 'mv', from: sq(4, 7), to: sq(5, 7) }), '本方首次将军允许');
+    assert.deepStrictEqual(g.S.ckHist[opp], hist, '本方行动不改对方计数');
+    assert.deepStrictEqual(g.S.ckHist[side], [[rook.id]]);
+  }
+  // 主动技能也经过相同限制：车冲阵落到敌将同列。
+  for (const n of [2, 3]) {
+    const rook = P('r', 'r', 3);
+    const g = setup([[3, 0, K('r')], [5, 9, K('b')], [5, 3, rook], [5, 5, P('r', 'p', 2)]]);
+    g.setup(S => { S.ckHist.r = Array.from({ length: n }, () => [rook.id]); });
+    const a = { k: 'sk', at: [5, 3], to: [5, 5] };
+    assert.strictEqual(g.skillTargets(5, 3).some(x => JSON.stringify(x) === JSON.stringify(a)), n === 2, '技能目标遵守长将边界');
+    assert.strictEqual(!!g.apply(a), n === 2, '冲阵第三次允许、第四次拒绝');
+  }
+  BF.CFG.r6.on = false;
+  console.log('技能长将三次上限、双方计数、重置、悔棋、AI 与技能边界 OK');
+}
+
 // 1. 开局
 {
   const g = new BF.Game();
