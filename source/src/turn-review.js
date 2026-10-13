@@ -28,20 +28,25 @@
   // Rewinds and externally loaded snapshots explicitly reset this scope in the controller.
   class TurnScope {
     constructor() { this.reset(); }
-    reset() { this.game = null; this.key = ''; this.muted = false; this.hints = false; }
+    reset() { this.game = null; this.key = ''; this.muted = false; this.hints = null; }
     sync(game) {
       const key = game?.bf ? `${game.turn}/${game.S.cnt.r}/${game.S.cnt.b}` : '';
       if (this.game !== game || this.key !== key || game?.result) { this.reset(); this.game = game; this.key = key; }
     }
     suppress(game, on) { this.sync(game); this.muted = !!on; }
     isSuppressed(game) { this.sync(game); return this.muted; }
-    showUpgrades(game) { this.sync(game); this.hints = true; }
-    clearHints() { this.hints = false; }
-    upgradeCells(game) {
+    showUpgrades(game) { this.sync(game); this.hints = {kind:'up'}; }
+    showSkill(game, skill) { this.sync(game); this.hints = {kind:'sk', skill}; }
+    clearHints() { this.hints = null; }
+    candidateCells(game) {
       this.sync(game);
       const cells = [];
       if (!this.hints || !game?.bf || game.result) return cells;
-      for (let r=0;r<10;r++) for (let f=0;f<9;f++) if (game.canUpgrade(f,r)) cells.push([f,r]);
+      const BF = global.BF || require('./bingfa.js');
+      for (let r=0;r<10;r++) for (let f=0;f<9;f++) {
+        if (this.hints.kind === 'up' ? game.canUpgrade(f,r)
+          : game.skillTargets(f,r,this.hints.skill).some(a => BF.attempt(game.S,a)?.free)) cells.push([f,r]);
+      }
       return cells;
     }
   }

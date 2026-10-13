@@ -2818,8 +2818,8 @@
     const rsOn = game && game.bf && mode && started && !ended && !busy && !bfMode && !dbgOn && canAct();
     const rs = rsOn ? readySkills() : [];
     Board.setGlow(rs);
-    const upgradeCells = turnReviewScope.upgradeCells(game);
-    Board.setUpgradeHints(rsOn && !RP && !sel ? upgradeCells : []);
+    const candidateCells = turnReviewScope.candidateCells(game);
+    Board.setUpgradeHints(rsOn && !RP && !sel ? candidateCells : []);
     const show = !!(game && game.bf && mode && started && !ended && !game.result && canAct() && !dbgOn);
     bar.classList.toggle('hidden', !show);
     if (!show) { $('bfRow').innerHTML = ''; $('bfHint').textContent = ''; return; }
@@ -3017,12 +3017,12 @@
   const reviewEl = $('turnReview');
   function showTurnReview() {
     const p = turnReviewPending; if (!p) return;
-    const ups = p.choices.filter(x=>x.kind==='up'), skills = [...new Set(p.choices.filter(x=>x.kind==='sk').map(x=>x.label))];
+    const ups = p.choices.filter(x=>x.kind==='up'), skills = [...new Set(p.choices.filter(x=>x.kind==='sk').map(x=>x.skill))];
     $('trTitle').textContent = '尚有未竟之策';
     $('trMessage').textContent = '您有' + [ups.length ? '未升级的棋子' : '',skills.length ? '可使用的技能' : ''].filter(Boolean).join('或') + '，\n是否结束回合？';
     const rows = [];
     if(ups.length) rows.push({kind:'up',icon:'↑',text:`可升级的棋子 × ${ups.length}`});
-    for(const label of skills) rows.push({at:p.choices.find(x=>x.kind==='sk'&&x.label===label).at,icon:'<svg viewBox="0 0 28 28" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 4 3 24M23 4l2 20M3 8h22M3 19h22M8 8v11M20 8v11"/></svg>',text:`${label}（不占回合数）`});
+    for(const skill of skills) rows.push({kind:'sk',skill,icon:'<svg viewBox="0 0 28 28" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 4 3 24M23 4l2 20M3 8h22M3 19h22M8 8v11M20 8v11"/></svg>',text:`${BF.SKILL_CN[skill]}（不占回合数）`});
     $('trItems').innerHTML = rows.map((x,i)=>`<button class="tr-item" data-i="${i}" type="button"><span class="tr-stamp" aria-hidden="true">${x.icon}</span><span>${x.text}</span><em aria-hidden="true">›</em></button>`).join('');
     $('trItems').querySelectorAll('button').forEach(b=>b.onclick=()=>turnReviewDecision(false,rows[+b.dataset.i]));
     $('trNever').checked = turnReviewScope.isSuppressed(game);
@@ -3046,7 +3046,7 @@
     if (accept) return doBF(pending.e,false,undefined,true);
     bfClear();
     if (item?.kind === 'up') turnReviewScope.showUpgrades(game);
-    else if (item?.at) bfSelect(...item.at);
+    else if (item?.kind === 'sk') turnReviewScope.showSkill(game,item.skill);
     updateHud();
     if (pending.focus?.isConnected) pending.focus.focus();
     return true;
