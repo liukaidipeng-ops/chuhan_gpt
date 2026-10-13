@@ -388,4 +388,5 @@ for (const bsOn of [false, true]) {
   console.log(bsOn ? '背水组合 OK' : '破釜组合 OK', positions, '个局面', pairs, '个组合');
 }
 BF.CFG.beishui.on = true;
+require('./turn-review.test.js');
 console.log('BINGFA ALL OK');

@@ -259,11 +259,7 @@ body.compact #veil u span{font-size:calc(13px * var(--fs,1));white-space:normal;
 .sk.pas{opacity:.85;filter:none;background:linear-gradient(#3a3428,#24201a)}
 @keyframes gainup{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.15)}30%{transform:translate(-50%,-70%) scale(1)}100%{opacity:0;transform:translate(-50%,-190%) scale(1)}}
 #bfBar{position:absolute;left:50%;bottom:calc(14px + var(--safe-b));transform:translateX(-50%);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:calc(100vw - 24px);z-index:6}
-#skHint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + var(--safe-b));z-index:7;pointer-events:auto;border:none;border-radius:22px;padding:8px 22px 8px 20px;display:flex;align-items:center;gap:10px;background:linear-gradient(#3a2a12,#1f170c);color:#ffe2a0;font-size:calc(16px * var(--fs,1));letter-spacing:.14em;box-shadow:0 0 0 1.5px #e6b75a,0 0 18px rgba(255,190,80,.55),0 6px 18px rgba(0,0,0,.35);animation:skBlink 1.15s ease-in-out infinite;cursor:pointer;white-space:nowrap;font-family:var(--font)}
-#skHint b{font-weight:bold}#skHint small{font-size:calc(12px * var(--fs,1));color:#e9cf98;letter-spacing:.05em}
-#skHint:before{content:"";width:9px;height:9px;border-radius:50%;background:#ffcf6a;box-shadow:0 0 10px #ffcf6a}
 @keyframes skBlink{0%,100%{opacity:1;box-shadow:0 0 0 1.5px #e6b75a,0 0 22px rgba(255,190,80,.8),0 6px 18px rgba(0,0,0,.35)}50%{opacity:.55;box-shadow:0 0 0 1.5px rgba(230,183,90,.5),0 0 6px rgba(255,190,80,.2),0 6px 18px rgba(0,0,0,.35)}}
-body.compact #skHint{font-size:calc(14px * var(--fs,1));padding:6px 16px}
 #bfHint{pointer-events:auto;font-size:calc(14px * var(--fs,1));letter-spacing:.12em;color:#f1e3c2;background:rgba(26,23,21,.86);padding:4px 14px;border-radius:14px;border:1px solid rgba(217,184,119,.5);white-space:nowrap}
 #bfHint:empty{display:none}
 #bfBar.col{align-items:flex-end}
@@ -923,14 +919,11 @@ html,body{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!importan
 @keyframes eRdy{50%{outline-color:transparent}}
 #bfRow,#bfBar.cmp #bfRow{gap:10px}
 /* 手机：技能栏和「技能未用」提示贴在自己牌的上方，让开牌外那圈朱框（伸出牌外 6px） */
-body.compact #bfBar.cmp,body.compact #skHint{translate:0 -2px}
+body.compact #bfBar.cmp{translate:0 -2px}
 .sk .cd{border-radius:0}
 .sk .cdn{border:1.5px solid var(--k);background:var(--c);color:var(--k)}
 #bfHint{border:0;border-radius:0;background:var(--k);color:var(--c);box-shadow:inset 0 0 0 1px var(--c);font-family:var(--es)}
 #bfBar.col #bfHint{border-radius:0}
-#skHint{border-radius:0;background:var(--g);color:var(--c);box-shadow:inset 0 0 0 3px var(--g),inset 0 0 0 4px var(--c),0 6px 18px rgba(0,0,0,.3);font-family:var(--ef);font-weight:900}
-#skHint small{color:var(--c);font-family:var(--es);font-weight:400}
-#skHint:before{border-radius:0;background:var(--c);box-shadow:none}
 #bfReport li{border-left:4px solid var(--c);border-radius:0;background:var(--k);color:var(--c);font-family:var(--es)}
 #bfReport li.r{border-left-color:var(--g)}
 #tip{border:0;border-radius:0;background:var(--k);color:var(--c);box-shadow:inset 0 0 0 3px var(--k),inset 0 0 0 4px var(--c),0 8px 24px rgba(0,0,0,.35);font-family:var(--es)}
@@ -1448,6 +1441,8 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
 #liveBar .sw input{appearance:none;width:12px;height:12px;margin:0;border:1.5px solid var(--c);background:transparent;cursor:pointer}
 #liveBar .sw input:checked{background:var(--g);box-shadow:inset 0 0 0 2px var(--k)}
 @media (max-width:640px){ #liveBar{--w:200px} }
+#turnReview{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;background:#10090677;padding:16px;box-sizing:border-box;font-family:var(--ef),serif;color:#ead5a2}#turnReview.hidden{display:none}.tr-dialog{box-sizing:border-box;width:310px;max-width:100%;max-height:calc(100dvh - 32px);overflow:auto;background:linear-gradient(115deg,#922b20,#7d2019);border:1px solid #c1a66c;box-shadow:0 15px 60px #0008,inset 0 0 0 4px #802319,inset 0 0 0 5px #b79b6355;padding:22px 18px 17px}.tr-head{text-align:center}.tr-head h2{font-size:23px;line-height:1.4;letter-spacing:2px;margin:0 0 15px;font-weight:600}.tr-content p{white-space:pre-line;font-size:13px;line-height:1.9;text-align:center;margin:0 7px 16px}#trItems{border-block:1px solid #d0b16c80;padding:5px 0;margin-bottom:13px}.tr-item{font-family:inherit;display:flex;gap:10px;align-items:center;width:100%;min-height:44px;text-align:left;border:0;background:none;color:inherit;padding:4px 3px;font-size:14px;cursor:pointer}.tr-item:hover{background:#eed4a212}.tr-stamp{font:25px serif;width:28px;text-align:center;flex:none;color:#ddc38b}.tr-item em{margin-left:auto;font:21px serif;color:#ead5a2}.tr-check{display:flex;align-items:center;gap:7px;font-size:12px;margin:0 0 14px;min-height:24px;cursor:pointer}.tr-check input{accent-color:#d9c793;width:16px;height:16px;margin:0}.tr-actions{display:flex;gap:12px}.tr-actions button{flex:1;min-width:0;min-height:44px;border:1px solid #b69d69;border-radius:0;font:16px var(--ef),serif;letter-spacing:1px;cursor:pointer;color:#f1dfb6;background:#25281e}.tr-actions #trYes{background:#983526}.tr-actions button:hover{filter:brightness(1.15)}.tr-actions button:focus-visible,.tr-item:focus-visible,.tr-check input:focus-visible{outline:2px solid #f6dd91;outline-offset:3px}.tr-status{display:none}@media(max-width:360px){.tr-dialog{padding:20px 15px 15px}.tr-head h2{font-size:21px}.tr-item{font-size:13px}}
+
 </style>
 </head>
 <body>
@@ -1471,7 +1466,6 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
   <div id="netbadge" class="hidden"></div>
   <div id="log" class="hidden"><div class="lh">棋 譜<button id="logExport" title="把整局导成一段文本，可以贴给别人或贴给 Claude 分析" style="float:right;font:inherit;font-size:12px;letter-spacing:0;border:1px solid rgba(60,50,40,.35);background:rgba(255,255,255,.4);border-radius:3px;padding:0 6px;cursor:pointer;color:inherit">导出</button></div><ol id="logList"></ol><div id="specBox" class="hidden"><div class="lh lh2">觀 戰 席</div><ol id="specFeed"></ol></div></div>
   <div id="bfBar" class="hidden"><div id="bfHint"></div><div id="bfRow"></div></div>
-  <button id="skHint" class="hidden" type="button"><b>本回合还未使用技能</b><small></small></button>
   <ol id="bfReport" class="hidden"></ol>
   <div id="bfDebug" class="hidden">
     <div class="dh">调 试 摆 子<button class="x" id="dbgClose">×</button></div>
@@ -1618,6 +1612,7 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
   <div class="opt"><div class="lbl">配音<small>写实：有感情的新配音；原版：老味道</small></div><div class="seg" data-s="voice"><button data-v="2">写实</button><button data-v="1">原版</button><button data-v="0">关</button></div></div>
   </div>
   <div class="tabp hidden" data-t="etc">
+  <div class="opt"><div class="lbl">回合结束提醒<small>可升级或可用不占回合技能时，落子后询问</small></div><div class="seg" data-s="turnReminder"><button data-v="1">开</button><button data-v="0">关</button></div></div>
   <div class="opt"><div class="lbl">落子确认<small>点了落点要再点一次才走，防误触</small></div><div class="seg" data-s="confirm"><button data-v="1">开</button><button data-v="0">关</button></div></div>
   <div class="opt" id="optGh"><div class="lbl">发给数值部<small>GitHub 令牌（只存在这台设备的浏览器里）</small></div><div class="ghrow"><input id="ghTok" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false"><button class="btn small" id="ghTest">保存并测试</button><button class="btn small hidden" id="ghDel">删除</button></div><div id="ghMsg" class="ghmsg"></div></div>
   <div class="opt" id="optServer"><div class="lbl">自定义线路<small>一般不用填</small></div><input id="oServer" placeholder="wss://…/mqtt" style="flex:1;min-width:0;font-size:14px;padding:6px;border:1px solid #bba;background:rgba(255,255,255,.5)"></div>
@@ -1811,6 +1806,12 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
 <div id="viewTag" aria-live="polite"><div class="row"><span data-v="0">沙盘</span><span data-v="1">俯瞰</span><span data-v="2" class="lock">定盘</span></div><div class="row lc"><span data-l="flip" class="flip">换边</span><span data-l="free">自由视角</span></div><small id="viewTagS"></small></div>
 <div id="tip" class="hidden"></div>
 <button id="updBar" class="hidden">有新版本 · 点此刷新</button>
+
+<div id="turnReview" class="hidden"><section class="tr-dialog" role="dialog" aria-modal="true" aria-labelledby="trTitle" aria-describedby="trMessage">
+<header class="tr-head"><h2 id="trTitle">尚有未竟之策</h2></header>
+<div class="tr-content"><p id="trMessage"></p><div id="trItems"></div></div>
+<footer><label class="tr-check"><input id="trNever" type="checkbox">不再提示</label><div class="tr-actions"><button id="trNo" type="button">继续落子</button><button id="trYes" type="button">结束回合</button></div></footer>
+</section></div>
 
 <script>/*THREE*/</script>
 <script>/*QR*/</script>

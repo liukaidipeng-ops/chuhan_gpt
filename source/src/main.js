@@ -187,6 +187,7 @@
     models: store.get('models', 0), eco: store.get('eco', Core.isMobile ? 1 : 0), debris: store.get('debris', 3), confirm: store.get('confirm', 1), turnfx: store.get('turnfx', 'wave'),   // confirm：落子要点两下（Ham 10-09 要的，防误触；默认开）
     vis: store.get('vis', store.get('fx', 1) === 0 ? 'low' : 'cine'), gore: store.get('gore', 3), server: store.get('server', ''),
     environment: store.get('environment', 'day'),
+    turnReminder: store.get('turnReminder', 1),
     speed: store.get('speed', 1.5), // 动画播放速度
   };
   // 配音：2 = 写实版（新的默认），1 = 原版，0 = 关。老玩家存的是 1（开），头一回替他换到写实版，之后随他自己选
@@ -205,7 +206,7 @@
     Core.Time.boost = +S.speed || 1.5;
     Sfx.setVol('music', S.vMusic / 100 * 0.9); Sfx.setVol('sfx', S.vSfx / 100); Sfx.setVol('voice', S.vVoice / 100);
     Net.custom = S.server || '';
-    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment']) store.set(k, S[k]);
+    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment', 'turnReminder']) store.set(k, S[k]);
   }
   Net.custom = S.server || '';
   Core.Time.boost = +S.speed || 1.5;
@@ -221,6 +222,7 @@
   const repaintSegs = root => root.querySelectorAll('.seg').forEach(s => s._paint && s._paint());
 
   // ---------- 场景 ----------
+  let turnReviewPending = null;
   let game = new XQ.Game();
   Board.setPosition(game);
   Core.Cam.setSide('r');
@@ -750,12 +752,6 @@
       const br = bar.getBoundingClientRect();
       if (compact) $('bubMe').style.bottom = (H - Math.min(m.top, br.top) + 10) + 'px';   // 只有手机上技能栏才叠在卡片上方；电脑上它在右侧，气泡不用让
     }
-    // 技能未用提示：手机上贴在卡片（或技能栏）上方，电脑上在屏幕下方正中
-    const sh = $('skHint');
-    if (!sh.classList.contains('hidden')) {
-      if (compact) { const top = bar.classList.contains('hidden') ? m.top : Math.min(m.top, bar.getBoundingClientRect().top); sh.style.bottom = (H - top + 8) + 'px'; }
-      else sh.style.bottom = '';
-    }
     $('bfReport').style.top = compact ? (sr.bottom + 6) + 'px' : '';
   }
   window.addEventListener('resize', () => setTimeout(layoutHud, 60));
@@ -890,7 +886,7 @@
   let turnStartAt = 0, slowIdx = 0;
   setInterval(() => {
     const t = performance.now(), dt = t - clock.last; clock.last = t;
-    if (!started || ended || game.result || !mode) return;
+    if (turnReviewPending || !started || ended || game.result || !mode) return;
     const s = game.turn;
     const mine = mode === 'local' || vsAI() || mode === 'watch' || s === mySide;
     if (pause) { if (pause.until && t > pause.until) { if (myPause()) resumeGame(); else setPause(null); } else paintPause(); return; }
@@ -991,7 +987,7 @@
     if (game.mustPass && game.mustPass()) doBF({ k: 'pass' });
   }
   function maybeAI() {
-    if (!(vsAI() || hostBot()) || ended || game.result || !started || !isAI(game.turn) || pendingUndo) return;
+    if (turnReviewPending || !(vsAI() || hostBot()) || ended || game.result || !started || !isAI(game.turn) || pendingUndo) return;
     if (aiThinking) return;
     const id = ++aiSeq, side = game.turn, lvl = aiLevel(side);
     aiThinking = true; updateHud();
@@ -1122,6 +1118,7 @@
   }
   const nextFrames = (n = 2) => new Promise(res => { const k = () => { try { Core.poke(); } catch (e) { } if (--n < 0) res(); else requestAnimationFrame(k); }; k(); });
   async function startGame(m, side, o, { state = null, intro = true, lz = null } = {}) {
+    clearTurnReview();
     cancelAI(); closeRoom();
     mode = m; mySide = side; opts = { ...o }; ended = false; started = false; lobbySpin = false;
     // 技能模式的楚方主帅兵法用哪一套，记在这一局的选项里（bs = 1 背水一战）：新开的局用背水一战；
@@ -1213,6 +1210,7 @@
     return { v: 2, code: Net.code, opts, hostSide, jq, bfe, moves: G.bf ? [] : G.history.map(h => ({ from: h.from, to: h.to, rv: h.rv, cj: h.cj })), result: G.result, undo: { ...undoUsed }, clk: { r: clock.r, b: clock.b }, step: clock.step, t: Date.now(), pz: { ...pauseUsed }, pzn: pause && pause.until ? { side: pause.by, ms: Math.max(0, pause.until - performance.now()) } : null };
   }
   function applyState(st) {
+    clearTurnReview();
     game = mkGame(opts, st.layout || (game && game.opts && game.opts.layout));
     if (game.bf && st.bfbase) game.reset(st.bfbase);
     if (game.bf) for (const e of st.bfe || []) { if (!game.apply(e)) break; }
@@ -1327,7 +1325,7 @@
   // ---------- 走子 ----------
   function canAct() {
     if (watching()) return false;
-    if (!started || ended || busy || game.result || pendingUndo || pendingJ) return false;
+    if (turnReviewPending || !started || ended || busy || game.result || pendingUndo || pendingJ) return false;
     if (game.jq && !jqReady()) return false;
     if (mode === 'local') return true;
     if (vsAI()) return !aiBoth() && game.turn === mySide && !aiThinking;
@@ -1501,6 +1499,7 @@
     setTimeout(() => done(false), (S0 + 1.5) * 1000);   // 提示框万一被别的关掉，也照样进结算
   }
   function finishGame(result) {
+    clearTurnReview();
     graceTok++;
     if (ended) return;
     ended = true; endSkip = false;
@@ -2816,10 +2815,6 @@
     const rsOn = game && game.bf && mode && started && !ended && !busy && !bfMode && !dbgOn && canAct();
     const rs = rsOn ? readySkills() : [];
     Board.setGlow(rs);
-    // 屏幕下方闪烁提示：本回合还有技能没用（点一下依次选中这些子）
-    const sh = $('skHint');
-    sh.classList.toggle('hidden', !rs.length);
-    if (rs.length) sh.querySelector('small').textContent = `${rs.length} 枚子可用 · 点我查看`;
     const show = !!(game && game.bf && mode && started && !ended && !game.result && canAct() && !dbgOn);
     bar.classList.toggle('hidden', !show);
     if (!show) { $('bfRow').innerHTML = ''; $('bfHint').textContent = ''; return; }
@@ -2891,7 +2886,6 @@
     layoutSoon();
   }
   let skillCycle = 0;
-  $('skHint').addEventListener('click', ev => { ev.stopPropagation(); bfButton('pickSkill'); });
   async function bfButton(a, el) {
     if (!canAct()) return;
     Sfx.select && Sfx.select();
@@ -3015,8 +3009,67 @@
       $('pickNo').onclick = () => fin(null);
     });
   }
+  const reviewEl = $('turnReview');
+  function showTurnReview() {
+    const p = turnReviewPending; if (!p) return;
+    const ups = p.choices.filter(x=>x.kind==='up'), skills = [...new Set(p.choices.filter(x=>x.kind==='sk').map(x=>x.label))];
+    $('trTitle').textContent = '尚有未竟之策';
+    $('trMessage').textContent = '您有' + [ups.length ? '未升级的棋子' : '',skills.length ? '可使用的技能' : ''].filter(Boolean).join('或') + '，\n是否结束回合？';
+    const rows = [];
+    if(ups.length) rows.push({at:ups[0].at,icon:'↑',text:`可升级的棋子 × ${ups.length}`});
+    for(const label of skills) rows.push({at:p.choices.find(x=>x.kind==='sk'&&x.label===label).at,icon:'<svg viewBox="0 0 28 28" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 4 3 24M23 4l2 20M3 8h22M3 19h22M8 8v11M20 8v11"/></svg>',text:`${label}（不占回合数）`});
+    $('trItems').innerHTML = rows.map((x,i)=>`<button class="tr-item" data-i="${i}" type="button"><span class="tr-stamp" aria-hidden="true">${x.icon}</span><span>${x.text}</span><em aria-hidden="true">›</em></button>`).join('');
+    $('trItems').querySelectorAll('button').forEach(b=>b.onclick=()=>turnReviewDecision(false,rows[+b.dataset.i].at));
+    $('trNever').checked = !+S.turnReminder;
+    reviewEl.classList.remove('hidden');
+
+    requestAnimationFrame(()=>$('trNo').focus());
+  }
+  // A trial never mutates the live game, history, merit, free-skill counters or clocks.
+  function clearTurnReview() {
+    const p = turnReviewPending; if (!p) return null;
+    turnReviewPending = null; $('turnReview').classList.add('hidden'); clock.last = performance.now();
+    Board.setPosition(game); const last = game.history[game.history.length - 1]; Board.showLast(last?.from,last?.to);
+    return p;
+  }
+  function turnReviewDecision(accept, focusAt) {
+    const pending = clearTurnReview(); if (!pending) return false;
+    if (pending.game !== game || pending.key !== JSON.stringify(game.S) || !canAct() || netDown()) { updateHud(); return false; }
+    if (accept) return doBF(pending.e,false,undefined,true);
+    bfClear(); updateHud(); if (focusAt) bfSelect(...focusAt);
+    if (pending.focus?.isConnected) pending.focus.focus();
+    return true;
+  }
+  $('trNo').onclick = ()=>turnReviewDecision(false);
+  $('trYes').onclick = ()=>turnReviewDecision(true);
+  $('trNever').onchange = e=>{S.turnReminder=e.target.checked?0:1;applySettings();repaintSegs($('mSet'));};
+  reviewEl.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();turnReviewDecision(false);}
+    if(e.key==='Tab'){
+      const all=[...reviewEl.querySelectorAll('button,input,summary')].filter(x=>x.offsetParent!==null&&!x.disabled),first=all[0],last=all[all.length-1];
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+      if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+    }
+  });
+
   // 执行一条兵法行动（本地或对手发来）
-  function doBF(e, remote = false, clk) {
+  function doBF(e, remote = false, clk, accepted = false) {
+    if (turnReviewPending) { if (!remote) return false; clearTurnReview(); }
+    // Only ordinary moves are tentative. Explicit skills/arts/pass retain their own confirmation flows.
+    if (!accepted && !remote && +S.turnReminder && game.bf && e.k === 'mv' && canAct()) {
+      const probe = new BF.Game(game.cfg); probe.reset(game.S);
+      const info = probe.apply(e);
+      // Check and terminal announcements take priority over optional upgrades/skills.
+      if (info && !info.free && !info.check && !probe.result) {
+        const choices = TurnReview.opportunities(game, probe);
+        if (choices.length) {
+          turnReviewPending = {e: JSON.parse(JSON.stringify(e)), choices, game, key: JSON.stringify(game.S), focus: document.activeElement};
+          bfMode = null; sel = null; selMoves = []; Board.clearMoves();
+          Board.setPosition(probe); Board.showLast(info.from, info.to); updateHud();
+          showTurnReview(); return true;
+        }
+      }
+    }
     if (e.k === 'art' && e.steps) { Board.reconcile(game); Board.showStep(null); }
     const note = bfNote(game, e);
     ktInit();
@@ -3227,7 +3280,7 @@
   // ---------- 悔棋 ----------
   function undoPlies(side) { return game.turn === side ? 2 : 1; }
   function canUndo() {
-    if (!started || ended || busy || game.result || !opts.undo || pendingUndo || pendingJ) return false;
+    if (turnReviewPending || !started || ended || busy || game.result || !opts.undo || pendingUndo || pendingJ) return false;
     const s = actor();
     if (mode === 'local') return game.history.length > 0 && (opts.undo >= 99 || undoUsed[XQ.other(game.turn)] < opts.undo);
     if (opts.undo < 99 && undoUsed[s] >= opts.undo) return false;
@@ -3279,6 +3332,7 @@
   }
   function bfUndoTarget(plies) { return game.undoTarget(plies); }
   function applyUndo(plies, side) {
+    clearTurnReview();
     undoUsed[side]++;
     Board.clearMoves(); sel = null; selMoves = [];
     busy++;
@@ -3455,7 +3509,7 @@
         clock[d.side] = d.total; clock.oppTotal = d.total; clock.oppStep = d.step; clock.oppStamp = performance.now();
         break;
       case 'undoReq':
-        if (d.n !== game.history.length || busy) { Net.send({ t: 'undoRes', ok: false, n: d.n }); return; }
+        if (d.n !== game.history.length || busy || turnReviewPending) { Net.send({ t: 'undoRes', ok: false, n: d.n }); return; }
         pendingUndo = { n: d.n, plies: d.plies, side: other(mySide) }; updateHud();
         ask('对 手 请 求 悔 棋', `对手想退回 ${d.plies} 步（${d.plies === 2 ? '你的上一步也会退回' : '只退回他自己的一步'}），是否同意？`, 15).then(ok => {
           Net.send({ t: 'undoRes', ok, n: d.n, plies: d.plies });
@@ -3713,6 +3767,7 @@
   // 兵法：按行动序列对齐（快照里是完整的行动序列，重放即可还原全部状态）
   function bfSync(st, watch) {
     const E = game.entries, T = st.bfe || [];
+    if (turnReviewPending && (st.result || JSON.stringify(E) !== JSON.stringify(T))) clearTurnReview();
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     const prefix = (a, b) => a.length <= b.length && a.every((x, i) => same(x, b[i]));
     // 我请求的悔棋对方已同意、但“同意”的消息丢了 → 照样悔棋
@@ -3727,8 +3782,10 @@
         if (watch) toast('棋手悔棋');
       }
     } else applyState(st);
-    if (st.clk) { clock.r = st.clk.r; clock.b = st.clk.b; }
-    if (st.step != null) clock.step = st.step;
+    if (!turnReviewPending) {
+      if (st.clk) { clock.r = st.clk.r; clock.b = st.clk.b; }
+      if (st.step != null) clock.step = st.step;
+    }
     undoUsed = { r: 0, b: 0, ...(st.undo || {}) }; applyPz(st);
     if (st.result && !game.result) { game.result = st.result; finishGame(st.result); }
     updateHud();
@@ -3791,6 +3848,7 @@
   $('tLaugh').onclick = specLaugh;
   // 退出对局 = 回到主菜单（不重载页面）。只有演出正放到一半、状态收不干净时才退而求其次整页重载
   function leaveGame() {
+    clearTurnReview();
     document.documentElement.style.removeProperty('--below-status');
     $('viewTag').classList.remove('lc');
     if (upOpen) $('upNo').click();   // 升级确认框开着就关掉
