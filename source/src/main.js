@@ -757,8 +757,40 @@
       if (compact) $('bubMe').style.bottom = (H - Math.min(m.top, br.top) + 10) + 'px';   // 只有手机上技能栏才叠在卡片上方；电脑上它在右侧，气泡不用让
     }
     $('bfReport').style.top = compact ? (sr.bottom + 6) + 'px' : '';
+    Core.Cam.refreshTopFit();
     layoutMobileBubbles();
   }
+  // HUD and camera use the same visible rectangle. Ordinary HUD updates do not reset manual zoom.
+  const topSafeArea = document.createElement('div');
+  topSafeArea.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none;padding:var(--safe-t) env(safe-area-inset-right,0px) var(--safe-b) env(safe-area-inset-left,0px)';
+  document.body.appendChild(topSafeArea);
+  Core.Cam.topFrame = () => {
+    if ($('hud').classList.contains('hidden') || document.body.classList.contains('anaOn')) return null;
+    const vv = window.visualViewport, W = innerWidth, H = innerHeight;
+    // Pinch zoom of the browser itself is not a game-camera resize.
+    const useVV = vv && Math.abs(vv.scale - 1) < .01;
+    const x = useVV ? vv.offsetLeft : 0, y = useVV ? vv.offsetTop : 0;
+    const right = Math.min(W, x + (useVV ? vv.width : W)), bottom = Math.min(H, y + (useVV ? vv.height : H));
+    const rect = id => $(id).getBoundingClientRect();
+    const o = rect('cardOpp'), m = rect('cardMe'), status = rect('status'), tools = rect('tools');
+    const compact = W <= 760 || W / H < .8;
+    const safe = getComputedStyle(topSafeArea);
+    let left = x + Math.max(4, parseFloat(safe.paddingLeft) || 0), end = right - Math.max(4, parseFloat(safe.paddingRight) || 0);
+    let top = y + Math.max(4, parseFloat(safe.paddingTop) || 0), low = bottom - Math.max(4, parseFloat(safe.paddingBottom) || 0);
+    if (compact) {
+      top = Math.max(top, o.bottom + 8, status.bottom + 8);
+      low = Math.min(low, m.top - 8, tools.top - 8);
+      if (!$('bfBar').classList.contains('hidden')) low = Math.min(low, rect('bfBar').top - 8);
+    } else {
+      left = Math.max(left, o.right + 8, m.right + 8);
+      end = Math.min(end, tools.left - 8);
+      top = Math.max(top, status.bottom + 8);
+      if (!$('bfBar').classList.contains('hidden')) end = Math.min(end, rect('bfBar').left - 8);
+    }
+    if (end - left < 80 || low - top < 80) return null;
+    // Piece radius < .44; .48 also keeps edge intersections and selection targets inside.
+    return { left, right: end, top, bottom: low, halfX: 4.48, halfZ: Math.abs(Board.pos(0,0).z) + .48, y: Board.TOP + Board.PH + .1 };
+  };
   // Mobile speech stays outside the projected board; cramped views wait for board-free space.
   function layoutMobileBubbles() {
     const mobile = isCompact() || (matchMedia('(pointer:coarse)').matches && innerWidth <= 1100);
@@ -802,6 +834,7 @@
     if(key!==bubbleCameraKey){bubbleCameraKey=key;layoutMobileBubbles();}
   };
   window.visualViewport?.addEventListener('resize',()=>layoutHud());
+  window.visualViewport?.addEventListener('scroll',()=>layoutHud());
   window.addEventListener('resize', () => setTimeout(layoutHud, 60));
   if (window.ResizeObserver) { const ro = new ResizeObserver(() => layoutHud()); ro.observe($('cardOpp')); ro.observe($('cardMe')); }
   const CN10 = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];

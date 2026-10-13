@@ -66,7 +66,7 @@ const Core = (() => {
     camera.aspect = w / h;
     camera.fov = w / h < 0.8 ? 58 : 42;
     camera.updateProjectionMatrix(); applyShift();
-    try { if (!Cam.cine) Cam.radius = Cam.homeRad(); } catch (e) { /* 初始化时 Cam 尚未定义 */ }
+    try { if (!Cam.cine) { Cam.radius = Cam.homeRad(); if (Cam.view) Cam.target.copy(Cam.homeT()); } } catch (e) { /* 初始化时 Cam 尚未定义 */ }
   }
   // 画面整体挪一挪（对局分析的面板挡住一边时，把棋盘往另一边让）：fx、fy 是画面宽、高的几分之几，正数 = 内容往左 / 往上
   let shiftF = [0, 0, 1];
@@ -152,7 +152,14 @@ const Core = (() => {
     wideK() { const H = window.innerHeight; return H >= 1000 ? 1 : H >= 880 ? 1.06 : H >= 760 ? 1.1 : 1.14; },
     homeRad() { return this.view ? this.fitTop() : this.fitRadius() * (this.portrait() ? 0.86 : this.wide() ? this.wideK() : 1); },
     homeT(side) {
-      const t = this.home0.clone(); if (this.view) return t;
+      const t = this.home0.clone(); if (this.view) {
+        const fit = this.topFit();
+        if (fit) {
+          const sg = (side || (this.homeTheta ? 'b' : 'r')) === 'b' ? -1 : 1;
+          t.set(-fit.dx * sg, 0, -fit.dy * sg);
+        }
+        return t;
+      }
       const sg = (side || (this.homeTheta ? 'b' : 'r')) === 'b' ? -1 : 1;
       if (!this.portrait() && !this.wide()) return t;
       // 执黑时镜头在另一头：注视点按棋盘中线镜像过去（home0 的 0.2 也镜像），两边看到的构图一样
@@ -166,8 +173,26 @@ const Core = (() => {
       const hh = Math.atan(Math.tan(camera.fov * Math.PI / 360) * a);
       return Math.max(14.5, 5.4 / Math.tan(hh) + 3.5);
     },
-    // 正上方看时，能看全整张棋盘（含边框，留一点边）的距离
+    // Fit playable intersections plus piece rims, not the decorative wooden border.
+    topFit() {
+      const frame = this.topFrame?.(); if (!frame) return null;
+      const W = innerWidth, H = innerHeight, v = Math.tan(camera.fov * Math.PI / 360);
+      const width = Math.max(1, frame.right - frame.left), height = Math.max(1, frame.bottom - frame.top);
+      const distance = Math.max(frame.halfX * H / (v * width), frame.halfZ * H / (v * height));
+      const pixel = 2 * distance * v / H;
+      return { radius: distance + frame.y, dx: ((frame.left + frame.right - W) / 2) * pixel,
+        dy: ((frame.top + frame.bottom - H) / 2) * pixel,
+        key: [W,H,camera.fov,frame.left,frame.right,frame.top,frame.bottom].join(',') };
+    },
+    refreshTopFit() {
+      if (!this.view || this.cine || this.spinning) return;
+      const fit = this.topFit(); if (!fit || fit.key === this.topFitKey) return;
+      this.topFitKey = fit.key;
+      this.radius = fit.radius; this.target.copy(this.homeT());
+    },
     fitTop() {
+      const fit = this.topFit();
+      if (fit) { this.topFitKey = fit.key; return fit.radius; }
       const v = Math.tan(camera.fov * Math.PI / 360), a = window.innerWidth / window.innerHeight;
       return Math.max(6.9 / v, 5.6 / (v * a));
     },
