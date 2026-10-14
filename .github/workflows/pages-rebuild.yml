@@ -1,8 +1,6 @@
-# 每次推送到 main 后，请 GitHub Pages 按最新的 main 重新构建网站
+# 仅保留手动触发；正式试玩发布由 chuhan_gpt_play 仓库负责
 name: 重建网站
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   pages: write
