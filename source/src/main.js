@@ -768,14 +768,18 @@
   Core.Cam.topFrame = () => {
     if ($('hud').classList.contains('hidden') || document.body.classList.contains('anaOn')) return null;
     const vv = window.visualViewport, W = innerWidth, H = innerHeight;
+    const phoneLandscape = H <= 520 && W > H;
+    const compact = (W <= 760 || W / H < .8) && !phoneLandscape;
+    // HUD-aware top-view maximization is a mobile layout feature. On PC the
+    // board stays centered in the canvas, so the opening overlay and game view
+    // share one projection before and after the HUD appears.
+    if (!compact && !phoneLandscape) return null;
     // Pinch zoom of the browser itself is not a game-camera resize.
     const useVV = vv && Math.abs(vv.scale - 1) < .01;
     const x = useVV ? vv.offsetLeft : 0, y = useVV ? vv.offsetTop : 0;
     const right = Math.min(W, x + (useVV ? vv.width : W)), bottom = Math.min(H, y + (useVV ? vv.height : H));
     const rect = id => $(id).getBoundingClientRect();
     const o = rect('cardOpp'), m = rect('cardMe'), status = rect('status'), tools = rect('tools');
-    const phoneLandscape = H <= 520 && W > H;
-    const compact = (W <= 760 || W / H < .8) && !phoneLandscape;
     const safe = getComputedStyle(topSafeArea);
     let left = x + Math.max(4, parseFloat(safe.paddingLeft) || 0), end = right - Math.max(4, parseFloat(safe.paddingRight) || 0);
     let top = y + Math.max(4, parseFloat(safe.paddingTop) || 0), low = bottom - Math.max(4, parseFloat(safe.paddingBottom) || 0);
