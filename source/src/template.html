@@ -615,8 +615,8 @@ body.compact #skip{bottom:calc(152px + var(--safe-b))}   /* 手机：抬到自�
 @media (max-width:1100px){ #status{font-size:calc(14px * var(--fs,1));padding:5px 18px 5px calc(18px + .2em)} }
 /* 竖屏 / 窄屏：工具改横排贴底，卡片通栏 */
 body.compact .pcard{left:12px;right:12px;width:auto}
-/* Share the bottom inset: safe area already supplies the home-indicator clearance. */
-body.compact{--dock-bottom:max(2px,var(--safe-b))}
+/* Use 10px of the inset while retaining the rest for the home indicator. */
+body.compact{--dock-bottom:max(2px,calc(var(--safe-b) - 10px))}
 body.compact #tools{left:10px;right:10px;bottom:var(--dock-bottom);flex-direction:row;justify-content:space-between;gap:4px}
 body.compact .tool{flex:1 1 0;min-width:0;max-width:44px;width:auto;height:38px;font-size:calc(17px * var(--fs,1))}
 /* 手机卡片压扁：头像缩小，名字与时钟同一行，军功与兵法签一行 */
@@ -1420,6 +1420,36 @@ body:has(#mAsk:not(.hidden)) #pauseOv .pz{visibility:hidden}
   #bfBar.col{translate:-14px 0}
   #bfBar.col .sk{min-width:140px;min-height:58px;font-size:calc(18px * var(--fs,1))}
   #bfBar.col .sk small{font-size:calc(12px * var(--fs,1))}
+}
+/* Mobile game HUD: center the narrow portrait cards; in landscape, reserve slim
+   side rails for players and skills so neither panel sits on the playable board. */
+body.compact .pcard.skill-panel{margin-inline:auto}
+@media (max-height:520px) and (orientation:landscape){
+  body:not(.compact) .pcard.skill-panel{box-sizing:border-box;width:244px;height:58px;overflow:hidden;transform:none;padding:4px 7px 4px 4px;gap:6px}
+  body:not(.compact) .pcard.skill-panel .por{width:42px;height:42px}
+  body:not(.compact) .pcard.skill-panel .por .face{inset:4px;width:34px;height:34px}
+  body:not(.compact) .pcard.skill-panel .por .seal{width:16px;height:16px;right:-4px;bottom:-3px;font-size:10px}
+  body:not(.compact) .pcard.skill-panel .info{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:5px;align-items:center}
+  body:not(.compact) .pcard.skill-panel .nm{grid-column:1;grid-row:1;flex-wrap:nowrap;gap:4px;min-width:0;overflow:hidden}
+  body:not(.compact) .pcard.skill-panel .who{min-width:0;max-width:92px;overflow:hidden;text-overflow:ellipsis;font-size:15px;white-space:nowrap}
+  body:not(.compact) .pcard.skill-panel .tag{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:10px;white-space:nowrap}
+  body:not(.compact) .pcard.skill-panel .undo{flex:none;font-size:9px}
+  body:not(.compact) .pcard.skill-panel .clk{grid-column:2;grid-row:1;font-size:13px;line-height:1}
+  body:not(.compact) .pcard.skill-panel .clk.inf{font-size:10px;letter-spacing:.08em}
+  body:not(.compact) .pcard.skill-panel .bfm{grid-column:1/-1;margin-top:1px;gap:4px;min-height:28px;flex-wrap:nowrap;overflow:hidden}
+  body:not(.compact) .pcard.skill-panel .mer{font-size:11px;gap:4px;flex:none}
+  body:not(.compact) .pcard.skill-panel .mer .mseal{width:27px;height:27px}
+  body:not(.compact) .pcard.skill-panel .mer .mseal i{font-size:16px}
+  body:not(.compact) .pcard.skill-panel .mer .mtx b{font-size:10px;letter-spacing:.08em}
+  body:not(.compact) .pcard.skill-panel .mer .mtx small{display:none}
+  body:not(.compact) .pcard.skill-panel .fxs{gap:2px;flex-wrap:nowrap;min-width:0;overflow:hidden}
+  body:not(.compact) .pcard.skill-panel .fxs span{font-size:9px;padding:1px 4px;overflow:hidden;text-overflow:ellipsis}
+  body:not(.compact) #status{font-size:12px;padding:5px 12px 5px calc(12px + .12em);letter-spacing:.12em}
+  #bfBar.col{translate:0 0;max-width:116px;gap:4px}
+  #bfBar.col #bfRow{gap:4px}
+  #bfBar.col .sk{width:112px;min-width:112px;min-height:42px;height:42px;padding:3px 5px 2px;font-size:13px;letter-spacing:.04em}
+  #bfBar.col .sk small{font-size:9px}
+  #bfBar.col #bfHint{max-width:112px;max-height:38px;padding:3px 6px;font-size:10px;line-height:1.25;text-align:left;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 }
 /* 9：复盘 0 步时，分析面板写一句话（面板高度不变） */
 #ana.v3:has(#anaList:empty) #anaChart{display:none}

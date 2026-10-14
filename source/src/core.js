@@ -177,22 +177,25 @@ const Core = (() => {
     topFit() {
       const frame = this.topFrame?.(); if (!frame) return null;
       const W = innerWidth, H = innerHeight, v = Math.tan(camera.fov * Math.PI / 360);
+      const vv = window.visualViewport;
       const width = Math.max(1, frame.right - frame.left), height = Math.max(1, frame.bottom - frame.top);
       const distance = Math.max(frame.halfX * H / (v * width), frame.halfZ * H / (v * height));
       const pixel = 2 * distance * v / H;
       return { radius: distance + frame.y, dx: ((frame.left + frame.right - W) / 2) * pixel,
         dy: ((frame.top + frame.bottom - H) / 2) * pixel,
-        key: [W,H,camera.fov,frame.left,frame.right,frame.top,frame.bottom].join(',') };
+        key: [W,H,camera.fov,frame.left,frame.right,frame.top,frame.bottom].join(','),
+        viewportKey: [W,H,camera.fov,vv?.offsetLeft||0,vv?.offsetTop||0,vv?.width||W,vv?.height||H].join(',') };
     },
     refreshTopFit() {
       if (!this.view || this.cine || this.spinning) return;
-      const fit = this.topFit(); if (!fit || fit.key === this.topFitKey) return;
+      const fit = this.topFit(); if (!fit || fit.viewportKey === this.topViewportKey) return;
+      this.topViewportKey = fit.viewportKey;
       this.topFitKey = fit.key;
       this.radius = fit.radius; this.target.copy(this.homeT());
     },
     fitTop() {
       const fit = this.topFit();
-      if (fit) { this.topFitKey = fit.key; return fit.radius; }
+      if (fit) { this.topViewportKey = fit.viewportKey; this.topFitKey = fit.key; return fit.radius; }
       const v = Math.tan(camera.fov * Math.PI / 360), a = window.innerWidth / window.innerHeight;
       return Math.max(6.9 / v, 5.6 / (v * a));
     },

@@ -733,7 +733,8 @@
   function layoutHud() {
     if ($('hud').classList.contains('hidden')) { document.documentElement.style.removeProperty('--below-status'); return; }
     const W = innerWidth, H = innerHeight;
-    const compact = isCompact();
+    const phoneLandscape = H <= 520 && W > H;
+    const compact = isCompact() && !phoneLandscape;
     document.body.classList.toggle('compact', compact);
     const o = $('cardOpp').getBoundingClientRect(), m = $('cardMe').getBoundingClientRect();
     const st = $('status').style;
@@ -773,19 +774,22 @@
     const right = Math.min(W, x + (useVV ? vv.width : W)), bottom = Math.min(H, y + (useVV ? vv.height : H));
     const rect = id => $(id).getBoundingClientRect();
     const o = rect('cardOpp'), m = rect('cardMe'), status = rect('status'), tools = rect('tools');
-    const compact = W <= 760 || W / H < .8;
+    const phoneLandscape = H <= 520 && W > H;
+    const compact = (W <= 760 || W / H < .8) && !phoneLandscape;
     const safe = getComputedStyle(topSafeArea);
     let left = x + Math.max(4, parseFloat(safe.paddingLeft) || 0), end = right - Math.max(4, parseFloat(safe.paddingRight) || 0);
     let top = y + Math.max(4, parseFloat(safe.paddingTop) || 0), low = bottom - Math.max(4, parseFloat(safe.paddingBottom) || 0);
     if (compact) {
       top = Math.max(top, o.bottom + 8, status.bottom + 8);
       low = Math.min(low, m.top - 8, tools.top - 8);
-      if (!$('bfBar').classList.contains('hidden')) low = Math.min(low, rect('bfBar').top - 8);
+      if (W <= 340 && game?.bf) low = Math.min(low, m.top - 64);   // reserve one stable skill row on narrow phones
+      else if (!$('bfBar').classList.contains('hidden')) low = Math.min(low, rect('bfBar').top - 8);
     } else {
       left = Math.max(left, o.right + 8, m.right + 8);
       end = Math.min(end, tools.left - 8);
       top = Math.max(top, status.bottom + 8);
-      if (!$('bfBar').classList.contains('hidden')) end = Math.min(end, rect('bfBar').left - 8);
+      if (phoneLandscape) end = Math.min(end, tools.left - 132);   // stable rail for the 112px skill panel + gaps
+      else if (!$('bfBar').classList.contains('hidden')) end = Math.min(end, rect('bfBar').left - 8);
     }
     if (end - left < 80 || low - top < 80) return null;
     // Piece radius < .44; .48 also keeps edge intersections and selection targets inside.
@@ -3235,24 +3239,23 @@
     const bd = info.before ? info.before.board : game.board;
     const at = a => (a ? bd[a[1]][a[0]] : null);
     const nm = (side, t) => SIDE_ARMY[side] + XQ.NAMES[side][t];
-    const kills = ev.filter(x => x.e === 'kill'), hits = ev.filter(x => x.e === 'hit');
+    const kills = ev.filter(x => x.e === 'kill');
     let line = null;
     if (info.k === 'up') line = `${nm(s, info.t)}晋升「${BF.rankName(s, info.t, info.lv)}」（${LVCN[info.lv]}级）` + (info.usedXp ? '（杀敌记功攒满，自动晋升）' : '');
     else if (info.k === 'mv') {
-      const P0 = at(info.from), T0 = at(info.to);
-      const died = kills.find(k => P0 && k.id === P0.id);
-      if (died && T0) line = `${nm(o, T0.t)}立拒马，${nm(s, P0.t)}撞阵身亡`;
-      else if (T0 && kills.some(k => k.id === T0.id)) line = `${nm(s, P0.t)}击杀${nm(o, T0.t)}`;
-      else if (T0) line = `${nm(s, P0.t)}强攻${nm(o, T0.t)}，未能拿下`;
-      else if (info.check) line = `${nm(s, P0.t)}将军！`;
+      const P0 = at(info.from);
+      // Ordinary capture / damage reports used to sit over the top of the board.
+      // Keep tactical state that requires attention, but leave routine combat to
+      // the animation, move log and merit feedback.
+      if (info.check) line = `${nm(s, P0.t)}将军！`;
     } else if (info.k === 'sk') {
       const P0 = at(info.from), sk = info.extra.sk, cn = BF.SKILL_CN[sk];
-      const foe = kills.filter(k => k.s === o), hurt = hits.filter(h => true);
+      const foe = kills.filter(k => k.s === o);
       if (sk === 'juma') line = `${nm(s, P0.t)}立起拒马`;
       else if (sk === 'hujia') line = info.extra.rescue ? '樊哙闯帐：汉士护驾，鸿门宴破' : `${nm(s, P0.t)}护驾，与${s === 'r' ? '汉王' : '霸王'}换位`;
-      else if (sk === 'chongzhen') line = foe.length >= 2 ? `${SIDE_ARMY[s]}车冲阵，连破${SIDE_ARMY[o]}两阵` : foe.length ? `${SIDE_ARMY[s]}车冲阵，击破${nm(o, foe[0].t)}` : `${SIDE_ARMY[s]}车冲阵受阻`;
-      else line = `${nm(s, P0.t)}${cn}` + (foe.length ? `，击杀${foe.map(k => XQ.NAMES[o][k.t]).join('、')}` : '') + (hurt.length ? `，${hurt.length} 子负伤` : '');
-    } else if (info.k === 'art') line = s === 'r' ? (() => { const rv = ev.find(x => x.e === 'revive') || {}, ru = ev.find(x => x.e === 'reviveUp'); return `召回良将：${nm('r', rv.t || 'p')}重回阵前` + (rv.lv > 1 ? `（${LVCN[rv.lv]}级）` : '') + (ru ? `，当场晋升「${BF.rankName('r', ru.t, ru.lv)}」（${LVCN[ru.lv]}级），花 ${ru.cost} 功` : ''); })() : `项羽${BF.ART_CN.b}，楚军连进两步` + (kills.length ? `，击杀${kills.filter(k => k.s === o).map(k => XQ.NAMES[o][k.t]).join('、')}` : '');
+      else if (sk === 'chongzhen') line = `${SIDE_ARMY[s]}车冲阵` + (foe.length ? '成功' : '受阻');
+      else line = `${nm(s, P0.t)}${cn}`;
+    } else if (info.k === 'art') line = s === 'r' ? (() => { const rv = ev.find(x => x.e === 'revive') || {}, ru = ev.find(x => x.e === 'reviveUp'); return `召回良将：${nm('r', rv.t || 'p')}重回阵前` + (rv.lv > 1 ? `（${LVCN[rv.lv]}级）` : '') + (ru ? `，当场晋升「${BF.rankName('r', ru.t, ru.lv)}」（${LVCN[ru.lv]}级），花 ${ru.cost} 功` : ''); })() : `项羽${BF.ART_CN.b}，楚军连进两步`;
     else if (info.k === 'ult') line = s === 'b' ? `鸿门宴：汉王 ${BF.CFG.ultimates.hongmen.rounds} 回合不得移动` : '四面楚歌：楚军军心涣散，动弹不得';
     else if (info.k === 'pass') line = `${SIDE_ARMY[s]}按兵不动`;
     if (info.k === 'mv' && info.extra && info.extra.via === 'shensu') line = `${nm(s, 'p')}神速营疾行` + (info.check ? '，将军！' : '');
