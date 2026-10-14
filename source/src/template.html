@@ -176,6 +176,7 @@ body.compact .pcard.skill-panel .who{overflow-wrap:anywhere}
 @keyframes goGlow{50%{box-shadow:0 0 0 2px rgba(233,178,90,.55),0 0 16px rgba(192,67,43,.8)}}
 #tip{position:fixed;z-index:45;max-width:min(320px,calc(100vw - 16px));background:rgba(24,20,18,.95);color:#f1e3c2;border:1px solid rgba(217,184,119,.7);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 3px rgba(24,20,18,.9),inset 0 0 0 4px rgba(217,184,119,.25);border-radius:4px;padding:9px 12px;font-size:calc(13px * var(--fs,1));line-height:1.65;letter-spacing:.03em;pointer-events:none;text-align:left}
 #tip b{color:#ffd98a;font-weight:bold;letter-spacing:.08em}#tip em{font-style:normal;color:#ff9a7a}#tip small{color:#bfae8a;font-size:calc(12px * var(--fs,1))}
+#tip .dmg{color:#ff8f78;font-weight:900}.modal.e-m .dmg{color:#a9281a;font-weight:900}.help .dmg{color:#d94332;font-weight:900}
 /* 棋子说明：生命红、攻击橙、军功金三块大字（Ham 10-09 20:31：重点强调，加粗放大） */
 #tip .tnm{font-size:calc(15px * var(--fs,1))}#tip>em{display:block}
 #tip .tst{display:flex;gap:6px;margin:7px 0 5px}
@@ -277,6 +278,30 @@ body.compact #veil u span{font-size:calc(13px * var(--fs,1));white-space:normal;
 #bfBar.cmp .sk small{font-size:calc(10px * var(--fs,1))}
 #bfBar.cmp #bfHint{font-size:calc(12px * var(--fs,1));padding:3px 10px}
 #bfRow{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+#cardActionMount{display:none;min-width:0;flex:1;align-items:center}
+body.compact #cardMe.piece-action{box-sizing:border-box;align-items:center;overflow:hidden;padding-right:5px;outline-color:transparent;background:#171512;box-shadow:inset 0 0 0 2px #d8b765,0 5px 14px rgba(20,19,17,.24)}
+body.compact #cardMe.piece-action.active{outline-color:transparent;animation:none}
+body.compact #cardMe.piece-action>.por{display:none}
+body.compact #cardMe.piece-action>.info{display:flex;flex:0 0 60px;min-width:60px;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;border-right:1px solid rgba(216,183,101,.5)}
+body.compact #cardMe.piece-action .nm,
+body.compact #cardMe.piece-action .meta,
+body.compact #cardMe.piece-action .fxs{display:none}
+body.compact #cardMe.piece-action .bfm{display:flex!important;margin:0;justify-content:center}
+body.compact #cardMe.piece-action .mer{margin:0}
+body.compact #cardMe.piece-action .clk{white-space:nowrap;font-size:11px}
+body.compact #cardMe.piece-action .clk.inf{color:#eee3ca}
+body.compact #cardMe.piece-action .mtx{display:none}
+body.compact #cardMe.piece-action #cardActionMount{display:flex}
+body.compact #cardActionMount{padding:0}
+body.compact #cardActionMount #bfRow{display:flex;flex:1;width:100%;min-width:0;gap:5px;flex-wrap:nowrap;justify-content:center;overflow-x:hidden;overscroll-behavior-x:contain;scrollbar-width:none}
+body.compact #cardActionMount #bfRow::-webkit-scrollbar{display:none}
+body.compact #cardActionMount .sk{box-sizing:border-box;flex:1 1 0;min-width:0;height:44px;padding:4px 6px;font-size:calc(14px * var(--fs,1));line-height:1.15;letter-spacing:.04em}
+body.compact #cardActionMount .sk small{display:block;max-width:100%;white-space:nowrap;line-height:1.15;letter-spacing:0;font-size:calc(9px * var(--fs,1))}
+body.compact #cardActionMount #bfRow:has(.sk:nth-child(4)){justify-content:flex-start;overflow-x:auto}
+body.compact #cardActionMount #bfRow:has(.sk:nth-child(4)) .sk{flex:0 0 72px}
+body.compact #cardActionMount .sk:disabled,body.compact #cardActionMount .sk.off{background:#aaa397;background-image:repeating-linear-gradient(-45deg,transparent 0 9px,rgba(20,19,17,.045) 9px 10px);color:#37332d;box-shadow:inset 0 0 0 1px #71695c}
+body.compact #cardActionMount .sk:disabled small,body.compact #cardActionMount .sk.off small{color:#211f1b;opacity:1;font-size:calc(9.5px * var(--fs,1));font-weight:600}
+body.compact:has(#cardMe.piece-action) #toast{box-sizing:border-box;max-width:calc(100vw - 24px);padding-inline:14px;white-space:nowrap;font-size:calc(14px * var(--fs,1));letter-spacing:.04em}
 .sk{pointer-events:auto;position:relative;min-width:64px;height:54px;padding:4px 10px 3px;border-radius:5px;border:none;background:linear-gradient(#302b27,#1c1917);color:#f1e3c2;box-shadow:0 4px 12px rgba(0,0,0,.28),inset 0 0 0 2px rgba(217,184,119,.4),inset 0 0 0 4px #25201d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:calc(16px * var(--fs,1));letter-spacing:.1em}
 .sk small{font-size:calc(11px * var(--fs,1));color:var(--gold2);letter-spacing:.02em;font-family:var(--num)}
 .sk.up{background:linear-gradient(#c79b3c,#8a6420);color:#fff6dd}.sk.up small{color:#fff0c0}
@@ -1503,7 +1528,7 @@ body.mobile-chat .bubble.deferred{display:none}
 <!-- 对局界面 -->
 <div id="hud" class="hidden">
   <div class="pcard b" id="cardOpp"><div class="por"><svg viewBox="0 0 80 80"><circle class="trk" cx="40" cy="40" r="36"/><circle class="arc" cx="40" cy="40" r="36"/></svg><img class="face" alt=""><div class="seal">楚</div></div><div class="info"><div class="nm"><span class="who">项羽</span><span class="tag">对手</span></div><div class="clk">--:--</div><div class="meta"><div class="caps"></div><span class="undo"></span></div><div class="bfm hidden"><span class="mer" title="军功"><span class="mseal"><i>3</i><s class="rp"></s></span><span class="mtx"><b>军功</b><small>满 30</small></span></span><span class="fxs"></span></div></div></div>
-  <div class="pcard r" id="cardMe"><div class="por"><svg viewBox="0 0 80 80"><circle class="trk" cx="40" cy="40" r="36"/><circle class="arc" cx="40" cy="40" r="36"/></svg><img class="face" alt=""><div class="seal">漢</div></div><div class="info"><div class="nm"><span class="who">刘邦</span><span class="tag">你</span></div><div class="clk">--:--</div><div class="meta"><div class="caps"></div><span class="undo"></span></div><div class="bfm hidden"><span class="mer" title="军功"><span class="mseal"><i>3</i><s class="rp"></s></span><span class="mtx"><b>军功</b><small>满 30</small></span></span><span class="fxs"></span></div></div></div>
+  <div class="pcard r" id="cardMe"><div class="por"><svg viewBox="0 0 80 80"><circle class="trk" cx="40" cy="40" r="36"/><circle class="arc" cx="40" cy="40" r="36"/></svg><img class="face" alt=""><div class="seal">漢</div></div><div class="info"><div class="nm"><span class="who">刘邦</span><span class="tag">你</span></div><div class="clk">--:--</div><div class="meta"><div class="caps"></div><span class="undo"></span></div><div class="bfm hidden"><span class="mer" title="军功"><span class="mseal"><i>3</i><s class="rp"></s></span><span class="mtx"><b>军功</b><small>满 30</small></span></span><span class="fxs"></span></div></div><div id="cardActionMount" class="hidden"></div></div>
   <div class="bubble" id="bubOpp"><b></b><span></span></div>
   <div class="bubble" id="bubMe"><b></b><span></span></div>
   <div id="liveBar" class="hidden"><button class="seal" type="button" title="局势">势</button><div class="lbx"><div class="lb">均势</div><div class="ends"><span>汉</span><span>楚</span></div><div class="trk" style="--p:50%"><i class="r"></i><i class="mid"></i><i class="mk"></i></div><label class="sw"><input type="checkbox">技能模式也显示</label></div></div>
@@ -1775,14 +1800,14 @@ body.mobile-chat .bubble.deferred{display:none}
   · <b>看等级与血量</b>：棋身材质就是等级——一级木、二级乌银错花、三级錾金、四级羊脂白玉金缕（升级后字面换成掐丝珐琅）；头顶细血条（汉红、楚绿）是生命值。<br>
   · <b>杀敌记功</b>：每击杀一个敌方单位，出手的那枚子自己记 1 点军功（腰带上多一枚：汉军是金边朱心的圆牌，楚军是乌铁甲片）。记满下一级的价钱就自动升级；没记满时，花全队军功升级每点抵 1 功（升级后清零，最少花 1 功）。误伤己方子不得军功、也不记功。<br>
   · <b>攻击</b>：走到敌子格时，敌子血量不超过攻方攻击力就吃掉占位，否则只打掉攻击力那么多血，攻方退回原位。<b>攻击力</b>：车、马、炮、兵卒一、二级是 1，<b>三级起是 2</b>；士、相 / 象二级起是 2；帅将始终是 1。打不死将军的子不算解将。<br>
-  · <b>兵种技能</b>（三级解锁，有冷却；兵卒的拒马二级解锁）：兵卒「拒马」原地驻营架矛，不占行动，其他棋子还能继续走；持续两回合，期间这枚兵不能移动；对方近身来犯的子先挨 1 点伤害（炮隔子打不受影响），冷却 4 回合；车「冲阵」以直线上遇到的第一枚子为跳板（敌我皆可、帅将除外，跳板挨 1 点伤害），落到它身后一格——空格直接落下，有子且一击可杀就吃掉占位，打不死则扣它血、车退回原位；马「踏营」无视蹩马腿（只能在敌方半场用）；炮「霹雳」五格落弹溅伤四周；相/象「飞越」无视塞象眼；士「护驾」与帅将换位（鸿门宴期间护驾可把汉王救出来）。<br>
-  · <b>四级技能</b>：汉相「齐射」不动身射斜线两格；楚象「践踏」攻击或吃子后就地跺脚，那一格周围一圈敌子各扣 1 点、残血踩死（被动，走空格不触发）；兵卒「神速营」八个方向直线疾行 1～2 格、可越子，落点须是空格、不能攻击（冷却 5）；兵卒「回防」可后退一格（冷却 2）；士「铁甲禁卫」可在九宫内上下左右走一格（冷却 2）。<br>
+  · <b>兵种技能</b>（三级解锁，有冷却；拒马二级解锁）：兵卒「拒马」原地架矛，不占行动，之后还要走一步棋；持续对方 2 回合，本兵不能移动。车、马、兵卒、士近身来攻时先失去 <strong class="dmg">1 点生命</strong>；炮、相象、帅将不受反伤，冷却 4 回合。车「冲阵」沿直线以第一枚棋子作跳板（敌我皆可，失去 <strong class="dmg">1 点生命</strong>）冲到后一格；落点有棋子时按攻击力结算，未击杀则车退回，跳板和落点都可能伤到己方。马「踏营」只在敌方半场且马腿被堵时绕过马腿，发动前确认，冷却 2 回合。炮「霹雳」按隔子吃法轰击；目标上下左右相邻的二级以上敌子各失去 <strong class="dmg">1 点生命</strong>，不伤己方、一级敌子和帅将，冷却 4 回合。相象「飞越」在象眼被堵时仍可走田，平时不能过河、决战除外，冷却 5 回合。士「护驾」与己方帅将换位，占本回合行动；成功后仍须不被将军，汉士可立即解除鸿门宴，冷却 4 回合。<br>
+  · <b>四级技能</b>：汉相「齐射」不移动，射击斜线 1～2 格内遇到的第一枚敌子，造成 <strong class="dmg">1 点伤害</strong>；不能穿子或射帅将，冷却 3 回合。楚象「践踏」攻击后，以目标格为中心使周围 8 格敌子各失去 <strong class="dmg">1 点生命</strong>；不伤己方和帅将，目标未死、象退回时仍触发，走空格不触发。兵卒「神速营」沿 8 个方向疾行 1～2 格，可越子，只能落空格、不能攻击，冷却 5 回合；「回防」可后退一格并攻击，冷却 2 回合。士「铁甲禁卫」平时可在己方九宫内上下左右走一格并攻击，不能走出九宫；决战解除限制，冷却 2 回合。<br>
   · <b>称号</b>：每升一级换一个称号（汉军兵 → 汉伍长 → 汉什长 → 无当飞军；楚军卒 → 楚锐卒 → 楚持戟 → 江东甲士……），把鼠标停在棋子上可以看到。<br>
   · <b>被动技能</b>不用按按钮：能用时直接作为普通走法出现；同一回合里主动技能和被动技能可以一起用（例如给一枚兵架完拒马，再让另一枚四级兵用回防后退一格）。<br>
   · 电脑上把鼠标停在按钮、兵法签或棋子上，手机上长按，可以看到说明；右侧「法」按钮是规则速览。选子后，打不死的目标头顶标「-1」「-2」，能一击杀死才标「殺」。<br>
   · <b>决战</b>：棋盘上双方的车、马、兵、炮都死光后，屏幕会提示进入决战——象、士、帅将都可以过河进攻（象仍走田、士仍走斜一格，只是不受河界九宫限制）；帅将按过河兵走（前、左、右各一格，不能后退），各有 3 点生命；没有将军——可以对脸、可以送将，帅将被打到 0 血就输；士的「铁甲禁卫」出了九宫也能用；<b>夺营</b>——帅将走进对方九宫后，对方再走三步还没把它打死（它自己也没走出九宫），就算获胜。<br>
-  · <b>主帅兵法</b>（每局一次，只给落了下风的一方用）：己方车马炮最多还剩 3 枚、而且比对方少时才能用。刘邦「召回良将」复活一枚被吃的子：按兵种选（同一兵种阵亡了几枚，按等级最高的那枚算），回来最多二级——死时一级的回来还是一级，二级以上的回来都是二级，血回满；可以放回这一兵种任意一个空着的开局位置（比如车放左角或右角），位置都被占着就召不回来。落位后可以马上花军功给它升一级，它第一次升级只要半价（单数向上取整，比如车一升二 5 功），升过一次恢复原价；召回占这一回合，它这回合不能动。项羽「背水一战」连走两步——同一枚子走两步，或两枚子各走一步，合计最多吃一个子；只看两步走完：楚将不被将军、也不将着汉帅就行。发动后不能取消；用过的子下一回合不能动（被将军时可以去吃掉将军的那枚）。<br>
-  · <b>终极兵法</b>（20 军功，每局一次）：楚「鸿门宴」——汉帅三回合不能动，但汉士可用「护驾」闯帐救驾、当场破解；汉「四面楚歌」——楚将 2 格内有 3 枚汉子时可发动，两回合内楚军只有将能照常走，其余的子不能移动、不能用技能，只能吃掉正在将军的那枚子，而且楚军这期间的威胁不算将军（汉方可借此解将）；楚军没被将军时也可以点「停着」不走。<br>
+  · <b>主帅兵法</b>（每局一次，只给落后方用）：刘邦「召回良将」在汉军车马炮最多剩 3 枚且少于楚军时可用；按兵种召回阵亡最高等级的一枚，放到该兵种任一空着的开局位置，最高二级并回满血。召回占本回合，召回子不能移动；可立即升级，首次升级半价。项羽「背水一战」在同样的落后条件下必须连走两步，可同子两走或两子各走，合计最多击杀 1 子（践踏也计入）；只检查最终局面，楚将不被将、也不将着汉帅。发动后不能取消；用过的子下回合不能移动，但被将时可吃掉正在将军的棋子，原地技能仍可用。旧规则局使用「破釜沉舟」：每步后都不能被将，之后 3 回合不能用兵种技能。<br>
+  · <b>终极兵法</b>（20 军功，每局一次）：楚「鸿门宴」持续汉方 3 回合，汉帅不能移动，其他汉子照常行动；汉士成功「护驾」立即解除。汉「四面楚歌」在楚将周围方形 5×5 范围内至少有 3 枚汉子时发动，持续楚方 2 回合；只有楚将能正常走，其他楚子不能移动或用技能，只能在被将时吃掉正在将军的棋子。<b>除将帅照面外</b>，楚军攻击汉帅暂不视为将军；未被将军时可以「停着」。<br>
   · 同一子连续将军最多三次：第三次允许，第四次须换一着。
   </div>
   <div id="helpOld" hidden>
@@ -1855,7 +1880,7 @@ body.mobile-chat .bubble.deferred{display:none}
 <div id="turnReview" class="hidden"><section class="tr-dialog" role="dialog" aria-modal="true" aria-labelledby="trTitle" aria-describedby="trMessage">
 <header class="tr-head"><h2 id="trTitle">尚有未竟之策</h2></header>
 <div class="tr-content"><p id="trMessage"></p><div id="trItems"></div></div>
-<footer><label class="tr-check"><input id="trNever" type="checkbox">本回合不再提示</label><div class="tr-actions"><button id="trNo" type="button">返回</button><button id="trYes" type="button">继续落子</button></div></footer>
+<footer><label class="tr-check"><input id="trNever" type="checkbox">本局不再提示</label><div class="tr-actions"><button id="trNo" type="button">返回</button><button id="trYes" type="button">继续落子</button></div></footer>
 </section></div>
 
 <script>/*THREE*/</script>

@@ -24,14 +24,15 @@
     }
     return found;
   }
-  // In-memory only: an upgrade/free skill shares a turn; a new turn/game does not.
-  // Rewinds and externally loaded snapshots explicitly reset this scope in the controller.
+  // In-memory only: suppression follows one live game object across turns.
+  // Starting/reloading a game creates or explicitly resets the scope in the controller.
   class TurnScope {
     constructor() { this.reset(); }
-    reset() { this.game = null; this.key = ''; this.muted = false; this.hints = null; }
+    reset() { this.game = null; this.turnKey = ''; this.muted = false; this.hints = null; }
     sync(game) {
-      const key = game?.bf ? `${game.turn}/${game.S.cnt.r}/${game.S.cnt.b}` : '';
-      if (this.game !== game || this.key !== key || game?.result) { this.reset(); this.game = game; this.key = key; }
+      if (this.game !== game) { this.reset(); this.game = game; }
+      const turnKey = game?.bf ? `${game.turn}/${game.S.cnt.r}/${game.S.cnt.b}` : '';
+      if (this.turnKey !== turnKey) { this.turnKey = turnKey; this.hints = null; }
     }
     suppress(game, on) { this.sync(game); this.muted = !!on; }
     isSuppressed(game) { this.sync(game); return this.muted; }

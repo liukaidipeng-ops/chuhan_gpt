@@ -42,14 +42,15 @@ with sync_playwright() as p:
    print(('mobile' if mobile else 'PC')+' PASS all candidates, breathing, no auto-selection, real manual selection, reuse',flush=True)
   # Use instantaneous battle playback below to bound lifecycle tests; rendering above is real.
   pg.evaluate('Core.onFrame(()=>{Core.render=false});BFX.play=async()=>{}')
-  start();trial();pg.locator('#trNever').check();click('#trNo');assert pg.evaluate("localStorage.getItem('xq3d-turnReminder')")=='1'
-  pg.evaluate('__xq.doBF('+MOVE+')');assert not pg.locator('#turnReview').is_visible();pg.wait_for_function('__xq.busy===0')
-  trial("{k:'mv',from:[0,6],to:[0,5]}");assert not pg.locator('#trNever').is_checked();click('#trYes');pg.wait_for_function('__xq.busy===0')
-  trial("{k:'mv',from:[2,3],to:[2,4]}");click('#trNo')
-  # An actual rewind must not restore an old turn's suppression.
-  trial("{k:'mv',from:[2,3],to:[2,4]}");pg.locator('#trNever').check();click('#trNo');pg.evaluate('()=>{__xq.requestUndo()}');pg.wait_for_selector('#mAsk:not(.hidden)');click('#askYes');pg.wait_for_function('__xq.busy===0 && __xq.game.turn===\'b\'')
-  trial("{k:'mv',from:[0,6],to:[0,5]}");assert not pg.locator('#trNever').is_checked();click('#trNo')
-  print(('mobile' if mobile else 'PC')+' PASS turn suppression and undo',flush=True)
+  start();trial();assert pg.locator('.tr-check').inner_text()=='本局不再提示';pg.locator('#trNever').check();click('#trNo');assert pg.evaluate("localStorage.getItem('xq3d-turnReminder')")=='1'
+  pg.evaluate('__xq.doBF('+MOVE+')');assert not pg.locator('#turnReview').is_visible();pg.wait_for_function('__xq.busy===0 && __xq.game.turn===\'b\'')
+  pg.evaluate("__xq.doBF({k:'mv',from:[0,6],to:[0,5]})");assert not pg.locator('#turnReview').is_visible();pg.wait_for_function('__xq.busy===0 && __xq.game.turn===\'r\'')
+  # Rewinding is still the same game, so game-scoped suppression remains active.
+  pg.evaluate('()=>{__xq.requestUndo()}');pg.wait_for_selector('#mAsk:not(.hidden)');click('#askYes');pg.wait_for_function('__xq.busy===0 && __xq.game.turn===\'b\'')
+  pg.evaluate("__xq.doBF({k:'mv',from:[0,6],to:[0,5]})");assert not pg.locator('#turnReview').is_visible();pg.wait_for_function('__xq.busy===0')
+  # A newly started game restores the reminder.
+  start();trial();assert not pg.locator('#trNever').is_checked();click('#trNo')
+  print(('mobile' if mobile else 'PC')+' PASS game suppression across turns and undo; new game restores',flush=True)
   # Global preference is independent, persistent, and never overwritten by a new game.
   click('#tSet');click('#setTabs [data-t="etc"]');click('[data-s="turnReminder"] [data-v="0"]');click('#bSetClose');start()
   pg.evaluate('__xq.doBF('+MOVE+')');assert not pg.locator('#turnReview').is_visible();pg.wait_for_function('__xq.busy===0')
@@ -60,6 +61,6 @@ with sync_playwright() as p:
   trial();click('#trItems .tr-item:first-child em');start('watch');nohint()
   start();trial();click('#trItems .tr-item:first-child em');pg.evaluate("__xq.finishGame(__xq.game.timeout('r'))");nohint()
   assert not errors,errors
-  print(('mobile' if mobile else 'PC')+' PASS per-turn suppression, next turn, undo, global persistence, restart/mode/load/watch/end cleanup',flush=True)
+  print(('mobile' if mobile else 'PC')+' PASS per-game suppression, turns, undo, global persistence, restart/mode/load/watch/end cleanup',flush=True)
   ctx.close()
  b.close()

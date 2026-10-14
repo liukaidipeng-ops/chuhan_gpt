@@ -34,10 +34,10 @@ for (const r6 of [false, true]) for (const side of ['r', 'b']) {
   assert(scoped.apply({k:'sk',at:sq(0,3)}));
   assert(scope.isSuppressed(scoped),'free skill retains turn suppression');
   assert(scoped.apply(mv));
-  assert(!scope.isSuppressed(scoped),'next side restores reminder');
+  assert(scope.isSuppressed(scoped),'next side keeps game suppression');
   assert.deepStrictEqual(scope.candidateCells(scoped),[],'turn change clears highlights');
   scope.suppress(scoped,true); scope.reset();
-  assert(!scope.isSuppressed(scoped),'explicit rewind/load reset clears same-counter suppression');
+  assert(!scope.isSuppressed(scoped),'explicit new/load reset clears game suppression');
   scope.suppress(scoped,true); assert(!scope.isSuppressed(make(8)),'new game never inherits suppression');
   const skillScope=new Review.TurnScope(), skillsGame=make(0);
   skillScope.showSkill(skillsGame,'juma');

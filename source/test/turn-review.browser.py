@@ -67,14 +67,20 @@ with sync_playwright() as p:
  G.wait_for_function('__xq.busy===0');trial(G,"{k:'mv',from:[0,6],to:[0,5]}");assert visible(G)
  G.evaluate("Net.send({t:'syncReq'})");G.wait_for_timeout(500);assert visible(G) and G.evaluate('__xq.game.entries.length')==1
  G.locator('#trNo').click();assert state(H)==state(G)
- trial(G,"{k:'mv',from:[0,6],to:[0,5]}");G.locator('#trYes').click();H.wait_for_function('__xq.game.entries.length===2');C.wait_for_function('__xq.game.entries.length===2');assert state(H)==state(G)==state(C)
+ # Per-game suppression belongs to this browser only; it is saved outside network snapshots.
+ trial(G,"{k:'mv',from:[0,6],to:[0,5]}");G.locator('#trNever').check();G.locator('#trNo').click();G.evaluate("__xq.doBF({k:'mv',from:[0,6],to:[0,5]})");assert not visible(G)
+ H.wait_for_function('__xq.game.entries.length===2');C.wait_for_function('__xq.game.entries.length===2');assert state(H)==state(G)==state(C)
+ G.evaluate("window.dispatchEvent(new Event('pagehide'))");guest_resume=G.evaluate("JSON.parse(localStorage.getItem('xq3d-resume'))")
+ assert guest_resume['turnReviewMuted'] is True and guest_resume.get('state') is None
+ G.evaluate("Net.send({t:'syncReq'})");H.wait_for_timeout(500);syncs=H.evaluate("sent.filter(x=>x&&x.t==='sync')")
+ assert syncs and 'turnReviewMuted' not in syncs[-1]['state']
  # Pending host cannot accept peer undo request; authoritative snapshot stays pre-trial.
  H.wait_for_function('__xq.busy===0');trial(H,"{k:'mv',from:[2,3],to:[2,4]}")
  H.evaluate("__xq.onData({t:'undoReq',n:__xq.game.history.length,plies:1})")
  assert H.evaluate("sent.filter(x=>x&&x.t==='undoRes').at(-1).ok") is False
  # Disconnect confirmation cancels safely, without publishing action.
  H.evaluate('Net.close()');H.locator('#trYes').click();assert H.evaluate('__xq.game.entries.length')==2
- print('PASS MQTT host/guest/spectator: no premature move, convergence, duplicate delivery, pending sync, undo guard, disconnect',flush=True)
+ print('PASS MQTT host/guest/spectator: convergence, duplicate delivery, pending sync, local-only suppression, undo guard, disconnect',flush=True)
  M=page(mobile=True);start(M);trial(M);box=M.locator('.tr-dialog').bounding_box();assert box['x']>=0 and box['x']+box['width']<=390 and box['y']>=0 and box['y']+box['height']<=844
  M.locator('#trNo').tap();assert not visible(M)
  print('PASS mobile touch/layout; page errors: '+json.dumps(errors),flush=True);assert not errors

@@ -224,6 +224,7 @@
   // ---------- 场景 ----------
   let turnReviewPending = null;
   const turnReviewScope = new TurnReview.TurnScope();
+  let resumeReviewRestore = null;   // 只在本机“回到对局”链路使用，绝不进入网络快照
   let game = new XQ.Game();
   Board.setPosition(game);
   Core.Cam.setSide('r');
@@ -1045,7 +1046,9 @@
     if (bfW === null) {
       try {
         const src = document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;try{BFAI.trace=!!d.trace;if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}const seq=await BFAI.think(d.S,d.level,undefined,d.opt);postMessage({id:d.id,seq:seq,stat:BFAI.think.last});}catch(err){postMessage({id:d.id,err:String(err&&err.stack||err)});}};';
-        bfW = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+        const workerUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+        try { bfW = new Worker(workerUrl); }
+        finally { try { URL.revokeObjectURL(workerUrl); } catch (e) { } }
         bfW.onmessage = e => { const w = bfWait.get(e.data.id); if (!w) return; bfWait.delete(e.data.id); if (e.data.err) w.rej(new Error(e.data.err)); else { bfThink.last = e.data.stat; w.res(e.data.seq); } };
         bfW.onerror = () => { bfW = false; for (const w of bfWait.values()) w.rej(new Error('worker')); bfWait.clear(); };
       } catch (e) { bfW = false; }
@@ -1206,8 +1209,9 @@
     return { xs, ys };
   }
   const nextFrames = (n = 2) => new Promise(res => { const k = () => { try { Core.poke(); } catch (e) { } if (--n < 0) res(); else requestAnimationFrame(k); }; k(); });
-  async function startGame(m, side, o, { state = null, intro = true, lz = null } = {}) {
+  async function startGame(m, side, o, { state = null, intro = true, lz = null, reviewMuted = false } = {}) {
     resetTurnReview();
+    if (!state) resumeReviewRestore = null;
     cancelAI(); closeRoom();
     mode = m; mySide = side; opts = { ...o }; ended = false; started = false; lobbySpin = false;
     // 技能模式的楚方主帅兵法用哪一套，记在这一局的选项里（bs = 1 背水一战）：新开的局用背水一战；
@@ -1226,7 +1230,7 @@
     Board.setSkin(game.bf ? 0 : opts.skin);   // 棋子款式（木 / 银 / 金 / 玉）是开局选项，联机双方和观众一致
     Board.setPosition(game); Fx.clearMarks(); Fx.ply = 0;
     Board.clearMoves(); Board.showLast(null);
-    if (state) applyState(state);
+    if (state) applyState(state, reviewMuted);
     jqSetup(state);
     rebuildNotes();
     $('log').classList.toggle('jq', game.jq || !!game.bf);
@@ -1298,7 +1302,9 @@
     const bfe = G.bf ? G.entries : undefined;
     return { v: 2, code: Net.code, opts, hostSide, jq, bfe, moves: G.bf ? [] : G.history.map(h => ({ from: h.from, to: h.to, rv: h.rv, cj: h.cj })), result: G.result, undo: { ...undoUsed }, clk: { r: clock.r, b: clock.b }, step: clock.step, t: Date.now(), pz: { ...pauseUsed }, pzn: pause && pause.until ? { side: pause.by, ms: Math.max(0, pause.until - performance.now()) } : null };
   }
-  function applyState(st) {
+  function applyState(st, restoredReviewMuted = null) {
+    // 网络纠偏仍是同一局：保留本机选择；新局从 startGame 明确传 false；本机续局传存下的 true。
+    const keepReviewMuted = restoredReviewMuted == null ? turnReviewScope.isSuppressed(game) : !!restoredReviewMuted;
     resetTurnReview();
     game = mkGame(opts, st.layout || (game && game.opts && game.opts.layout));
     if (game.bf && st.bfbase) game.reset(st.bfbase);
@@ -1314,6 +1320,7 @@
     const last = game.history[game.history.length - 1];
     Board.showLast(last ? last.from : null, last ? last.to : null);
     rebuildNotes();
+    if (keepReviewMuted) turnReviewScope.suppress(game, true);
   }
   function publish() { if (mode === 'host') Net.publishRoom(snapshot()); }
 
@@ -2730,7 +2737,7 @@
       '<b>军功</b>：吃子、将军、兵卒过河都得军功；第 15 回合起每回合各 +1，第 45 回合起各 +2',
       '<b>升级</b>：选中棋子点「升级」；一枚子每杀一个敌子自己记 1 点<b>军功</b>，攒满<b>自动升级</b>',
       '兵<b>二级</b>就能架拒马，其余<b>三级</b>解锁技能，<b>四级</b>成名将；棋身 木 → 银 → 金 → 玉',
-      '打不死的目标头顶标 <b>-1</b>，能一击杀死才标<b>「殺」</b>',
+      '打不死的目标头顶标 <strong class="dmg">-1</strong>，能一击杀死才标<b>「殺」</b>',
       '<b>军功 20</b> 可发终极兵法；主帅兵法每局一次',
       ...(r6On() ? ['车、马、炮、兵<b>三级起攻击 2</b>；车升级贵：<b>10 / 12 / 20</b> 功', '<b>召回</b>的子最多<b>二级</b>，落位后可以马上升级，第一次升级<b>半价</b>'] : ['<b>这一局用的是旧规则</b>：攻击都是 1，车升级 6 / 8 / 20，召回回来一级']),
       '<b>决战</b>：双方车马兵炮都死光后，象、士、帅将可过河进攻；帅将 3 血，打死为止',
@@ -2750,17 +2757,19 @@
     });
   }
   const escTip = t => String(t || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // 规则文案保持纯文本；只在明确允许 HTML 的说明入口渲染伤害数值，避免标签漏进日志/按钮等纯文本位置。
+  const skillDescHtml = sk => escH(BF.SKILL_DESC[sk] || '').replace(/([12] 点(?:生命|伤害))/g, '<strong class="dmg">$1</strong>');
   // 主帅兵法、终极兵法说明。背水一战用简化版（Ham 10-09 审批台 td-006：其余保留原文）
   const ART_DESC = { get r() {
       const B = BF.CFG.beishui, R = r6On(), cond = B.on ? `汉军车马炮${B.maxLeft != null ? `最多还剩 ${B.maxLeft} 枚、而且` : ''}比楚军少时才能用。` : '';
-      if (R) return `复活一枚被吃的子，放回原位，最多${LVCN[R.reviveLevel]}级。${R.reviveUp ? '落位后可以马上升级' + (R.reviveHalf ? '（第一次半价）' : '') + '；' : ''}它这回合不能动。每局一次。` + cond;
+      if (R) return `每局一次。${cond}按兵种召回一枚阵亡子，放到该兵种任一空着的开局位置；最高${LVCN[R.reviveLevel]}级并回满血。召回占本回合，召回子不能移动；${R.reviveUp ? '可立即升级' + (R.reviveHalf ? '，首次升级半价。' : '。') : ''}`;
       return '复活一枚被吃的己方子，回到它的开局位置（一级）。每局一次。' + cond; },
     get b() {
       const B = BF.CFG.beishui;
-      if (!B.on) return '连走两步（不能用技能，第二步不能将军）。此后 3 回合楚军不能用兵种技能。每局一次。';
-      return `每局一次，车马炮少于汉军${B.maxLeft != null ? `（最多剩 ${B.maxLeft} 枚）` : ''}时可用。${B.twoPieces ? '两枚子各走一步' : '连走两步（一枚走两步或两枚各一步）'}，最多吃 ${B.maxKills} 子；走完不能被将军，也不能将着对方。用过的子下回合不能动。`;
+      if (!B.on) return '旧规则局：每局一次，连续走两步普通棋（可同子两走或两子各走），不能用技能；每步后楚将都不能被将军，最终也不能将着汉帅。此后楚方 3 回合不能用兵种技能。';
+      return `每局一次。楚军车马炮最多剩 ${B.maxLeft} 枚且少于汉军时，确认后必须连走两步；${B.twoPieces ? '两枚子各走一步' : '可同子两走或两子各走'}，合计最多击杀 ${B.maxKills} 子。只检查最终局面：楚将不被将，也不将着汉帅。用过的子下回合不能移动；发动后不能取消。`;
     } };
-  const ULT_DESC = { r: `${BF.CFG.ultimates.cost} 军功，楚将两格内须有 ${BF.CFG.ultimates.simian.minPiecesInRadius} 枚汉子。${BF.CFG.ultimates.simian.rounds} 回合内楚军除将外不能移动，只能吃掉将军的子，也不算将军。`, b: `${BF.CFG.ultimates.cost} 军功。汉帅 ${BF.CFG.ultimates.hongmen.rounds} 回合不能动；汉士「护驾」可破。` };
+  const ULT_DESC = { r: `${BF.CFG.ultimates.cost} 军功，每局一次。楚将周围 5×5 范围内至少有 ${BF.CFG.ultimates.simian.minPiecesInRadius} 枚汉子时发动。持续楚方 ${BF.CFG.ultimates.simian.rounds} 回合：只有楚将能正常走；其他楚子不能移动或用技能，只能在被将军时吃掉正在将军的棋子。除将帅照面外，楚军攻击汉帅暂不视为将军；未被将军时可以停着。`, b: `${BF.CFG.ultimates.cost} 军功，每局一次。持续汉方 ${BF.CFG.ultimates.hongmen.rounds} 回合：汉帅不能移动，其他汉子照常行动；汉士成功使用「护驾」可立即解除。` };
   const artTip = s => `<b>主帅兵法 · ${BF.ART_CN[s]}</b><br>${ART_DESC[s]}`;
   const ultTip = s => `<b>终极兵法 · ${BF.ULT_CN[s]}</b><br>${ULT_DESC[s]}`;
   // 某一级的能力（血、攻、技能）
@@ -2777,7 +2786,7 @@
   function skillTip(p, sk) {
     sk = sk || BF.SKILL_OF(p.t, p.s); if (!sk) return '';
     const c = BF.CFG.skills[sk], lv = c.level || BF.CFG.skillLevel;
-    return `<b>${BF.SKILL_CN[sk]}</b> <small>${skTag(sk)}</small><br>${BF.SKILL_DESC[sk]}`;
+    return `<b>${BF.SKILL_CN[sk]}</b> <small>${skTag(sk)}</small><br>${skillDescHtml(sk)}`;
   }
   const halfNow = p => !!(p && p.rh && r6On() && r6On().reviveHalf);   // 试行规则：召回的子第一次升级半价
   function upTip(p, cost, base) {
@@ -2795,7 +2804,7 @@
       $('upTo').textContent = `${game.rankName(p, nx)} · ${LVCN[nx]}级`;
       const row = (k, x, y) => `<tr><th>${k}</th><td>${x}</td><td class="to${y > x ? ' gain' : ''}">${y}</td></tr>`;
       $('upTbl').innerHTML = '<thead><tr><th></th><th>现在</th><th>升级后</th></tr></thead><tbody>' + row('血量', a.hp, b.hp) + row('攻击', a.atk, b.atk) + '</tbody>';
-      $('upNew').innerHTML = b.skills.filter(k => !a.skills.includes(k)).map(k => `<li><b>${BF.SKILL_CN[k]}${BF.CFG.skills[k] && BF.CFG.skills[k].passive ? '（被动）' : ''}</b>${BF.SKILL_DESC[k] || ''}</li>`).join('');
+      $('upNew').innerHTML = b.skills.filter(k => !a.skills.includes(k)).map(k => `<li><b>${BF.SKILL_CN[k]}${BF.CFG.skills[k] && BF.CFG.skills[k].passive ? '（被动）' : ''}</b>${skillDescHtml(k)}</li>`).join('');
       $('upCost').textContent = `花费 ${cost} 军功，升完还剩 ${m - cost}` + (half ? '（召回半价）' : base > cost ? `（杀敌抵了 ${base - cost}）` : '') + '。升级后回满血。';
       $('mUp').classList.remove('hidden'); upOpen = true;
       const fin = v => { $('mUp').classList.add('hidden'); upOpen = false; $('upGo').onclick = $('upNo').onclick = null; res(v); };
@@ -2835,11 +2844,11 @@
       const badge = cls === 'off' ? '锁' : cls === 'cd' ? cd : c.passive ? '被' : '用';
       // 技能本身的冷却时间（不是倒计时；Ham 10-09 td-009：有就写上）
       const cdT = c.cooldown ? `<small class="sc">冷却时间 ${c.cooldown} 回合</small>` : '';
-      sks += `<div class="tsk ${cls}${kind}"><b class="sn">${BF.SKILL_CN[sk]}</b>${cdT}<i class="ss">${st}</i><u class="sb">${badge}</u><span class="sd">${BF.SKILL_DESC[sk]}</span></div>`;
+      sks += `<div class="tsk ${cls}${kind}"><b class="sn">${BF.SKILL_CN[sk]}</b>${cdT}<i class="ss">${st}</i><u class="sb">${badge}</u><span class="sd">${skillDescHtml(sk)}</span></div>`;
     }
     if (sks) h += `<div class="tsks sv${SKV}">${sks}</div>`;
     if (p.lv < mx) { const cost = game.upgradeCost(p), base = game.baseCost(p); h += `<div class="tnx"><b>下一级</b>「${game.rankName(p, p.lv + 1)}」${lvGain(p, p.lv + 1)}<small>　或花 ${cost} 军功升级${base > cost ? `（杀敌抵了 ${base - cost}）` : ''}${halfNow(p) ? '，召回后首次半价' : ''}</small></div>`; }
-    if (game.jmActive(p)) h += '<em>拒马中：这枚兵不能移动；近身来攻的子先挨 1 点（炮隔子打不受影响）</em>';
+    if (game.jmActive(p)) h += '<em>拒马中：这枚兵不能移动；车、马、兵卒、士近身来攻时先失去 <strong class="dmg">1 点生命</strong>；炮、相象、帅将不受反伤</em>';
     if (game.frozen(p)) h += '<em>背水一战后力竭：这回合不能动（被将军时可以去吃将军的子）</em>';
     if (p.s === 'b' && game.fx.sm) h += `<em>军心涣散：还有 ${game.fx.sm} 回合不能走</em>`;
     return h;
@@ -2900,6 +2909,26 @@
     Board.showZone([Math.max(0, k[0] - R), Math.max(0, k[1] - R)], [Math.min(8, k[0] + R), Math.min(9, k[1] + R)], hits);
   }
   const isCompact = () => innerWidth <= 760 || innerWidth / innerHeight < 0.8;
+  function mountPieceActions(on) {
+    const card = $('cardMe'), mount = $('cardActionMount'), row = $('bfRow'), bar = $('bfBar');
+    if (!card || !mount || !row || !bar) return;
+    if (on) {
+      if (!card.classList.contains('piece-action')) {
+        card.style.height = `${card.getBoundingClientRect().height}px`;
+        card.style.boxSizing = 'border-box';
+      }
+      card.classList.add('piece-action');
+      mount.classList.remove('hidden');
+      if (row.parentElement !== mount) mount.appendChild(row);
+      bar.classList.add('hidden');
+    } else {
+      if (row.parentElement !== bar) bar.appendChild(row);
+      card.classList.remove('piece-action');
+      mount.classList.add('hidden');
+      card.style.height = '';
+      card.style.boxSizing = '';
+    }
+  }
   function renderBar() {
     const bar = $('bfBar');
     paintVeil();
@@ -2910,7 +2939,7 @@
     Board.setUpgradeHints(rsOn && !RP && !sel ? candidateCells : []);
     const show = !!(game && game.bf && mode && started && !ended && !game.result && canAct() && !dbgOn);
     bar.classList.toggle('hidden', !show);
-    if (!show) { $('bfRow').innerHTML = ''; $('bfHint').textContent = ''; return; }
+    if (!show) { mountPieceActions(false); $('bfRow').innerHTML = ''; $('bfHint').textContent = ''; return; }
     const B = [];
     let hint = '';
     if (bfMode) {
@@ -2946,7 +2975,7 @@
           }
           for (const k of a.skills) {
             const cn = BF.SKILL_CN[k.sk], skTip = skillTip(a.p, k.sk), C = BF.CFG.skills[k.sk];
-            if (!k.have) { B.push(btn('', 'sk', false, cn, `${LVCN[k.lv]}级解锁`, `${cn}：升到${LVCN[k.lv]}级才解锁`, '', skTip)); continue; }
+            if (!k.have) { B.push(btn('', 'sk', false, cn, isCompact() ? `升到${LVCN[k.lv]}级解锁` : `${LVCN[k.lv]}级解锁`, `${cn}：升到${LVCN[k.lv]}级才解锁`, '', skTip)); continue; }
             // 不能用的原因由规则引擎给出（冷却、封锁、踏营须过河、没有目标……）
             const whyE = game.skillWhy(sel[0], sel[1], k.sk);
             const tag = w => (/冷却/.test(w) ? '冷却' : /敌方半场/.test(w) ? '须先过河' : /四面楚歌/.test(w) ? '涣散中' : /破釜/.test(w) ? '封锁中' : /拒马，/.test(w) ? '已用拒马' : '无目标');
@@ -2959,6 +2988,7 @@
             const why = whyE ? cn + '：' + whyE : '', small = whyE ? tag(whyE) : C.free ? '不占行动' : '可用';
             B.push(btn(why ? '' : 'ready', 'sk" data-sk="' + k.sk, !why, cn, small, why, k.cd ? `<span class="cd" style="--p:${pct}%"></span><span class="cdn">${k.cd}</span>` : '', skTip + (why ? '<br><em>' + why + '</em>' : '')));
           }
+          if (isCompact()) B.push(`<button class="sk" data-a="pieceCancel">返 回<small>收起操作</small></button>`);
         }
       }
       const side = a.side;
@@ -2972,9 +3002,12 @@
       if (!a.p) hint = game.freeUsed ? '已架拒马 · 请再走一步棋' : `${SIDE_ARMY[side]}行动 · 军功 ${game.merit[side]}`;
       if (isCompact() && !game.freeUsed) hint = '';
     }
-    if (!B.length && !(bfMode && bfMode.bs)) { bar.classList.add('hidden'); $('bfRow').innerHTML = ''; $('bfHint').textContent = ''; layoutSoon(); return; }
+    if (!B.length && !(bfMode && bfMode.bs)) { mountPieceActions(false); bar.classList.add('hidden'); $('bfRow').innerHTML = ''; $('bfHint').textContent = ''; layoutSoon(); return; }
     $('bfHint').textContent = hint;
     $('bfRow').innerHTML = B.join('');
+    const cardMode = isCompact() && !!sel && !RP && !watching();
+    mountPieceActions(cardMode);
+    bar.classList.toggle('hidden', cardMode || !show);
     $('bfRow').querySelectorAll('button[data-a]').forEach(b => b.onclick = ev => { ev.stopPropagation(); bfButton(b.dataset.a, b); });
     layoutSoon();
   }
@@ -2982,6 +3015,7 @@
   async function bfButton(a, el) {
     if (!canAct()) return;
     Sfx.select && Sfx.select();
+    if (a === 'pieceCancel') { exitBfMode(false); sel = null; selMoves = []; Board.clearMoves(false); updateHud(); return; }
     if (a === 'pickSkill') { const rs = readySkills(); if (!rs.length) return; const p = rs[skillCycle++ % rs.length]; exitBfMode(false); bfSelect(p[0], p[1]); renderBar(); return; }
     if (el && el.classList.contains('off')) {
       toast(el.dataset.why || '现在不能用', 4200);
@@ -3414,7 +3448,7 @@
   }
   // 兵法：悔棋 = 按行动序列重放到悔棋前（军功、等级、生命、冷却、状态全部还原），棋盘墨晕一下重新摆好
   async function bfRewind(n) {
-    resetTurnReview();
+    clearTurnReview(); turnReviewScope.clearHints(); Board.setUpgradeHints([]);
     bfMode = null; barKey = '';
     Sfx.B.whoosh(0, 0.5, 0.3); Sfx.B.bell(0.1, 660, 0.08);
     for (const m of Board.pieces.values()) Fx.P.ink(m.position.clone().setY(Board.TOP + 0.1), 2, 0.3, 0.25, 0.5);
@@ -3433,7 +3467,7 @@
   }
   function bfUndoTarget(plies) { return game.undoTarget(plies); }
   function applyUndo(plies, side) {
-    resetTurnReview();
+    clearTurnReview(); turnReviewScope.clearHints(); Board.setUpgradeHints([]);
     undoUsed[side]++;
     Board.clearMoves(); sel = null; selMoves = [];
     busy++;
@@ -3560,7 +3594,7 @@
         if (mode) return;
         clearInterval(joinTimer); closeRoom();
         hostSide = d.state.hostSide;
-        startGame('guest', other(d.state.hostSide), d.state.opts, { state: d.state, intro: !(d.state.moves || []).length, lz: seatLz(other(d.state.hostSide)) });
+        startGame('guest', other(d.state.hostSide), d.state.opts, { state: d.state, intro: !(d.state.moves || []).length, lz: seatLz(other(d.state.hostSide)), reviewMuted: takeResumeReview('guest', Net.code) });
         break;
       case 'full': if (!mode && !enteringWatch) enterWatch(Net.code); break;
       case 'vacant':
@@ -4205,7 +4239,7 @@
             if (resumeState !== 'pending') return;
             // 中继上没找到保存的棋局：用本机存的那份接着下
             const r = store.get('resume', null), st = r && r.kind === 'host' && r.code === code && !r.done && r.state;
-            if (st && ((st.moves || []).length || (st.bfe || []).length)) { resumeState = st; hostSide = st.hostSide || side; startGame('host', hostSide, st.opts || o, { state: st, intro: false }); publish(); Net.send({ t: 'sync', state: snapshot() }); return; }
+            if (st && ((st.moves || []).length || (st.bfe || []).length)) { resumeState = st; hostSide = st.hostSide || side; startGame('host', hostSide, st.opts || o, { state: st, intro: false, reviewMuted: takeResumeReview('host', code) }); publish(); Net.send({ t: 'sync', state: snapshot() }); return; }
             resumeState = null; Net.publishRoom({ ...snapshot(), waiting: true });
           }, 4000);
           else if (!started) Net.publishRoom({ ...snapshot(), waiting: true });
@@ -4220,7 +4254,7 @@
           if (loc && !d.result && len(loc) > len(d)) d = loc;
           resumeState = d; hostSide = d.hostSide;
           if (d.waiting && !d.moves.length) return; // 还没开局
-          startGame('host', hostSide, d.opts, { state: d, intro: false });
+          startGame('host', hostSide, d.opts, { state: d, intro: false, reviewMuted: takeResumeReview('host', code) });
           Net.send({ t: 'sync', state: snapshot() });
         }
       },
@@ -4276,22 +4310,30 @@
   // 本地 / 人机：整盘棋存在本机（含揭棋的随机布局、计时、悔棋次数）；联机：存房间码和身份（房主另存一份棋局，中继丢了也能恢复）
   const RESUME_TTL = { local: 3 * 864e5, ai: 3 * 864e5, host: 6 * 3600e3, guest: 6 * 3600e3 };
   let resumeKey = '';
+  function takeResumeReview(kind, code = '') {
+    const r = resumeReviewRestore;
+    if (!r || r.kind !== kind || (r.code && r.code !== code)) return false;
+    resumeReviewRestore = null;
+    return !!r.muted;
+  }
   function saveResume(force) {
     if (!mode || watching() || !started || savedView) return;   // 复盘「我的棋局」时不动「回到对局」
     const G = RP ? RP.real : game;
     const n = G.bf ? G.entries.length : G.history.length, round = G.bf ? G.round : Math.floor(n / 2) + 1;
-    const key = [mode, Net.code, n, G.result ? 1 : 0, undoUsed.r, undoUsed.b].join('|');
+    const turnReviewMuted = !!(G.bf && !G.result && !RP && turnReviewScope.isSuppressed(game));
+    const key = [mode, Net.code, n, G.result ? 1 : 0, undoUsed.r, undoUsed.b, turnReviewMuted ? 1 : 0].join('|');
     if (!force && key === resumeKey) return;
     resumeKey = key;
     if (online()) {
-      store.set('resume', { kind: mode, code: Net.code, side: mySide, opts, n, round, done: !!G.result, state: mode === 'host' ? snapshot() : undefined, t: Date.now() });
+      // turnReviewMuted 是本机界面偏好；state 会发给对手，不能把它塞进 state / snapshot。
+      store.set('resume', { kind: mode, code: Net.code, side: mySide, opts, n, round, done: !!G.result, turnReviewMuted, state: mode === 'host' ? snapshot() : undefined, t: Date.now() });
       if (mode === 'host') { const h = store.get('host', null); if (h && h.code === Net.code) store.set('host', { ...h, t: Date.now() }); }
       return;
     }
     if (G.result) { store.del('resume'); return; }
     if (!n) return;
     store.set('resume', {
-      kind: mode, side: mySide, opts, n, round, t: Date.now(),
+      kind: mode, side: mySide, opts, n, round, t: Date.now(), turnReviewMuted,
       layout: G.jq && G.opts ? G.opts.layout : null, bfbase: G.bf ? G.base : undefined, bfe: G.bf ? G.entries : undefined,
       moves: G.bf ? undefined : G.history.map(h => ({ from: h.from, to: h.to, rv: h.rv })),
       undo: { ...undoUsed }, clk: { r: clock.r, b: clock.b }, step: clock.step,
@@ -4320,14 +4362,15 @@
     if (!r) { paintResume(); return; }
     Sfx.init(); applySettings();
     if (r.kind === 'local' || r.kind === 'ai') {
-      startGame(r.kind, r.side, r.opts, { state: { moves: r.moves, bfe: r.bfe, bfbase: r.bfbase, layout: r.layout, undo: r.undo, clk: r.clk, step: r.step }, intro: false });
+      startGame(r.kind, r.side, r.opts, { state: { moves: r.moves, bfe: r.bfe, bfbase: r.bfbase, layout: r.layout, undo: r.undo, clk: r.clk, step: r.step }, intro: false, reviewMuted: !!r.turnReviewMuted });
       toast('已回到上一局', 1800);
     } else if (r.kind === 'host') {
       const h = store.get('host', null);
+      resumeReviewRestore = { kind: r.kind, code: r.code, muted: !!r.turnReviewMuted };
       try { history.replaceState(null, '', location.pathname + '?room=' + r.code); } catch (e) { }
       hostRoom(r.code, h.opts, h.side, 'pending');
       toast('正在恢复你的房间…');
-    } else joinRoom(r.code);
+    } else { resumeReviewRestore = { kind: r.kind, code: r.code, muted: !!r.turnReviewMuted }; joinRoom(r.code); }
   };
   $('bResumeX').onclick = e => { e.stopPropagation(); store.del('resume'); paintResume(); };
 

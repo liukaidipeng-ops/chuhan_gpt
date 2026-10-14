@@ -557,7 +557,9 @@ const AI = (() => {
     try {
       const src = '(' + XQEngineFactory.toString() + ')';
       const code = `const E = ${src}(); onmessage = e => { const d = e.data; let r; try { r = d.ex ? E.explainPos(d.moves, d.actual, d.time) : d.an ? E.analyzePos(d.moves, d.time) : E.think(d.moves, d.level); } catch (err) { r = { move: null, err: String(err) }; } postMessage({ id: d.id, r }); };`;
-      worker = new Worker(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
+      const workerUrl = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+      try { worker = new Worker(workerUrl); }
+      finally { try { URL.revokeObjectURL(workerUrl); } catch (e) { } }
       worker.onmessage = e => { if (pending && e.data.id === pending.id) { const p = pending; pending = null; p.res(e.data.r); } };
       worker.onerror = () => { worker = null; local = XQEngineFactory(); if (pending) { const p = pending; pending = null; p.res(local.think(p.moves, p.level, { time: 1500 })); } };
     } catch (e) { worker = null; local = XQEngineFactory(); }
