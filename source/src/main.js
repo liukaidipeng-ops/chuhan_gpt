@@ -3156,7 +3156,7 @@
   function clearTurnReview() {
     const p = turnReviewPending; if (!p) return null;
     turnReviewPending = null; $('turnReview').classList.add('hidden'); clock.last = performance.now();
-    Board.setPosition(game); const last = game.history[game.history.length - 1]; Board.showLast(last?.from,last?.to);
+    Board.setPosition(game); Board.faceViewer(viewSide); const last = game.history[game.history.length - 1]; Board.showLast(last?.from,last?.to);
     return p;
   }
   function resetTurnReview() {
@@ -3199,7 +3199,7 @@
           turnReviewPending = {e: JSON.parse(JSON.stringify(e)), choices, game, key: JSON.stringify(game.S), focus: document.activeElement};
           turnReviewScope.clearHints(); Board.setUpgradeHints([]);
           bfMode = null; sel = null; selMoves = []; Board.clearMoves();
-          Board.setPosition(probe); Board.showLast(info.from, info.to); updateHud();
+          Board.setPosition(probe); Board.faceViewer(viewSide); Board.showLast(info.from, info.to); updateHud();
           showTurnReview(); return true;
         }
       }
