@@ -736,7 +736,10 @@
     const W = innerWidth, H = innerHeight;
     const phoneLandscape = H <= 520 && W > H;
     const compact = isCompact() && !phoneLandscape;
+    const wasCompact = document.body.classList.contains('compact');
     document.body.classList.toggle('compact', compact);
+    // 横竖屏切换会改变技能按钮的挂载位置；按实际布局重新挂载，避免横屏仍留在已隐藏的卡片插槽里。
+    if (compact !== wasCompact && game && game.bf && mode && started) renderBar();
     const o = $('cardOpp').getBoundingClientRect(), m = $('cardMe').getBoundingClientRect();
     const st = $('status').style;
     if (compact) { st.left = '50%'; st.top = (o.bottom + 8) + 'px'; st.transform = 'translateX(-50%)'; }
@@ -3005,7 +3008,7 @@
     if (!B.length && !(bfMode && bfMode.bs)) { mountPieceActions(false); bar.classList.add('hidden'); $('bfRow').innerHTML = ''; $('bfHint').textContent = ''; layoutSoon(); return; }
     $('bfHint').textContent = hint;
     $('bfRow').innerHTML = B.join('');
-    const cardMode = isCompact() && !!sel && !RP && !watching();
+    const cardMode = document.body.classList.contains('compact') && !!sel && !RP && !watching();
     mountPieceActions(cardMode);
     bar.classList.toggle('hidden', cardMode || !show);
     $('bfRow').querySelectorAll('button[data-a]').forEach(b => b.onclick = ev => { ev.stopPropagation(); bfButton(b.dataset.a, b); });
