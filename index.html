@@ -20257,6 +20257,10 @@ const LuoZi = (() => {
     tip.textContent = '点一下跳过';
     Object.assign(tip.style, { position: 'absolute', right: '20px', bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))', font: '13px system-ui,sans-serif', letterSpacing: '3px', color: C, opacity: '.7' });
     ov.appendChild(tip);
+    // 盘面上的东西（飞来的子、格线、楚河汉界）都放进这一层：淡出前后按镜头此刻的位置整体校正，保证和下面的三维棋盘对齐
+    const gw = document.createElement('div');
+    Object.assign(gw.style, { position: 'absolute', inset: '0', transformOrigin: '0 0', pointerEvents: 'none' });
+    ov.insertBefore(gw, tip);
     document.body.appendChild(ov);
     let skipped = false;
     const anims = [];
@@ -20282,7 +20286,7 @@ const LuoZi = (() => {
       a.textContent = text; Object.assign(a.style, { color: fg, fontSize: (fs || Math.min(r.w, r.h) * 0.3) + 'px' });
       const mine = p.to === 'K', redHere = (opt.side || 'r') === 'r' ? mine : !mine;
       b2.textContent = redHere ? '帥' : '將'; b2.style.opacity = '0';
-      d.append(a, b2); ov.appendChild(d);
+      d.append(a, b2); gw.appendChild(d);
       return { d, a, b: b2, r, round, to: p.to, bg, bd, red: redHere };
     });
 
@@ -20307,13 +20311,27 @@ const LuoZi = (() => {
     // 2. 画盘（约 1.75 秒）：这时朱底已盖满，调用方可以在下面开局、把镜头放到正上方
     if (opt.ready) await opt.ready();
     g = opt.grid();
+    // 格线是按此刻镜头算的一份快照；之后镜头还可能微调（手机上名牌出现、地址栏收起、窗口尺寸变化），
+    // 所以每帧重算一次格线位置，把整层按横竖两个方向各做一次缩放加平移，贴回三维棋盘上
+    const drawn = { xs: g.xs.slice(), ys: g.ys.slice() };
+    let syncing = true;
+    const sync = () => {
+      if (!syncing) return;
+      try {
+        const n = opt.grid(), ax = (n.xs[8] - n.xs[0]) / (drawn.xs[8] - drawn.xs[0]), ay = (n.ys[9] - n.ys[0]) / (drawn.ys[9] - drawn.ys[0]);
+        if (isFinite(ax) && isFinite(ay) && ax > 0.5 && ay > 0.5 && ax < 2 && ay < 2)
+          gw.style.transform = `matrix(${ax},0,0,${ay},${n.xs[0] - ax * drawn.xs[0]},${n.ys[0] - ay * drawn.ys[0]})`;
+      } catch (e) { }
+      requestAnimationFrame(sync);
+    };
+    requestAnimationFrame(sync);
     const xs = g.xs, ys = g.ys, x0 = xs[0], x8 = xs[8], dx = (x8 - x0) / 8, cx = xs[4];
     const SP = (ys[4] - ys[0]) / 810;                 // 竖线从底线长到河岸用约 0.8 秒
     const V0 = 200, riverMid = (ys[4] + ys[5]) / 2, lines = [];
     const seg = (st, from, to, delay, dur, ease) => {
       const l = document.createElement('div');
       Object.assign(l.style, { position: 'absolute', background: C, pointerEvents: 'none', ...st });
-      ov.insertBefore(l, ov.firstChild); lines.push(l);
+      gw.insertBefore(l, gw.firstChild); lines.push(l);
       anim(l, [{ transform: from }, { transform: to }], { duration: dur, delay, easing: ease });
     };
     for (let r = 0; r < 10; r++) {
@@ -20335,7 +20353,7 @@ const LuoZi = (() => {
     for (const [ch, f] of [['楚', 1.25], ['河', 2.5], ['漢', 5.5], ['界', 6.75]]) {
       const t = document.createElement('div'); t.textContent = ch;
       Object.assign(t.style, { position: 'absolute', left: x0 + f * dx + 'px', top: riverMid + 'px', transform: 'translate(-50%,-50%)', font: `900 ${rf}px ${fontD}`, color: C, pointerEvents: 'none' });
-      ov.insertBefore(t, ov.firstChild);
+      gw.insertBefore(t, gw.firstChild);
       anim(t, [{ opacity: 0 }, { opacity: 1 }], { duration: 350, delay: Math.round(meet), easing: 'ease' });
     }
     await wait(skipped ? 0 : Math.round(meet + 350 + 150));
@@ -20344,6 +20362,7 @@ const LuoZi = (() => {
     tip.remove();
     ov.style.pointerEvents = 'none';
     await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: skipped ? 250 : 700, easing: 'ease', fill: 'forwards' }).finished;
+    syncing = false;
     ov.remove();
   }
   return { play };
@@ -21526,7 +21545,7 @@ const EnvironmentMode = (() => {
     // 大厅盖着时主循环不推镜头（Core.sleepy），这里自己把镜头摆到 Cam 记的位置再算
     try { Core.Cam.update(0); } catch (e) { }
     cam.updateMatrixWorld(); cam.updateProjectionMatrix && cam.updateProjectionMatrix();
-    const pr = (f, r) => { const v = Board.pos(f, r, 0).project(cam); return [(v.x + 1) / 2 * R, (1 - v.y) / 2 * H]; };
+    const pr = (f, r) => { const v = Board.pos(f, r).project(cam); return [(v.x + 1) / 2 * R, (1 - v.y) / 2 * H]; };   // pos 默认高度 = 棋盘面（TOP）：三维格线画在盘面上，之前传了 y=0，比盘面低 0.25，格线会差几像素
     for (let f = 0; f < 9; f++) xs.push(pr(f, 0)[0]);
     for (let r = 0; r < 10; r++) ys.push(pr(0, r)[1]);
     if (xs[0] > xs[8]) xs.reverse(); if (ys[0] > ys[9]) ys.reverse();
