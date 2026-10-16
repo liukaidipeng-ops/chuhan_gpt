@@ -1202,7 +1202,7 @@
     // 大厅盖着时主循环不推镜头（Core.sleepy），这里自己把镜头摆到 Cam 记的位置再算
     try { Core.Cam.update(0); } catch (e) { }
     cam.updateMatrixWorld(); cam.updateProjectionMatrix && cam.updateProjectionMatrix();
-    const pr = (f, r) => { const v = Board.pos(f, r, 0).project(cam); return [(v.x + 1) / 2 * R, (1 - v.y) / 2 * H]; };
+    const pr = (f, r) => { const v = Board.pos(f, r).project(cam); return [(v.x + 1) / 2 * R, (1 - v.y) / 2 * H]; };   // pos 默认高度 = 棋盘面（TOP）：三维格线画在盘面上，之前传了 y=0，比盘面低 0.25，格线会差几像素
     for (let f = 0; f < 9; f++) xs.push(pr(f, 0)[0]);
     for (let r = 0; r < 10; r++) ys.push(pr(0, r)[1]);
     if (xs[0] > xs[8]) xs.reverse(); if (ys[0] > ys[9]) ys.reverse();
