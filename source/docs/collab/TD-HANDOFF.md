@@ -160,7 +160,7 @@ git commit -m "回滚到 abc1234 的线上版本：<原因>" && git push origin 
 - **仓库 Secrets**（只写名字）：
   - `MINIMAX_API_KEY`：MiniMax 语音合成，`voice-lab` 分支的 Actions 用，现在归声音部；
   - `GITHUB_TOKEN`：Actions 自带，`pages-rebuild.yml` 用。
-- **玩家端令牌**：「发给数值部」功能用的 GitHub 令牌只存在 Ham 浏览器的本机存储里（设置键 `ghToken`），不在仓库。
+- **玩家端令牌**：「发给数值部」功能用的 GitHub 令牌只存在 Ham 浏览器的本机存储里（设置键 `ghToken`），不在仓库。新对局工单目标是 `liukaidipeng-ops/chuhan_gpt`；旧工单在本地记录各自的 `issue.repo`，仍按原仓库查询和补块。要继续处理旧工单，令牌需同时保留旧仓库访问。
 - **其他外部依赖**：
   - 运行时没有：three.js、二维码库、字体（志莽行书、思源宋体子集）全打进 `index.html`，不连 CDN、不连 Google 字体；
   - 素材来源和署名见「玩法说明」末尾（0 A.D.、OpenClonk 等）。
@@ -200,7 +200,7 @@ git commit -m "回滚到 abc1234 的线上版本：<原因>" && git push origin 
 **关键接口**：
 - **电脑观察接口**（数值部 H54 / C62）：`BFAI.apiVersion = 1`、`BFAI.obsVersion = 1`。`BFAI.trace = true` 时，`think` 会在 `think.last.trace` 留思考记录；还有 `scoreParts`。都是只读，不影响走法。
 - **对局导出**：`main.js` 的 `exportGame(raw)` 返回对局 JSON（`raw = true`）或文本。
-- **「发给数值部」**：开 GitHub 工单，标题“对局 · …”，标签 `对局`。正文超过 6 万字就 gzip + base64（```` ```bfgz ````），还超就拆成几块，后面的块放评论，每块写“第 i/n 块”。代码在 `main.js` 的 `GH_REPO` / `GH_LABEL` / `gzip64` 一带。
+- **「发给数值部」**：新工单在 `liukaidipeng-ops/chuhan_gpt` 创建，标题“对局 · …”，标签 `对局`。正文超过 6 万字就 gzip + base64（```` ```bfgz ````），还超就拆成几块，后面的块放评论，每块写“第 i/n 块”。每条工单持久化 `issue.repo`；数值部和界面查询必须按这项读取，不能仅凭裸编号。缺字段的旧记录先从原 URL 推导，仍无信息才按旧仓库 `liukaidipeng-ops/chuhan_v01`。代码在 `game-issue-repo.js` 与 `main.js` 的 `GH_REPO` / `GH_LABEL` / `gzip64` 一带。
 - **规则开关 `BF.CFG`**（`bingfa.js` 第 12 行起），常用的：
   - `finalKingHp: 3`、`finalOccupyRounds: 3`：决战；
   - `beishui.on`：背水一战，新局默认开，旧局按 `opts.bs`；

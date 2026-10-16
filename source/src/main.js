@@ -4462,14 +4462,20 @@
   //   工单格式按数值部 C62 / tools/review/decode_issue.js：正文第一段是 Ham 的话，下面 ```json 是导出数据（note、flags、ver 都在里面）；
   //   超过 6 万字改成 gzip + base64 放进 ```bfgz；还超就拆成几块，后面的块放评论，每块开头写「第 i/n 块」
   //   GitHub 令牌只存在这台设备的浏览器里（设置 → 对局与其他），代码和存档里都没有
-  const GH_REPO = 'liukaidipeng-ops/chuhan_v01', GH_API = 'https://api.github.com', GH_MAX = 60000, GH_LABEL = '对局';
+  const GH_REPO = GameIssueRepo.CURRENT_REPO, GH_API = 'https://api.github.com', GH_MAX = 60000, GH_LABEL = '对局';
   const MG_KEY = 'xq3d-mygames', MG_MAX = 40;
   const KIND_CN = { bf: '技能', jq: '揭棋', xq: '象棋' };
   let savedView = null;   // 正在复盘「我的棋局」里的哪一局（这时不动「回到对局」的存档，退出回大厅）
   const ghTok = () => String(store.get('ghToken', '') || '').trim();
   const pad2 = n => String(n).padStart(2, '0');
   const stampOf = t => { const d = new Date(t); return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
-  function mgLoad() { try { const v = JSON.parse(localStorage.getItem(MG_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function mgLoad() {
+    try {
+      const v = JSON.parse(localStorage.getItem(MG_KEY) || '[]'); if (!Array.isArray(v)) return [];
+      if (GameIssueRepo.migrateRecords(v)) try { localStorage.setItem(MG_KEY, JSON.stringify(v)); } catch (e) { }
+      return v;
+    } catch (e) { return []; }
+  }
   function mgSave(list) {
     list = list.slice(0, MG_MAX);
     for (let pass = 0; pass < 200; pass++) {
@@ -4513,7 +4519,7 @@
     $('saveNote').value = old ? old.note || '' : saveCur.note || '';
     $('saveFlags').innerHTML = flagsHtml(G.__flags);
     const sent = old && old.issue && old.issue.n && old.issue.sent >= old.issue.chunks;
-    saveMsg(sent ? `这局已经发给数值部了（工单 #${old.issue.n}）。改了话再存，只改这台设备上的那份。` : ghTok() ? '' : '还没设置 GitHub 令牌：「存并发给数值部」要先在 设置 → 对局与其他 里粘贴令牌（那里有步骤）。', '');
+    saveMsg(sent ? `这局已经发给数值部了（工单 ${GameIssueRepo.shortRepo(GameIssueRepo.repoOf(old.issue))}#${old.issue.n}）。改了话再存，只改这台设备上的那份。` : ghTok() ? '' : '还没设置 GitHub 令牌：「存并发给数值部」要先在 设置 → 对局与其他 里粘贴令牌（那里有步骤）。', '');
     $('bSaveSend').disabled = !!sent;
     $('mSave').classList.remove('hidden');
     setTimeout(() => { try { $('saveNote').focus({ preventScroll: true }); } catch (e) { } }, 60);
@@ -4543,7 +4549,7 @@
     sending = true; $('bSaveSend').disabled = true; saveMsg('正在发给数值部…', '');
     try {
       const iss = await mgSend(rec);
-      saveMsg(`已发出：工单 #${iss.n}${iss.chunks > 1 ? `（分成 ${iss.chunks} 块）` : ''}。数值部看完会在工单里回复、处理完会关掉，「我的棋局」里能看到。`, 'ok');
+      saveMsg(`已发出：工单 ${GameIssueRepo.shortRepo(iss.repo)}#${iss.n}${iss.chunks > 1 ? `（分成 ${iss.chunks} 块）` : ''}。数值部看完会在工单里回复、处理完会关掉，「我的棋局」里能看到。`, 'ok');
       setTimeout(() => $('mSave').classList.add('hidden'), 2600);
     } catch (e) {
       saveMsg('没发出去：' + escH(e.message || e) + '<br>这局已经存在「我的棋局」，可以稍后在那里重发。', 'err');
@@ -4552,16 +4558,19 @@
     sending = false;
   };
   // —— GitHub 工单 ——
-  function ghErr(st, j) {
+  function ghErr(st, j, repo, method) {
     const m = (j && j.message) || '';
     if (st === 401) return '令牌无效或已过期，到「设置 → 对局与其他」重新粘贴';
-    if (st === 403) return /rate limit/i.test(m) ? 'GitHub 暂时限流，过一会儿再试' : '令牌没有写工单的权限：令牌设置里 Permissions → Issues 要选 Read and write';
-    if (st === 404) return '令牌访问不到 chuhan_v01：令牌设置里 Repository access 要选上这个仓库';
+    if (st === 403) return /rate limit/i.test(m) ? 'GitHub 暂时限流，过一会儿再试'
+      : String(method || 'GET').toUpperCase() === 'GET'
+        ? `令牌没有读取 ${GameIssueRepo.shortRepo(repo || GH_REPO)} 的权限：令牌设置里 Repository access 要选上这个仓库`
+        : '令牌没有写工单的权限：令牌设置里 Permissions → Issues 要选 Read and write';
+    if (st === 404) return `令牌访问不到 ${GameIssueRepo.shortRepo(repo || GH_REPO)}：令牌设置里 Repository access 要选上这个仓库`;
     if (st === 410) return '这个仓库关掉了工单功能';
     if (st === 422) return '内容格式不对' + (m ? '（' + m + '）' : '');
     return `GitHub 返回 ${st}` + (m ? '：' + m : '');
   }
-  async function ghReq(path, method, body, noTok) {
+  async function ghReq(path, method, body, noTok, repo) {
     const tok = noTok ? '' : ghTok(), h = { Accept: 'application/vnd.github+json' };
     if (tok) h.Authorization = 'Bearer ' + tok;
     if (body) h['Content-Type'] = 'application/json';
@@ -4569,7 +4578,7 @@
     try { r = await fetch(GH_API + path, { method: method || 'GET', headers: h, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }); }
     catch (e) { throw new Error('连不上 GitHub（网络问题）'); }
     let j = null; try { j = await r.json(); } catch (e) { }
-    if (!r.ok) { const e = new Error(ghErr(r.status, j)); e.status = r.status; throw e; }
+    if (!r.ok) { const e = new Error(ghErr(r.status, j, repo, method)); e.status = r.status; throw e; }
     return j;
   }
   async function gzip64(s) {
@@ -4613,35 +4622,28 @@
   const mgParts = new Map();   // 发了一半断掉的：这次打开网页期间记着没发完的块，重发时接着发
   async function mgSend(rec) {
     if (!ghTok()) throw new Error('还没设置 GitHub 令牌（设置 → 对局与其他）');
-    let iss = rec.issue;
-    if (iss && iss.n && iss.sent < iss.chunks && !mgParts.has(rec.id)) iss = null;   // 上次发了一半、块已经找不回来：重开一条
     const parts = mgParts.get(rec.id) || await issueParts(rec.note, rec.data);
     mgParts.set(rec.id, parts);
-    if (!iss || !iss.n) {
-      const j = await ghReq(`/repos/${GH_REPO}/issues`, 'POST', { title: mgTitle(rec), body: parts[0], labels: [GH_LABEL] });
-      iss = rec.issue = { n: j.number, url: j.html_url, chunks: parts.length, sent: 1, state: 'open', replies: 0, at: Date.now() };
-      mgPut(rec);
-    }
-    for (let i = iss.sent; i < parts.length; i++) {
-      await ghReq(`/repos/${GH_REPO}/issues/${iss.n}/comments`, 'POST', { body: parts[i] });
-      iss.sent = i + 1; mgPut(rec);
-    }
+    const iss = await GameIssueRepo.sendIssue({ rec, parts, title: mgTitle(rec), label: GH_LABEL,
+      request: (path, method, body, repo) => ghReq(path, method, body, false, repo), persist: mgPut });
     mgParts.delete(rec.id);
     return iss;
   }
   // 工单现在的样子：开着 / 数值部回复了几条 / 关了（评论里减掉我们自己拆出去的块）
   async function mgStatus(rec) {
-    const j = await ghReq(`/repos/${GH_REPO}/issues/${rec.issue.n}`);
+    const repo = GameIssueRepo.repoOf(rec.issue), j = await ghReq(GameIssueRepo.issuePath(rec.issue), 'GET', null, false, repo);
+    rec.issue.repo = repo;
     rec.issue.state = j.state; rec.issue.replies = Math.max(0, (j.comments || 0) - Math.max(0, (rec.issue.sent || 1) - 1)); rec.issue.chk = Date.now();
     if (j.html_url) rec.issue.url = j.html_url;
   }
   function stTag(r) {
     const i = r.issue;
     if (!i || !i.n) return '<span class="st">只在本机</span>';
-    if (i.sent < i.chunks) return `<span class="st err">没发完 #${i.n}</span>`;
-    if (i.state === 'closed') return `<span class="st done">数值部已处理 #${i.n}</span>`;
-    if (i.replies > 0) return `<span class="st reply">数值部回复了 ${i.replies} 条 #${i.n}</span>`;
-    return `<span class="st sent">已发 #${i.n} · 等数值部看</span>`;
+    const id = `${GameIssueRepo.shortRepo(GameIssueRepo.repoOf(i))}#${i.n}`;
+    if (i.sent < i.chunks) return `<span class="st err">没发完 ${id}</span>`;
+    if (i.state === 'closed') return `<span class="st done">数值部已处理 ${id}</span>`;
+    if (i.replies > 0) return `<span class="st reply">数值部回复了 ${i.replies} 条 ${id}</span>`;
+    return `<span class="st sent">已发 ${id} · 等数值部看</span>`;
   }
   // —— 我的棋局 ——
   function paintGames() {
@@ -4682,7 +4684,7 @@
     } else if (a === 'send') {
       if (!ghTok()) { $('gamesNote').innerHTML = '<b>还没设置 GitHub 令牌</b>：设置 → 对局与其他 → 发给数值部，粘贴令牌（那里有步骤）。'; return; }
       b.disabled = true; b.textContent = '发送中…';
-      try { const iss = await mgSend(rec); toast(`已发给数值部：工单 #${iss.n}`, 2400); }
+      try { const iss = await mgSend(rec); toast(`已发给数值部：工单 ${GameIssueRepo.shortRepo(iss.repo)}#${iss.n}`, 2400); }
       catch (err) { $('gamesNote').innerHTML = '没发出去：' + escH(err.message || err); }
       paintGames();
     }
@@ -4743,7 +4745,7 @@
   $('bFlagClose').onclick = () => $('mFlag').classList.add('hidden');
   // —— 设置里的 GitHub 令牌 ——
   const GH_HOW = '怎么拿令牌：GitHub 网页右上角头像 → Settings → 左边最下面 Developer settings → Personal access tokens → Fine-grained tokens → Generate new token。'
-    + 'Repository access 选 Only select repositories，选上 chuhan_v01；<b>选好仓库之后</b>下面 Permissions 里才会出现 Issues，把它改成 Read and write。生成后复制，粘贴到上面，点「保存并测试」。';
+    + 'Repository access 选 Only select repositories，选上 chuhan_gpt；<b>选好仓库之后</b>下面 Permissions 里才会出现 Issues，把它改成 Read and write。旧工单仍按原仓库查询和补发；如需处理旧工单，令牌也要保留 chuhan_v01 的访问。生成后复制，粘贴到上面，点「保存并检查」。';
   function paintGh(msg, cls) {
     const t = ghTok();
     $('ghTok').value = '';
@@ -4759,10 +4761,17 @@
     paintGh('正在测试…');
     try {
       const u = await ghReq('/user');
-      // 写权限：把「对局」标签按它现在的颜色原样存一次（不改任何东西），没有 Issues 写权限会被拒
-      const lb = await ghReq(`/repos/${GH_REPO}/labels/${encodeURIComponent(GH_LABEL)}`);
-      await ghReq(`/repos/${GH_REPO}/labels/${encodeURIComponent(GH_LABEL)}`, 'PATCH', { color: lb.color });
-      paintGh(`令牌可用：账号 ${escH(u.login)}，能在 chuhan_v01 开工单。`, 'ok');
+      // 只读确认目标仓库和「对局」标签；写权限在首次真实上传时由 GitHub 验证，不做远端试写
+      let lb;
+      try { lb = await ghReq(`/repos/${GH_REPO}/labels/${encodeURIComponent(GH_LABEL)}`); }
+      catch (e) {
+        if (e && e.status === 404) {
+          paintGh(`账号令牌有效（${escH(u.login)}），但只读检查没有找到 ${GameIssueRepo.shortRepo(GH_REPO)} 的「${escH(GH_LABEL)}」标签，或令牌无法读取该仓库。当前不能确认可以真实上传；请由仓库管理员确认标签和仓库访问。本页不会写远端配置。`, 'err');
+          return;
+        }
+        throw e;
+      }
+      paintGh(`令牌可用：账号 ${escH(u.login)}，能读取 ${GameIssueRepo.shortRepo(GH_REPO)} 和「${escH(lb.name)}」标签；首次真实上传时再验证 Issues 写权限。`, 'ok');
     } catch (e) { paintGh('测试没通过：' + escH(e.message || e) + '<br>' + GH_HOW, 'err'); }
   };
   $('ghDel').onclick = () => { store.del('ghToken'); paintGh('已从这台设备删除令牌。'); };

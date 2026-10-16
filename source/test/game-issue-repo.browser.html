@@ -1,0 +1,91 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Game issue repository browser verification</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 32px; color: #162018; background: #f6f8f4; }
+  main { max-width: 920px; margin: auto; background: white; padding: 28px 34px; border-radius: 14px; box-shadow: 0 3px 18px #0002; }
+  h1 { margin-top: 0; font-size: 25px; }
+  .meta { color: #526257; }
+  .pass { color: #126b34; }
+  .fail { color: #a21b1b; }
+  li { margin: 9px 0; }
+  code { background: #edf2ec; padding: 2px 5px; border-radius: 4px; }
+</style>
+<main>
+  <h1>对局上传仓库迁移 · 浏览器验证</h1>
+  <p class="meta" id="meta">正在执行跨刷新模拟……</p>
+  <ol id="results"></ol>
+</main>
+<script src="../src/game-issue-repo.js"></script>
+<script>
+(async function () {
+  const run = new URLSearchParams(location.search).get('run') || 'manual';
+  const key = `game-issue-browser-test:${run}`;
+  const clone = x => JSON.parse(JSON.stringify(x));
+  function save(state) { localStorage.setItem(key, JSON.stringify(state)); }
+  function add(results, name, ok, detail) { results.push({ name, ok: !!ok, detail }); }
+  function render(results, reloads) {
+    const failures = results.filter(x => !x.ok).length;
+    document.getElementById('meta').textContent = `run=${run} · reloads=${reloads} · ${results.length - failures}/${results.length} passed`;
+    document.getElementById('results').innerHTML = results.map(x => `<li class="${x.ok ? 'pass' : 'fail'}"><b>${x.ok ? 'PASS' : 'FAIL'} · ${x.name}</b><br><code>${String(x.detail).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</code></li>`).join('');
+    document.body.dataset.testStatus = failures ? 'failed' : 'passed';
+  }
+
+  let state = JSON.parse(localStorage.getItem(key) || 'null');
+  if (!state) {
+    state = {
+      stage: 'first-load', reloads: 0, calls: [], results: [],
+      records: [
+        { id: 'legacy', data: { moves: ['a1-a2'], receipt: { ack: 'legacy-kept' } }, issue: { n: 17, url: 'https://github.com/liukaidipeng-ops/chuhan_v01/issues/17', chunks: 3, sent: 1 } },
+        { id: 'current', data: { moves: ['b1-b2'], receipt: { ack: 'current-kept' } }, issue: { n: 17, repo: GameIssueRepo.CURRENT_REPO, url: 'https://github.com/liukaidipeng-ops/chuhan_gpt/issues/17', chunks: 1, sent: 1 } }
+      ]
+    };
+    GameIssueRepo.migrateRecords(state.records);
+    const legacy = state.records[0];
+    const request = async (path, method, body, repo) => {
+      state.calls.push({ phase: 1, path, method, repo, body: body && body.body });
+      if (method === 'GET') return { body: 'first' };
+      if (body && body.body === 'third') throw new Error('simulated offline');
+      return {};
+    };
+    try {
+      await GameIssueRepo.sendIssue({ rec: legacy, parts: ['first', 'second', 'third'], title: 'legacy', label: '对局', request, persist: () => save(state) });
+    } catch (e) {
+      add(state.results, '失败时保存成功块进度', /simulated offline/.test(e.message) && legacy.issue.sent === 2, `error=${e.message}; sent=${legacy.issue.sent}`);
+    }
+    state.stage = 'resume-after-reload';
+    save(state);
+    location.reload();
+    return;
+  }
+
+  if (state.stage === 'resume-after-reload') {
+    state.reloads += 1;
+    const legacy = state.records[0], current = state.records[1];
+    const retryCalls = [];
+    const request = async (path, method, body, repo) => {
+      retryCalls.push({ path, method, repo, body: body && body.body });
+      if (method === 'GET') return { body: 'first' };
+      return {};
+    };
+    await GameIssueRepo.sendIssue({ rec: legacy, parts: ['first', 'second', 'third'], title: 'legacy', label: '对局', request, persist: () => save(state) });
+    add(state.results, '跨刷新后只续传剩余分块', legacy.issue.sent === 3 && retryCalls.length === 2 && retryCalls[1].body === 'third', JSON.stringify(retryCalls));
+    add(state.results, '旧工单续传仍使用旧仓库', retryCalls.every(x => x.repo === GameIssueRepo.LEGACY_REPO && x.path.includes(`/repos/${GameIssueRepo.LEGACY_REPO}/issues/17`)), JSON.stringify(retryCalls.map(x => x.path)));
+    const oldPath = GameIssueRepo.issuePath(legacy.issue), newPath = GameIssueRepo.issuePath(current.issue);
+    add(state.results, '新旧同号工单不串仓库', oldPath !== newPath && oldPath.endsWith('/17') && newPath.endsWith('/17'), `${oldPath} | ${newPath}`);
+    add(state.results, '本地棋局与历史回执跨刷新保留', legacy.data.moves[0] === 'a1-a2' && legacy.data.receipt.ack === 'legacy-kept' && current.data.receipt.ack === 'current-kept', JSON.stringify(state.records.map(x => x.data)));
+    add(state.results, '旧记录从原 URL 推导并持久化仓库', legacy.issue.repo === GameIssueRepo.LEGACY_REPO, legacy.issue.repo);
+    add(state.results, '浏览器确实完成一次 reload', state.reloads === 1, `reloads=${state.reloads}`);
+    state.stage = 'done';
+    save(state);
+    render(state.results, state.reloads);
+    return;
+  }
+
+  render(state.results, state.reloads);
+})().catch(e => {
+  document.getElementById('meta').textContent = 'UNCAUGHT ERROR';
+  document.getElementById('results').innerHTML = `<li class="fail">${String(e.stack || e)}</li>`;
+  document.body.dataset.testStatus = 'failed';
+});
+</script>
