@@ -4684,9 +4684,8 @@
     } else if (a === 'send') {
       if (!ghTok()) { $('gamesNote').innerHTML = '<b>还没设置 GitHub 令牌</b>：设置 → 对局与其他 → 发给数值部，粘贴令牌（那里有步骤）。'; return; }
       b.disabled = true; b.textContent = '发送中…';
-      try { const iss = await mgSend(rec); toast(`已发给数值部：工单 ${GameIssueRepo.shortRepo(iss.repo)}#${iss.n}`, 2400); }
-      catch (err) { $('gamesNote').innerHTML = '没发出去：' + escH(err.message || err); }
-      paintGames();
+      try { const iss = await mgSend(rec); toast(`已发给数值部：工单 ${GameIssueRepo.shortRepo(iss.repo)}#${iss.n}`, 2400); paintGames(); }
+      catch (err) { paintGames(); $('gamesNote').innerHTML = '没发出去：' + escH(err.message || err); }
     }
   });
   // 复盘「我的棋局」里的一局：按本地对局摆出来（不计时、没有电脑），直接进复盘；退出回大厅
