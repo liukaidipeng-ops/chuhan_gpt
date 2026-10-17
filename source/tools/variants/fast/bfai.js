@@ -78,6 +78,11 @@
   // 潜力（汉方视角）：军功够升的子、车差 1～3 功、升一级解锁技能、升了回血、终极兵法够钱 / 快够
   //   每个 [方][兵种][级] 的“升一级解锁技能”“这一级满血几点”只算一次（think() 开始时清掉：规则开关可能变了）
   let potC = null;
+  // 提速：攻击力、等级上限、升级价按 [兵种][等级…] 记住（每次 think() 开始清掉：规则开关可能变了）。升级价还看召回半价（rh）和甲片（xp）
+  let atkC = null, mlvC = null, ucC = null;
+  const atkW = p => { if (!atkC) atkC = {}; const a = atkC[p.t] || (atkC[p.t] = []), lv = p.lv || 1; let x = a[lv]; if (x === undefined) x = a[lv] = A.atk(p); return x; };
+  const maxLvW = t => { if (!mlvC) mlvC = {}; let x = mlvC[t]; if (x === undefined) x = mlvC[t] = BF.maxLvOf(t); return x; };
+  const upCostW = p => { if (!ucC) ucC = new Map(); const k = p.t + p.lv + (p.rh ? 'h' : '') + ':' + (p.xp || 0); let x = ucC.get(k); if (x === undefined) { x = A.upCost(p); ucC.set(k, x); } return x; };
   function potInfo(s, t, lv) {
     if (!potC) potC = { r: {}, b: {} };
     const a = potC[s][t] || (potC[s][t] = []);
@@ -93,8 +98,8 @@
     const U = CFG.ultimates, mr = S.merit.r, mb = S.merit.b;
     let v = 0, gapR = 99, gapB = 99;
     for (const row of S.board) for (const p of row) {
-      if (!p || p.t === 'k' || p.lv >= BF.maxLvOf(p.t)) continue;
-      const c = A.upCost(p); if (c == null) continue;
+      if (!p || p.t === 'k' || p.lv >= maxLvW(p.t)) continue;
+      const c = upCostW(p); if (c == null) continue;
       const red = p.s === 'r', m = red ? mr : mb;
       if (p.t === 'r') { const g = c - m; if (red) { if (g < gapR) gapR = g; } else if (g < gapB) gapB = g; }
       if (c > m) continue;
@@ -120,7 +125,7 @@
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
       const p = b[r][f]; if (!p) continue;
       if (heavyAt(p, f, r)) { if (p.s === 'r') hvR = true; else hvB = true; }
-      if (p.t === 'k' || p.t === 'a') { const k = A.atk(p); if (p.s === 'r') { if (k > dR) dR = k; } else if (k > dB) dB = k; }
+      if (p.t === 'k' || p.t === 'a') { const k = atkW(p); if (p.s === 'r') { if (k > dR) dR = k; } else if (k > dB) dB = k; }
     }
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
       const p = b[r][f]; if (!p) continue;
@@ -347,16 +352,27 @@
   }
   // 局面指纹（两个 32 位散列拼成 53 位的数）
   const TTB = new Map(), wasNull = [];
+  // 提速：不再把整段历史拼成 JSON 字符串再逐字散列；按结构直接散列（键名的散列值记住）。区分的东西和原来一样（结构 + 值；值为 undefined 的键当作没有，和 JSON 一样）
+  const KH = new Map();
+  const kh = k => { let x = KH.get(k); if (x === undefined) { x = 2166136261; for (let i = 0; i < k.length; i++) x = Math.imul(x ^ k.charCodeAt(i), 16777619); x |= 0; KH.set(k, x); } return x; };
+  let h1 = 0, h2 = 0;
+  const mix = x => { h1 = Math.imul(h1 ^ x, 16777619); h2 = (Math.imul(h2, 33) ^ x) | 0; };
+  function hv(v) {
+    if (typeof v === 'number') { mix(v | 0); mix(Math.round(v * 4096) | 0); }
+    else if (typeof v === 'string') { mix(7); mix(kh(v)); }
+    else if (typeof v === 'boolean') mix(v ? 3 : 5);
+    else if (v == null) mix(9);
+    else if (Array.isArray(v)) { mix(11); mix(v.length); for (let i = 0; i < v.length; i++) hv(v[i]); mix(12); }
+    else { mix(13); for (const k in v) { const x = v[k]; if (x === undefined) continue; mix(kh(k)); hv(x); } mix(14); }
+  }
   function fp(S) {
-    let h1 = 2166136261, h2 = 5381;
-    const mix = x => { h1 = Math.imul(h1 ^ x, 16777619); h2 = (Math.imul(h2, 33) ^ x) | 0; };
-    const mixS = t => { for (let i = 0; i < t.length; i++) mix(t.charCodeAt(i)); };
+    h1 = 2166136261; h2 = 5381;
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
       const p = S.board[r][f]; if (!p) continue;
       mix(1000 + r * 9 + f);
-      for (const k in p) { mixS(k); const v = p[k]; if (typeof v === 'number') { mix(v | 0); mix(Math.round(v * 4096) | 0); } else if (typeof v === 'string') { mix(7); mixS(v); } else if (typeof v === 'boolean') mix(v ? 3 : 5); else if (v == null) mix(9); else mixS(JSON.stringify(v)); }
+      for (const k in p) { mix(kh(k)); const v = p[k]; if (typeof v === 'number') { mix(v | 0); mix(Math.round(v * 4096) | 0); } else if (typeof v === 'string') { mix(7); mix(kh(v)); } else if (typeof v === 'boolean') mix(v ? 3 : 5); else if (v == null) mix(9); else hv(v); }
     }
-    mixS(JSON.stringify([S.turn, S.cnt, S.merit, S.used, S.fx, S.crossed, S.dead, S.upgraded, S.ckHist, S.freeUsed, S.jmLock, S.final, S.occ, S.named]));
+    mix(15); hv(S.turn); hv(S.cnt); hv(S.merit); hv(S.used); hv(S.fx); hv(S.crossed); hv(S.dead); hv(S.upgraded); hv(S.ckHist); hv(S.freeUsed); hv(S.jmLock); hv(S.final); hv(S.occ); hv(S.named);
     return (h1 >>> 0) * 2097152 + ((h2 >>> 0) & 2097151);
   }
   const toTT = (v, ply) => (v > WIN / 2 ? v + ply : v < -WIN / 2 ? v - ply : v), fromTT = (v, ply) => (v > WIN / 2 ? v - ply : v < -WIN / 2 ? v + ply : v);
@@ -596,7 +612,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
-    lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
+    lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; atkC = null; mlvC = null; ucC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
     const byNodes = L.nodes > 0;   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
