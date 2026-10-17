@@ -346,6 +346,22 @@ const Board = (() => {
       g.fillStyle = `rgba(90,80,65,${0.03 + rnd() * 0.05})`;
       inkBlot(g, rnd() * w, rnd() * h, 30 + rnd() * 120, 0.6, 0.6);
     }
+    // 画面优化 A2：纸纤维（极淡的短线）+ 干笔草丛（成簇的细弧线）。只在开页时画一次，运行时没有任何开销。
+    //   草丛离边留出余量（贴图四边会拼接，别让笔画被切断）
+    for (let i = 0; i < 900; i++) {
+      g.strokeStyle = `rgba(110,95,75,${0.025 + rnd() * 0.03})`; g.lineWidth = 0.6 + rnd();
+      const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI, l = 6 + rnd() * 18;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+    }
+    g.lineCap = 'round';
+    for (let i = 0; i < 46; i++) {
+      const cx = 40 + rnd() * (w - 80), cy = 50 + rnd() * (h - 70), n = 6 + Math.floor(rnd() * 6);
+      for (let j = 0; j < n; j++) {
+        const x = cx + (rnd() - 0.5) * 26, y = cy + (rnd() - 0.5) * 8;
+        g.strokeStyle = `rgba(${66 + Math.floor(rnd() * 20)},${70 + Math.floor(rnd() * 16)},${52 + Math.floor(rnd() * 14)},${0.10 + rnd() * 0.14})`; g.lineWidth = 1 + rnd() * 1.5;
+        g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + (rnd() - 0.5) * 7, y - 8 - rnd() * 9, x + (rnd() - 0.5) * 16, y - 14 - rnd() * 15); g.stroke();
+      }
+    }
   }, { repeat: true });
   groundTex.repeat.set(6, 3);
   const groundMat = new THREE.MeshStandardMaterial({ map: groundTex, roughness: 1 });
