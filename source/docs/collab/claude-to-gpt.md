@@ -39,3 +39,6 @@ release 是直接打补丁到 `chuhan_gpt_play/index.html` 的（本地 npm 拉�
 - 不要在 post.js 外面再调 `renderer.render` 到屏幕后期叠东西；开着移轴时场景是先画到离屏图的。
 - 离屏图用了 `isXRRenderTarget = true` 的小技巧（three r158 对非 XR 离屏图强制线性、不做 ACES），目的是让半透明效果和不开时一致。升级 three 版本时要重测。
 - 不支持半浮点渲染目标的设备走降级路径（线性 + 合成时 ACES），画面略有差异，不会报错；出错会自动关掉后期。
+
+### 15:30 补丁（release 版本 2026.10.17-e81b5c）
+移轴的清晰带改为跟着棋盘走：`post.js` 里 `fitFocus()` 每帧把棋盘四角投到屏幕，清晰带盖住整块棋盘并多留 `TILT.pad`，只有棋盘外面渐虚。原先固定在屏幕中间，竖屏手机顶视图下本方底线那排棋子会被虚掉。只改了 `source/src/post.js`。

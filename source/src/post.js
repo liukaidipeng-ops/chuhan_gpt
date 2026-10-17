@@ -5,7 +5,7 @@
 // 调参数只改下面 TILT。
 const Post = (() => {
   if (typeof Core === 'undefined') return { on: false };
-  const TILT = { focus: 0.5, band: 0.16, max: 6.0 };   // focus：清晰带中线（屏幕高度的几分之几，0 在下）；band：半宽；max：最虚处模糊半径（像素，按 1080 高度折算）
+  const TILT = { focus: 0.5, band: 0.16, pad: 0.07, max: 6.0 };   // focus、band：清晰带中线、半宽（屏幕高度的几分之几，0 在下），平时由 fitFocus 按棋盘位置算，这里只是取不到棋盘时的备用值；pad：棋盘外多留的清晰边；max：最虚处模糊半径（像素，按 1080 高度折算）
   const R = Core.renderer, gl = R.getContext();
   const opt = { tilt: false };
   let rtS = null, W = 0, H = 0, broken = false;
@@ -47,11 +47,26 @@ const Post = (() => {
     if (rtS) rtS.dispose();
     W = w; H = h; rtS = mkRT(w, h, true);
   }
+  // 清晰带跟着棋盘走：把棋盘四角投到屏幕上，清晰带盖住整块棋盘（再留一圈边），只有棋盘外面才渐虚。
+  //   不跟着走的话，竖屏手机上棋盘占了大半个屏幕，靠上下两头的棋子会被虚掉（本方底线那排最明显）
+  const _v = new THREE.Vector3();
+  function fitFocus(camera) {
+    let f = TILT.focus, b = TILT.band;
+    try {
+      if (typeof Board !== 'undefined' && Board.pos) {
+        let lo = 1, hi = 0;
+        for (const [x, y] of [[0, 0], [8, 0], [0, 9], [8, 9]]) { _v.copy(Board.pos(x, y)).project(camera); const t = (_v.y + 1) / 2; if (t < lo) lo = t; if (t > hi) hi = t; }
+        if (hi > lo) { f = (lo + hi) / 2; b = (hi - lo) / 2 + TILT.pad; }
+      }
+    } catch (e) { }
+    matComp.uniforms.focus.value = f; matComp.uniforms.band.value = b;
+  }
   function pass(mat, target) { quad.material = mat; R.setRenderTarget(target); R.render(quadScene, cam); }
 
   function render(scene, camera) {
     alloc();
     R.setRenderTarget(rtS); R.clear(); R.render(scene, camera);
+    fitFocus(camera);
     const u = matComp.uniforms;
     u.scene.value = rtS.texture; u.tiltOn.value = opt.tilt ? 1 : 0;
     u.px.value.set(1 / W, 1 / H).multiplyScalar(H / 1080);
