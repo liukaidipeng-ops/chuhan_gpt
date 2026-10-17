@@ -741,7 +741,9 @@ Q.push({
     Q.push({
       name: it.name, cat: `战术·${it.level}级·${it.kind}`, desc: it.desc, rules: { bs: !!(it.opts || {}).bs, r6: !!(it.opts || {}).r6 },
       build: () => { const g = new BF.Game(); g.reset(JSON.parse(JSON.stringify(it.S))); return g; },
-      check: it.mode === 'netgain' ? (seq, g0) => { const g = play(g0, seq); return !!g && !g.result && !oppMate1(g.S, it.side) && netGain(g.S, it.side) <= 0; }
+      check: it.mode === 'oneof' ? seq => it.accept.some(x => JSON.stringify(x.filter(a => a.k !== 'sk' || a.to)) === JSON.stringify(seq.filter(a => a.k !== 'sk' || a.to)))   // 拒马（不占行动）不计
+        : it.mode === 'upfirst' ? (seq, g0) => !!play(g0, seq) && seq.some(a => a.k === 'up' && a.at[0] === it.upAt[0] && a.at[1] === it.upAt[1])
+        : it.mode === 'netgain' ? (seq, g0) => { const g = play(g0, seq); return !!g && !g.result && !oppMate1(g.S, it.side) && netGain(g.S, it.side) <= 0; }
         : it.mode === 'nomate' ? (seq, g0) => { const g = play(g0, seq); return !!g && (g.result ? g.result.winner === it.side : !oppMate1(g.S, it.side)); }
         : it.mode === 'maxkill' ? (seq, g0) => { const g = play(g0, seq); return !!g && !g.result && kills(g.S, it.side) <= it.maxKill; }
         : it.mode === 'avoid' ? seq => !same(main(seq), main(it.bad))
