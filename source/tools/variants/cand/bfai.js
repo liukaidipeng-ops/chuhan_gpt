@@ -270,7 +270,13 @@
     }
     ups.sort((x, y) => y.g - x.g);
     // 升级盲区（战术部门 K1，#14）：静态收益进不了前三、但升完解锁新技能的（比如兵升四级解锁神速营贴脸），也留名额
-    if (!upAll) { const top = ups.slice(0, 3); if (UPX) for (const u of ups.slice(3)) { const p = u.S.board.flat().find(q => q && q.id === u.id); if (p && potInfo(side, p.t, p.lv - 1).sk) top.push(u); } ups = top; }
+    if (!upAll) { const top = ups.slice(0, 3); if (UPX) for (const u of ups.slice(3)) { const p = u.S.board.flat().find(q => q && q.id === u.id); if (p && potInfo(side, p.t, p.lv - 1).sk) top.push(u); }
+      // 被将军时：升了能吃掉将军子的也留名额，最多两个（战术部门 K7-3b，g19 第 41 条：升车将军，楚升相再相吃车）
+      if (CHKUP) { const ck = new Set(XQ.checkers(S.board, side === 'r' ? 'b' : 'r')); let n = 0;
+        if (ck.size) for (const u of ups.slice(3)) { if (n >= 2) break; if (top.includes(u)) continue;
+          let at = null; for (let r = 0; r < 10 && !at; r++) for (let f = 0; f < 9; f++) { const q = u.S.board[r][f]; if (q && q.id === u.id) { at = [f, r]; break; } }
+          if (at && A.moveTargets(u.S, at[0], at[1]).some(m => { const q = u.S.board[m.to[1]][m.to[0]]; return q && ck.has(q.id); })) { top.push(u); n++; } } }
+      ups = top; }
     if (side === 'b' && PFX) for (const u of ups) { pfAlias.set(u.S, S); pfUp.set(u.S, u.id); }
     upCache.set(S, ups);
     return ups;
