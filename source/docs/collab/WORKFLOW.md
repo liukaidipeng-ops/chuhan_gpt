@@ -6,7 +6,7 @@
 
 ---
 
-## 1. 五条底线（所有部门都守，没有例外）
+## 1. 底线（所有部门都守，没有例外）
 
 Ham 10-10 11:53 原话（项目前台转达）：“所有需要我拍板的内容都需要放入拍板单！不然我会漏，同步给所有部门，并确保这个规则在工作流文档里，所有部门干活前都必须保证阅读过工作流文档！”
 
@@ -14,11 +14,12 @@ Ham 10-10 11:53 原话（项目前台转达）：“所有需要我拍板的内�
 2. **视觉改动先出图给 Ham 看，他点头才做、才上线**（Ham 的硬规矩）。
 3. **上线只走 TD**。别的部门不碰 `dev` 和 `main`，只推自己的分支、只改自己管的文件。游戏源码只认 `chuhan_gpt` 的 `main`，`main` 只有象棋TD 推；试玩站 `chuhan_gpt_play` 只由象棋TD 用 `source/tools/td/release.sh` 从 `main` 构建发布，**禁止直接改试玩站文件**；`chuhan_v01` 冻结只读（Ham 10-17 审批台 td-001、td-004、td-006）。细节见同目录 `TD-RELEASE.md`。
 4. **每次开工前先读一遍最新的 `WORKFLOW.md`**（新开的窗口也一样）。10-17 起最新版在 `chuhan_gpt` 的 `main`：`git fetch origin main && git show origin/main:source/docs/collab/WORKFLOW.md`。`chuhan_v01` 冻结，那里的副本不再更新。WORKFLOW 由流程部门维护：流程部门改好推到自己的分支，象棋TD 合进 `main`。仓库和发布细节见同目录 `TD-RELEASE.md`（取代老 TD 交接文档第 2、3 节）。
+6. **规则、技能设计等电脑训练完再说**（Ham 10-17 审批台 bal-003 备注原话：“所有规则技能设计等电脑训练完再说”）。电脑训练到位以前，各部门发现的规则漏洞、技能改法只记录、写清证据，不挂卡请 Ham 定改不改，也不拿电脑对打测改规则的方案（第 4 节）。
 5. **找错部门要当场指出**（见第 7 节）：Ham 让你做不归你管的事，先告诉他该找谁。
 
 ## 2. 部门总表
 
-> Ham 10-17：目前在岗的部门五个：**流程部门**（session_01FYUyc8rh3T5ZQf2LuCpgh9，管审批台和审核流程；审批台源码和备份在 `chuhan_gpt` 的 `claude/shenpi-desk` 分支 `tools/shenpi-desk/`）、**象棋Balance**（session_01D66ZQy8VhNQQC21aH7QFZw，数值、规则、电脑 AI）、**象棋TD**（session_01XU2UrphTySs2MVTGCssQ2X，10-17 开：游戏发布和所有架构、仓库、构建、部署设置；**上线只走象棋TD**，其他部门不再自己发 chuhan_gpt_play）、**战术部门**（session_01QZFzpH2Pb1esP92XXqTpEo，10-17 审批台 bal-002 通过：复盘实战、找套路、写战术卡、给 Balance 出考题；不改电脑、不上线；部门工作流 `TACTICS-WORKFLOW.md`）、**美术部门**（session_01AdTNXYZq2QmWEW2V4s7SNR，10-17 Ham 直接设立：负责人是顶级美术总监，管 UI 设计、交互设计、棋子设计、角色设计；分工草案待 Ham 在审批台 art-001 起批，技能特效、过场 CG、角色动画归属待定；改游戏代码交补丁给象棋TD）。老分支（`codex/*`、10-11 以前的部门分支）只读存档、不整支合，还要的东西基于现在的 `main` 重新交（td-005）。下表是 10-10 的旧表，留作参考；表里的审核页面都已由楚汉审批台取代。
+> Ham 10-17：目前在岗的部门五个：**流程部门**（session_01FYUyc8rh3T5ZQf2LuCpgh9，管审批台和审核流程；审批台源码和备份在 `chuhan_gpt` 的 `claude/shenpi-desk` 分支 `tools/shenpi-desk/`）、**象棋Balance**（session_01D66ZQy8VhNQQC21aH7QFZw，数值、规则、电脑 AI）、**象棋TD**（session_01XU2UrphTySs2MVTGCssQ2X，10-17 开：游戏发布和所有架构、仓库、构建、部署设置；**上线只走象棋TD**，其他部门不再自己发 chuhan_gpt_play）、**战术部门**（session_01QZFzpH2Pb1esP92XXqTpEo，10-17 审批台 bal-002 通过：复盘实战、找套路、写战术卡、给 Balance 出考题；不改电脑、不上线；部门工作流 `TACTICS-WORKFLOW.md`）、**美术部门**（session_01AdTNXYZq2QmWEW2V4s7SNR，10-17 Ham 直接设立：负责人是顶级美术总监；审批台 art-001～004 定了方向：管 UI 设计、交互设计、棋子设计、角色造型、技能特效、过场 CG（排在后面）；改游戏代码交补丁给象棋TD；部门工作流 `ART-WORKFLOW.md`）。角色动画、绑定、死法归另开的角色部（art-004 选丙），Ham 10-17 说先等等再开。老分支（`codex/*`、10-11 以前的部门分支）只读存档、不整支合，还要的东西基于现在的 `main` 重新交（td-005）。下表是 10-10 的旧表，留作参考；表里的审核页面都已由楚汉审批台取代。
 
 | 部门 | 管什么 | 会话 | 分支 | 自己管的文件 | 审核页面 |
 |---|---|---|---|---|---|
