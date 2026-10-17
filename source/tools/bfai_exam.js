@@ -714,13 +714,20 @@ Q.push({
     for (const X of st) for (const e of BF.ai.gen(X, false)) { const R = BF.attempt(X, e.a); if (!R) continue; const n = (R.ev || []).filter(v => v.e === 'kill' && v.s === side).length; if (n > best) best = n; }
     return best;
   };
+  const oppMate1 = (S, side) => {   // 轮到 side 的对手：它（可先升一级）能不能一步将死 side
+    const opp = S.turn, st = [S];
+    if (!S.upgraded) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.s === opp && p.t !== 'k') { const U = BF.ai.upgradeState(S, [f, r]); if (U) st.push(U); } }
+    for (const X of st) for (const e of BF.ai.gen(X, false)) { const R = BF.attempt(X, e.a); if (!R) continue; const ev = BF.evaluate(R.S); if (ev && ev.result && ev.result.winner === opp) return true; }
+    return false;
+  };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b), main = seq => seq[seq.length - 1];
   for (const f of fs.existsSync(dir) ? fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort() : []) {
     const it = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
     Q.push({
       name: it.name, cat: `战术·${it.level}级·${it.kind}`, desc: it.desc, rules: { bs: !!(it.opts || {}).bs, r6: !!(it.opts || {}).r6 },
       build: () => { const g = new BF.Game(); g.reset(JSON.parse(JSON.stringify(it.S))); return g; },
-      check: it.mode === 'maxkill' ? (seq, g0) => { const g = play(g0, seq); return !!g && !g.result && kills(g.S, it.side) <= it.maxKill; }
+      check: it.mode === 'nomate' ? (seq, g0) => { const g = play(g0, seq); return !!g && (g.result ? g.result.winner === it.side : !oppMate1(g.S, it.side)); }
+        : it.mode === 'maxkill' ? (seq, g0) => { const g = play(g0, seq); return !!g && !g.result && kills(g.S, it.side) <= it.maxKill; }
         : it.mode === 'avoid' ? seq => !same(main(seq), main(it.bad))
         : seq => same(main(seq), main(it.answer)) && it.answer.filter(a => a.k === 'up').every(u => seq.some(a => same(a, u))),
       answer: it.answer, bad: it.bad, avoidOnly: it.mode === 'avoid' && !it.answer,
