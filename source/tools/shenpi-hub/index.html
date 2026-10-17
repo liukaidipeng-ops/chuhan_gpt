@@ -237,6 +237,12 @@ dl.facts dd.warn { color: var(--zhu); }
 
 <script>
 (() => {
+  // ---------- 项目配置：换项目时只改这里（再改 <title> 和 <h1> 两处标题） ----------
+  const CONFIG = {
+    title: '楚汉审批台',                                       // 页面标题，也是通知的抬头
+    owner: 'Ham',                                              // 拍板的人怎么称呼
+    deptOrder: ['象棋TD', '象棋Balance', '战术部门', '流程部门'], // 部门的排列顺序；没列的排在后面
+  };
   const $ = id => document.getElementById(id);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const pad = n => String(n).padStart(2, '0');
@@ -264,7 +270,7 @@ dl.facts dd.warn { color: var(--zhu); }
   const STAGE_KEY = Object.fromEntries(Object.entries(STAGE).map(([k, v]) => [v, k]));
   const stageKey = s => STAGE[s] ? s : (STAGE_KEY[s] || s);
   const SEAL = { approved: '准', chosen: '选', changes: '改', hold: '缓', closed: '结' };
-  const DEPT_ORDER = ['象棋TD', '象棋Balance', '战术部门', '流程部门'];
+  const DEPT_ORDER = CONFIG.deptOrder;
 
   let db = null, loaded = { items: false, decisions: false }, readOnly = false;
   let items = [], decs = new Map(), rcpts = new Map(), notices = new Map(), deptDocs = new Map();
@@ -430,7 +436,7 @@ dl.facts dd.warn { color: var(--zhu); }
   }
   $('notifyTest').addEventListener('click', async () => {
     const b = $('notifyTest'); b.disabled = true; b.textContent = '正在发…';
-    const r = await send('【楚汉审批台】测试通知，只测通知，不用处理，也不要据此做任何改动。');
+    const r = await send('【' + CONFIG.title + '】测试通知，只测通知，不用处理，也不要据此做任何改动。');
     b.textContent = r.ok ? '测试通知发出去了' : '没发出去（' + r.code + '）';
     setTimeout(() => { b.disabled = false; b.textContent = '发一条测试通知'; }, 4000);
   });
@@ -451,7 +457,7 @@ dl.facts dd.warn { color: var(--zhu); }
   function summaryText(batch, lines, left) {
     const byDept = new Map();
     for (const l of lines) { if (!byDept.has(l.dept)) byDept.set(l.dept, []); byDept.get(l.dept).push(l.text); }
-    let t = '【楚汉审批台】Ham 一次提交了 ' + lines.length + ' 件（批次 ' + batch + '）' + (left ? '，还剩 ' + left + ' 件没批' : '，全部批完') + '：';
+    let t = '【' + CONFIG.title + '】' + CONFIG.owner + ' 一次提交了 ' + lines.length + ' 件（批次 ' + batch + '）' + (left ? '，还剩 ' + left + ' 件没批' : '，全部批完') + '：';
     for (const [dept, ls] of byDept) t += '\n▸ ' + dept + '（' + ls.length + '）\n' + ls.join('\n');
     return t;
   }
@@ -496,7 +502,7 @@ dl.facts dd.warn { color: var(--zhu); }
     let msg = '存好了 ' + saved.length + ' 件' + (saved.length < picked.length ? '，' + (picked.length - saved.length) + ' 件没存上（看红字）' : '') + '。';
     if (saved.length) {
       const left = items.filter(d => phase(d) === 'pending' && !saved.includes(d.id)).length;
-      const text = summaryText(batch, lines, left) + '\n\n请出题部门：读 decisions/<卡片id>，照 Ham 原话记进拍板记录，在 receipts/<卡片id> 写 ack 回执。别的部门的件不用管。';
+      const text = summaryText(batch, lines, left) + '\n\n请出题部门：读 decisions/<卡片id>，照 ' + CONFIG.owner + ' 原话记进拍板记录，在 receipts/<卡片id> 写 ack 回执。别的部门的件不用管。';
       const r = await send(text);
       try { await db.doc('notices/' + batch).set({ at: now, items: saved, ok: r.ok, code: r.code, text }); } catch (e) { /* 通知记录没存上不影响决定本身 */ }
       msg += r.ok ? '已经发评论通知各部门，等它们写回执。' : '没能通知到（' + r.code + '），请在聊天里说一声「审批台批好了」，或点已批里的「复制摘要」发过去。';
@@ -515,7 +521,7 @@ dl.facts dd.warn { color: var(--zhu); }
       await db.doc('decisions/' + id).set(JSON.parse(JSON.stringify({ rev: 0, status: '', withdrawnAt: now, withdrawNote: why, withdrawBatch: batch, withdrew: { label: cur.label || '', pass: cur.pass || '', at: cur.at || '' }, history })));
     } catch (e) { st.err = '没撤回成功（' + ((e && e.code) || '出错') + '），再点一次。'; allBusy = false; render(); setBar(''); return; }
     st.wConfirm = false; st.wNote = '';
-    const text = '【楚汉审批台】Ham 撤回了 1 件（批次 ' + batch + '）：\n▸ ' + (it.dept || '未分部门') + '（1）\n· ' + (it.code || id) + '「' + (it.title || '') + '」：撤回 ' + when(cur.at) + ' 批的「' + (cur.label || cur.status) + '」' + (cur.pass ? '（' + cur.pass + '）' : '') + (why ? '。原因：' + why : '') +
+    const text = '【' + CONFIG.title + '】' + CONFIG.owner + ' 撤回了 1 件（批次 ' + batch + '）：\n▸ ' + (it.dept || '未分部门') + '（1）\n· ' + (it.code || id) + '「' + (it.title || '') + '」：撤回 ' + when(cur.at) + ' 批的「' + (cur.label || cur.status) + '」' + (cur.pass ? '（' + cur.pass + '）' : '') + (why ? '。原因：' + why : '') +
       '\n\n原来的决定作废，这件回到待批。已经照它开工的请先停下，在 receipts/<卡片id> 写 ack 回执，说明做到哪一步、改了的东西怎么处理（撤回不等于自动回滚）。';
     const r = await send(text);
     try { await db.doc('notices/' + batch).set({ at: now, items: [id], ok: r.ok, code: r.code, text, kind: 'withdraw' }); } catch (e) { /* 通知记录没存上不影响撤回本身 */ }
