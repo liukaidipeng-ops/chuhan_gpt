@@ -125,6 +125,9 @@ dl.facts dd.warn { color: var(--zhu); }
 .st.ok { color: var(--ok); }
 .st.wait { color: var(--amber); }
 .st.bad { color: var(--zhu); }
+.wbox { display: grid; gap: 8px; border: 1.5px solid var(--zhu); border-radius: 8px; padding: 10px 12px; background: var(--zhu-soft); }
+.wbox p { margin: 0; font-size: 14px; }
+.wbox textarea { width: 100%; min-height: 52px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); font: inherit; resize: vertical; }
 .log { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 13px; border-left: 2px solid var(--rule); padding-left: 10px; }
 .log b { font-weight: 700; margin-right: 4px; }
 .log .blocked b { color: var(--zhu); }
@@ -501,12 +504,23 @@ dl.facts dd.warn { color: var(--zhu); }
     allBusy = false; render(); setBar(msg);
   }
 
-  async function withdraw(id) {                             // 撤回：决定放进历史，卡片回到待批；按 Ham 定的规矩不发通知
-    const cur = decs.get(id); if (!cur || !db) return;
-    const now = new Date().toISOString(), history = arr(cur.history).slice(-19);
+  // 撤回：先点「撤回」只展开确认框，点「确认撤回并通知」才真撤回、才通知出题部门（Ham 10-17：撤回要通知，但要点确认）
+  async function withdraw(d) {
+    const id = d.id, it = d.it, cur = decs.get(id), st = S(id); if (!cur || !db || allBusy) return;
+    allBusy = true; setBar('正在撤回…'); render();
+    const now = new Date().toISOString(), batch = 'w' + now.replace(/\D/g, '').slice(2, 14) + Math.random().toString(36).slice(2, 5);
+    const why = (st.wNote || '').trim(), history = arr(cur.history).slice(-19);
     history.push(Object.assign({}, cur, { history: undefined, withdrawnAt: now }));
-    try { await db.doc('decisions/' + id).set(JSON.parse(JSON.stringify({ rev: 0, status: '', withdrawnAt: now, history }))); }
-    catch (e) { S(id).err = '没撤回成功（' + ((e && e.code) || '出错') + '），再点一次。'; render(); }
+    try {
+      await db.doc('decisions/' + id).set(JSON.parse(JSON.stringify({ rev: 0, status: '', withdrawnAt: now, withdrawNote: why, withdrawBatch: batch, withdrew: { label: cur.label || '', pass: cur.pass || '', at: cur.at || '' }, history })));
+    } catch (e) { st.err = '没撤回成功（' + ((e && e.code) || '出错') + '），再点一次。'; allBusy = false; render(); setBar(''); return; }
+    st.wConfirm = false; st.wNote = '';
+    const text = '【楚汉审批台】Ham 撤回了 1 件（批次 ' + batch + '）：\n▸ ' + (it.dept || '未分部门') + '（1）\n· ' + (it.code || id) + '「' + (it.title || '') + '」：撤回 ' + when(cur.at) + ' 批的「' + (cur.label || cur.status) + '」' + (cur.pass ? '（' + cur.pass + '）' : '') + (why ? '。原因：' + why : '') +
+      '\n\n原来的决定作废，这件回到待批。已经照它开工的请先停下，在 receipts/<卡片id> 写 ack 回执，说明做到哪一步、改了的东西怎么处理（撤回不等于自动回滚）。';
+    const r = await send(text);
+    try { await db.doc('notices/' + batch).set({ at: now, items: [id], ok: r.ok, code: r.code, text, kind: 'withdraw' }); } catch (e) { /* 通知记录没存上不影响撤回本身 */ }
+    allBusy = false; render();
+    setBar('撤回了「' + (it.title || id) + '」，' + (r.ok ? '已通知' + (it.dept || '部门') + '。' : '但没通知到（' + r.code + '），请在聊天里跟' + (it.dept || '部门') + '说一声。'));
   }
 
   async function copySummary(n, btn) {
@@ -575,7 +589,12 @@ dl.facts dd.warn { color: var(--zhu); }
     const it = d.it, st = S(d.id), c = el('article', 'card'); c.id = 'card-' + d.id;
     c.append(metaRow(d), el('h2', null, it.title || '（没写标题）'));
     const dec = decs.get(d.id), last = dec && dec.status ? dec : arr(dec && dec.history).slice(-1)[0];
-    if (last && last.status && rev(it) > 1) c.append(el('p', 'prev', '上一版（第 ' + (last.rev || 1) + ' 版）你' + (last.withdrawnAt ? '选过又撤回了：' : '选了：') + (last.label || last.status) + (last.note ? '。备注：' + last.note : '')));
+    if (dec && dec.withdrawnAt && !dec.status) {   // 刚撤回的：写明撤回了什么、通知到没有、部门回执没有
+      const w = dec.withdrew || {}, n = notices.get(dec.withdrawBatch), rc = rcpts.get(d.id), box = el('div', 'prev');
+      box.append(el('div', null, when(dec.withdrawnAt) + ' 你撤回了「' + (w.label || '之前的决定') + '」' + (dec.withdrawNote ? '，原因：' + dec.withdrawNote : '') + '。'));
+      box.append(el('div', null, rc && rc.ack && rc.ack.at >= dec.withdrawnAt ? '✓ ' + (it.dept || '部门') + '已收到撤回：' + (rc.ack.text || '') : n && n.ok ? '已通知' + (it.dept || '部门') + '，等它确认收到…' : n ? '没通知到（' + (n.code || '原因不明') + '），请在聊天里说一声。' : '没有通知记录，请在聊天里说一声。'));
+      c.append(box);
+    } else if (last && last.status && rev(it) > 1) c.append(el('p', 'prev', '上一版（第 ' + (last.rev || 1) + ' 版）你' + (last.withdrawnAt ? '选过又撤回了：' : '选了：') + (last.label || last.status) + (last.note ? '。备注：' + last.note : '')));
     if (it.ask) c.append(el('p', 'ask', it.ask));
     if (arr(it.points).length) { const ul = el('ul', 'points'); it.points.forEach(p => { const li = el('li'); li.append(linked(p)); ul.append(li); }); c.append(ul); }
     const fx = facts(it); if (fx) c.append(fx);
@@ -659,8 +678,17 @@ dl.facts dd.warn { color: var(--zhu); }
     }
     const side = el('div', 'side');
     if (dec) side.append(el('span', null, when(dec.at) + ' 批'));
-    if (dec) { const u = el('button', 'mini', '撤回'); u.type = 'button'; u.disabled = allBusy; u.title = '退回待批，不发通知'; u.addEventListener('click', () => withdraw(d.id)); side.append(u); }
+    if (dec && !st.wConfirm) { const u = el('button', 'mini', '撤回'); u.type = 'button'; u.disabled = allBusy; u.addEventListener('click', () => { st.wConfirm = true; render(); const t = $('wnote-' + d.id); if (t) t.focus(); }); side.append(u); }
     body.append(side);
+    if (dec && st.wConfirm) {
+      const box = el('div', 'wbox'), ta = el('textarea'), acts = el('div', 'acts'), ok = el('button', 'b', '确认撤回并通知'), no = el('button', 'b quiet', '算了');
+      box.append(el('p', null, '撤回后这件回到待批，原来的「' + (dec.label || '') + '」作废，并通知' + (it.dept || '部门') + '。还没确认，什么都没发生。'));
+      ta.id = 'wnote-' + d.id; ta.placeholder = '为什么撤回（可以不写）'; ta.value = st.wNote || ''; ta.setAttribute('aria-label', '撤回原因');
+      ta.addEventListener('input', () => { st.wNote = ta.value; });
+      ok.type = no.type = 'button'; ok.disabled = no.disabled = allBusy;
+      ok.addEventListener('click', () => withdraw(d)); no.addEventListener('click', () => { st.wConfirm = false; st.wNote = ''; render(); });
+      acts.append(ok, no); box.append(ta, acts); body.append(box);
+    }
     if (st.err) body.append(el('p', 'err', st.err));
     r.append(body); r.id = 'row-' + d.id;
     return r;
@@ -726,7 +754,7 @@ dl.facts dd.warn { color: var(--zhu); }
     const ready = loaded.items && loaded.decisions;
     const allPend = items.filter(d => phase(d) === 'pending'), P = visible('pending'), D = visible('done');
     const build = (d, pend) => {
-      const st = S(d.id), sig = JSON.stringify([pend, d.it, decs.get(d.id), rcpts.get(d.id), pend ? null : notices.get((decs.get(d.id) || {}).batch), st.pick, st.files, st.uploading, st.err, allBusy]);
+      const dec = decs.get(d.id) || {}, st = S(d.id), sig = JSON.stringify([pend, d.it, dec, rcpts.get(d.id), notices.get(dec.batch || dec.withdrawBatch), st.pick, st.files, st.uploading, st.err, st.wConfirm, allBusy]);
       const old = nodes.get(d.id); if (old && old.sig === sig) return old.node;
       const node = pend ? pendingCard(d) : doneRow(d); nodes.set(d.id, { sig, node }); return node;
     };
