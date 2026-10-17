@@ -264,7 +264,7 @@ dl.facts dd.warn { color: var(--zhu); }
   const STAGE_KEY = Object.fromEntries(Object.entries(STAGE).map(([k, v]) => [v, k]));
   const stageKey = s => STAGE[s] ? s : (STAGE_KEY[s] || s);
   const SEAL = { approved: '准', chosen: '选', changes: '改', hold: '缓', closed: '结' };
-  const DEPT_ORDER = ['象棋Balance', '流程部门'];
+  const DEPT_ORDER = ['象棋TD', '象棋Balance', '流程部门'];
 
   let db = null, loaded = { items: false, decisions: false }, readOnly = false;
   let items = [], decs = new Map(), rcpts = new Map(), notices = new Map(), deptDocs = new Map();
