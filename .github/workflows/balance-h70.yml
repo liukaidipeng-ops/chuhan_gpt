@@ -1,0 +1,45 @@
+name: Balance H70 diagnostic
+on:
+  push:
+    branches: [codex/balance-h70-20261012]
+    paths: ['.github/workflows/balance-h70.yml','source/tools/h70_probe.js','source/src/bfai.js']
+permissions:
+  contents: write
+concurrency:
+  group: balance-h70
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compare rule and search
+        run: node source/tools/h70_probe.js
+      - name: Rule and AI regression suites
+        working-directory: source
+        run: |
+          for suite in rules jieqi bingfa beishui r6 engine bfai bfai.policy; do
+            node "test/$suite.test.js" > "../h70-results/$suite.log" 2>&1 || { cat "../h70-results/$suite.log"; exit 1; }
+            tail -n 2 "../h70-results/$suite.log"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: h70-diagnostic
+          path: h70-results/
+      - name: Save diagnostic evidence
+        run: |
+          mkdir -p docs/codex/h70
+          cp h70-results/* docs/codex/h70/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/codex/h70
+          git diff --cached --quiet || git commit -m "Record H70 candidate validation"
+          git pull --rebase origin codex/balance-h70-20261012
+          git push origin HEAD:codex/balance-h70-20261012

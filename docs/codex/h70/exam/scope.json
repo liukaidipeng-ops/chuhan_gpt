@@ -1,0 +1,15 @@
+{
+  "baseline": "11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5",
+  "nodes": 6000,
+  "runs": 3,
+  "excluded": [
+    "30 防贴脸将军",
+    "31 护驾被封：马闷杀",
+    "32 飞越被封：车进象口抢杀",
+    "34 踏营被封：车捉双",
+    "35 踏营被封：关门打马",
+    "36 吃炮不怕破釜：护驾被封就闷杀",
+    "37 先吃炮：破釜之后再防也来得及"
+  ],
+  "reason": "These seven baseline fixtures fail their own answer/negative-example checks. This subset is preliminary evidence, not full exam or 600-game qualification."
+}
