@@ -748,7 +748,7 @@ Q.push({
         : it.mode === 'maxkill' ? (seq, g0) => { const g = play(g0, seq); return !!g && !g.result && kills(g.S, it.side) <= it.maxKill; }
         : it.mode === 'avoid' ? seq => !same(main(seq), main(it.bad))
         : seq => same(main(seq), main(it.answer)) && it.answer.filter(a => a.k === 'up').every(u => seq.some(a => same(a, u))),
-      answer: it.answer, bad: it.bad, avoidOnly: it.mode === 'avoid' && !it.answer, disabled: it.disabled,
+      answer: it.answer, bad: it.bad, avoidOnly: it.mode === 'avoid' && !it.answer, disabled: it.disabled, inCheck: it.inCheck,
     });
   }
 }
