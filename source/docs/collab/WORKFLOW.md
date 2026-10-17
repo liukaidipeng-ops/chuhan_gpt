@@ -1,5 +1,7 @@
 # 技能新象棋 · 各部门工作流和审核标准
 
+> **已搬家（10-17）**：`chuhan_v01` 冻结只读（Ham 审批台 td-001），这份是搬家时的最后一版，**以后不再更新**。最新版看 `chuhan_gpt` 的 `main`：`source/docs/collab/WORKFLOW.md`。
+
 > Ham 10-10 定：“你来统一一个所有 code 窗口的审核标准，比如通过拍板单之类的，写进我们的工作流里面，每有新部门都需要按照工作流来执行。”
 > 数值部起草。部门总表以后交给 TD 维护。改这份文件要 Ham 点头。
 > **每个部门每次开工前都先读一遍最新的这份文件（新开的窗口也一样），新部门再照第 6 节的清单做。**
@@ -12,13 +14,13 @@ Ham 10-10 11:53 原话（项目前台转达）：“所有需要我拍板的内�
 
 1. **要 Ham 拍板的事，一律做成第 3 节审核页面上的题**：文字决策、看的、听的，一律挂到**楚汉审批台** https://claude.ai/artifact/54kSdoofarWafayd9DUjou （Ham 10-17：“要用这一页”）。**不能只在聊天里问**，聊天里只说一句“挂在哪、几题”，不然 Ham 会漏。不在聊天里随口定。拍板结果照 Ham 原话记进本部门的拍板记录：数值部是 `source/docs/collab/decisions.md`，其他部门在自己分支上建 `source/docs/collab/decisions-<部门名>.md`（各写各的，不改别人的）。
 2. **视觉改动先出图给 Ham 看，他点头才做、才上线**（Ham 的硬规矩）。
-3. **上线只走 TD**。别的部门不碰 `dev` 和 `main`，只推自己的分支、只改自己管的文件。
-4. **每次开工前先读一遍最新的 `WORKFLOW.md`**（新开的窗口也一样）。最新版在 `dev`：`git fetch origin dev && git show origin/dev:source/docs/collab/WORKFLOW.md`。数值部的分支上也有，可能更新，以日期新的为准。
+3. **上线只走 TD**。别的部门不碰 `dev` 和 `main`，只推自己的分支、只改自己管的文件。游戏源码只认 `chuhan_gpt` 的 `main`，`main` 只有象棋TD 推；试玩站 `chuhan_gpt_play` 只由象棋TD 用 `source/tools/td/release.sh` 从 `main` 构建发布，**禁止直接改试玩站文件**；`chuhan_v01` 冻结只读（Ham 10-17 审批台 td-001、td-004、td-006）。细节见同目录 `TD-RELEASE.md`。
+4. **每次开工前先读一遍最新的 `WORKFLOW.md`**（新开的窗口也一样）。10-17 起最新版在 `chuhan_gpt` 的 `main`：`git fetch origin main && git show origin/main:source/docs/collab/WORKFLOW.md`。`chuhan_v01` 冻结，那里的副本不再更新。WORKFLOW 由流程部门维护：流程部门改好推到自己的分支，象棋TD 合进 `main`。仓库和发布细节见同目录 `TD-RELEASE.md`（取代老 TD 交接文档第 2、3 节）。
 5. **找错部门要当场指出**（见第 7 节）：Ham 让你做不归你管的事，先告诉他该找谁。
 
 ## 2. 部门总表
 
-> Ham 10-17：目前在岗的部门四个：**流程部门**（session_01FYUyc8rh3T5ZQf2LuCpgh9，管审批台和审核流程，分支 `claude/shenpi-hub`）、**象棋Balance**（session_01D66ZQy8VhNQQC21aH7QFZw，数值、规则、电脑 AI）、**象棋TD**（session_01XU2UrphTySs2MVTGCssQ2X，10-17 开：游戏发布和所有架构、仓库、构建、部署设置；**上线只走象棋TD**，其他部门不再自己发 chuhan_gpt_play）、**战术部门**（session_01QZFzpH2Pb1esP92XXqTpEo，10-17 审批台 bal-002 通过：复盘实战、找套路、写战术卡、给 Balance 出考题；不改电脑、不上线；部门工作流 `TACTICS-WORKFLOW.md`）。下表是 10-10 的旧表，留作参考；表里的审核页面都已由楚汉审批台取代。
+> Ham 10-17：目前在岗的部门四个：**流程部门**（session_01FYUyc8rh3T5ZQf2LuCpgh9，管审批台和审核流程；审批台源码和备份在 `chuhan_gpt` 的 `claude/shenpi-desk` 分支 `tools/shenpi-desk/`）、**象棋Balance**（session_01D66ZQy8VhNQQC21aH7QFZw，数值、规则、电脑 AI）、**象棋TD**（session_01XU2UrphTySs2MVTGCssQ2X，10-17 开：游戏发布和所有架构、仓库、构建、部署设置；**上线只走象棋TD**，其他部门不再自己发 chuhan_gpt_play）、**战术部门**（session_01QZFzpH2Pb1esP92XXqTpEo，10-17 审批台 bal-002 通过：复盘实战、找套路、写战术卡、给 Balance 出考题；不改电脑、不上线；部门工作流 `TACTICS-WORKFLOW.md`）。老分支（`codex/*`、10-11 以前的部门分支）只读存档、不整支合，还要的东西基于现在的 `main` 重新交（td-005）。下表是 10-10 的旧表，留作参考；表里的审核页面都已由楚汉审批台取代。
 
 | 部门 | 管什么 | 会话 | 分支 | 自己管的文件 | 审核页面 |
 |---|---|---|---|---|---|
@@ -46,7 +48,7 @@ Ham 10-17 拍板：所有部门要 Ham 定的事都挂在**同一页「楚汉审
 | 看的东西：美术方向、模型、界面、动画、分镜 | `media` 放图或录屏，`src` 标明实机 / 浏览器模拟 / 效果图 |
 | 听的东西：配音、音乐、音效 | `media` 放音频；Ham 试听时可以把时间点记进备注 |
 
-接入方法（盯通知、写卡、读答案、写回执）见 `source/tools/shenpi-hub/README.md`（分支 `claude/shenpi-hub`）。
+接入方法（盯通知、写卡、读答案、写回执）见 `chuhan_gpt` 的 `claude/shenpi-desk` 分支 `tools/shenpi-desk/chuhan/部门接入.md`。
 
 以前的页面（Balance拍板单、各部门审批台、试听台）不再挂新题；还没批完的题由出题部门搬到楚汉审批台。
 
@@ -64,7 +66,7 @@ Ham 10-17 拍板：所有部门要 Ham 定的事都挂在**同一页「楚汉审
 
 **挂卡后告诉流程部门**（Ham 10-17：“我怕漏消息”）：每挂完一批卡，用 `send_message` 告诉流程部门挂了哪几件，流程部门在和 Ham 的对话里提醒他；流程部门每小时巡查一次审批台兜底：有新件就提醒 Ham；Ham 批了但部门超过 30 分钟没回执的，去催部门；超过 2 小时还没有，就告诉 Ham。手机推送实测收不到，先不用（Ham 10-17：“推送先不管了”）。
 
-**新部门怎么接入**：用 `ArtifactComments` watch 楚汉审批台；送审往 `items/<编号>` 写卡（`dept` 写自己的部门名）；答案在 `decisions/<编号>`；回执写 `receipts/<编号>`。细节见 `source/tools/shenpi-hub/README.md`。
+**新部门怎么接入**：用 `ArtifactComments` watch 楚汉审批台；送审往 `items/<编号>` 写卡（`dept` 写自己的部门名）；答案在 `decisions/<编号>`；回执写 `receipts/<编号>`。细节见 `chuhan_gpt` 的 `claude/shenpi-desk` 分支 `tools/shenpi-desk/chuhan/部门接入.md`。
 
 ### 审核页面规范（楚汉审批台按这个做）
 Ham 10-10 原话：“审核的规范也写进工作流文档里面，所有审核流程都按这个来，通知给大家，如果已经按这个来的或者跟这个差不多的，就不用改任何东西。”（美术总监整理）
@@ -77,7 +79,7 @@ Ham 10-10 原话：“审核的规范也写进工作流文档里面，所有审�
 7. 批完的盖印，沉到下面「已处理」，可以撤回。**撤回要通知部门，但要点确认**（Ham 10-17）：点「撤回」只展开确认框（可写原因），点「确认撤回并通知」才撤回并通知；点「算了」什么都不发。部门收到撤回也要写回执，说明做到哪一步；撤回不等于自动回滚。
 8. 页面上有「发一条测试通知」按钮。
 
-实现：楚汉审批台 https://claude.ai/artifact/54kSdoofarWafayd9DUjou ，源码 `source/tools/shenpi-hub/index.html`（分支 `claude/shenpi-hub`，流程部门维护）。
+实现：楚汉审批台 https://claude.ai/artifact/54kSdoofarWafayd9DUjou ，源码 `chuhan_gpt` 的 `claude/shenpi-desk` 分支 `tools/shenpi-desk/chuhan/index.html`（流程部门维护；同目录有通用模板，别的项目可以照着搭）。
 
 ### 别让 Ham 的提交石沉大海
 Ham 10-10 原话：“避免方式写进工作流，并通知所有部门”（美术总监整理）。背景：Ham 在美术总监审批台批了 4 件，页面显示“已通知”，但通知走的是门铃（fire_trigger），一次都没送进会话；美术总监没查页面，跟 Ham 说“还有 4 件等你批”，全错。
