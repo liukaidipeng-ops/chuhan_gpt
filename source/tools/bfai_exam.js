@@ -165,10 +165,13 @@ Q.push({
 });
 Q.push({
   name: '8 架拒马', cat: '技能',
-  desc: '汉方三级兵过了河，被楚车盯着。拒马不占行动：先给它架上（来犯的车先挨 1 点反伤、当场死掉），再走别的。',
-  build: () => position([...palace(), [2, 5, P('r', 'p', 3)], [8, 0, P('r', 'r')], [8, 3, P('r', 'p')], [2, 8, P('b', 'r')], [8, 6, P('b', 'p')]]),
-  check: seq => seq.some(a => isSk(a, [2, 5])),
-  answer: [{ k: 'sk', at: [2, 5] }, { k: 'mv', from: [8, 0], to: [8, 1] }],
+  // 2026-10-10 改：H55 以后拒马要把兵冻住两回合，原题（兵满血、车打不死它）里不架也行，线上电脑自己深算也只觉得架好 0.2 分。
+  //   改成兵只剩 1 血、另一边有一匹白送的马：不架就只能二选一（吃马丢兵 / 跑兵放马），架上拒马才能两样都要。
+  desc: '汉方三级兵过了河，只剩 1 血，被楚车盯着；另一边楚马白送。拒马不占行动：先架上（来犯的车先挨 1 点反伤、当场死掉），再用车吃马。不架就只能吃马丢兵或跑兵放马。',
+  build: () => { const N = P('b', 'n'); ids.q8 = N.id; return position([...palace(), [2, 5, P('r', 'p', 3, { hp: 1 })], [8, 0, P('r', 'r')], [2, 8, P('b', 'r')], [8, 4, N]]); },
+  check: (seq, g0) => seq.some(a => isSk(a, [2, 5])) && allDead(g0, seq, [ids.q8]),
+  answer: [{ k: 'sk', at: [2, 5] }, { k: 'mv', from: [8, 0], to: [8, 4] }],
+  bad: [{ k: 'mv', from: [8, 0], to: [8, 4] }],
 });
 Q.push({
   name: '9 冲阵', cat: '技能',
@@ -386,15 +389,41 @@ Q.push({
       for (const X of st) for (const e of BF.ai.gen(X, false)) { const R = BF.attempt(X, e.a); if (!R) continue; const ev = BF.evaluate(R.S); if (ev && ev.result && ev.result.winner === opp) return true; }
       return false;
     };
+    // judge 的判法：走完之后请复盘用的裁判（tools/variants/bfai_trace.js；kind = 'deep' 和电脑看法一样、'wide' 升级全看）
+    //   按固定层数算一遍走完的局面，分数不比出题时裁判最好那步低过 tol 就算对（不止一种好着）。同一个局面只算一次
+    let TRM = null; const judged = new Map(), judgeAIs = {};
+    const judgeAI = base => judgeAIs[base] || (judgeAIs[base] = (() => {
+      const fs = require('fs'), os = require('os'), f = path.join(os.tmpdir(), 'bfai-judge-' + base + '.js');
+      if (!fs.existsSync(f)) fs.writeFileSync(f, require('child_process').execFileSync('git', ['show', base + ':source/src/bfai.js'], { cwd: path.join(__dirname, '..'), encoding: 'utf8' }));
+      return require(f);
+    })());
+    const judgeVal = async (g, it) => {
+      if (g.result) return g.result.winner === it.side ? 9000 : -9000;
+      const J = it.judge, S = g.S, key = J.kind + J.depth + (J.base || '') + JSON.stringify([S.board, S.turn, S.merit, S.used, S.cnt]);
+      if (judged.has(key)) return judged.get(key);
+      let M, lv = 'examFix';
+      if (J.base) {   // 新题（2026-10-10 起）：裁判 = 那一版线上电脑（git 提交号）自带的复盘开关，和 tools/review/review.js 同一把尺子
+        M = judgeAI(J.base); lv = 'examFixB';
+        M.LEVELS.examFixB = { ...M.LEVELS.hard, noise: 0, top: 1, fixedDepth: J.depth, upAll: J.kind === 'wide', rootUpAll: J.kind === 'wide' };
+      } else {
+        if (!TRM) TRM = require('./variants/bfai_trace.js');
+        M = J.kind === 'wide' ? TRM.judge('wide') : TRM;
+        M.LEVELS.examFix = { ...M.LEVELS.hard, noise: 0, top: 1, depth: J.depth, nodes: 4000000 };
+      }
+      const saved = Math.random; let a = 17; Math.random = () => { a = (a * 1103515245 + 12345) % 2147483648; return a / 2147483648; };
+      try { await M.think(BF.cloneState(S), lv); } finally { Math.random = saved; }
+      const v = -M.think.last.v; judged.set(key, v); return v;
+    };
     JSON.parse(require('fs').readFileSync(file, 'utf8')).forEach((it, i) => { const rules = it.rules || detectRules(it.data); applyRules(null); Q.push({
       name: `实${i + 1} ${it.name}`, cat: '实战', desc: it.desc, rules,   // rules：这局当时的规则（破釜时代的对局要关背水；见 game_load.js 的 detectRules）
       build: () => load(it.data, it.at, rules).game,
-      // same：主行动要和答案一样（答案里有升级的，升级也要一样）；avoid：别再走电脑原来那一步；survive：走完之后对方深搜找不到必胜；nomate：走完之后对方没有一步杀（含先升级）
-      check: it.mode === 'nomate' ? (seq, g0) => { const g = play(g0, seq); return !!g && (g.result ? g.result.winner === it.side : !mate1(g.S, it.side)); }
+      // same：主行动要和答案一样（答案里有升级的，升级也要一样）；avoid：别再走电脑原来那一步；survive：走完之后对方深搜找不到必胜；nomate：走完之后对方没有一步杀（含先升级）；judge：复盘裁判按固定层数算，不比最好那步差过 tol
+      check: it.mode === 'judge' ? async (seq, g0) => { const g = play(g0, seq); return !!g && (await judgeVal(g, it)) >= it.judge.best - (it.judge.tol != null ? it.judge.tol : 0.5); }
+        : it.mode === 'nomate' ? (seq, g0) => { const g = play(g0, seq); return !!g && (g.result ? g.result.winner === it.side : !mate1(g.S, it.side)); }
         : (it.mode || (it.answer ? 'same' : 'avoid')) === 'survive'
         ? async (seq, g0) => { const g = play(g0, seq); return !!g && survives(g, it.side, it.judgeNodes); }
         : seq => ((it.mode || (it.answer ? 'same' : 'avoid')) === 'same' ? same(main(seq), main(it.answer)) && it.answer.filter(a => a.k === 'up').every(u => seq.some(a => same(a, u))) : !same(main(seq), main(it.bad))),
-      answer: it.answer || undefined, bad: it.bad, adjudicated: it.adjudicated, disabled: it.disabled,
+      answer: it.answer || undefined, bad: it.bad, adjudicated: it.adjudicated, disabled: it.disabled, inCheck: it.inCheck,
     }); });
   }
 }
@@ -674,10 +703,41 @@ Q.push({
 // 每道题按自己的规则出（改的是全局 BF.CFG 的背水 / r6 开关，引擎和电脑都看它）：
 //   实战题用收题时记下的 rules；其余的题都是破釜时代、旧数值（2026-10-03～04）出的，固定在背水关、r6 关——
 //   引擎默认先后换成了背水（10-05）和 r6（10-05 晚），不固定的话这些题的局面、价钱、血量都不是出题时的样子。r6 的新题以后另出、写明 rules。
+// ===== 九、战术部门交的题（tools/exam_tactics/*.json；战术部门 K 号交付单，十级表标等级） =====
+//   每题文件 { src, opts:{bs,r6}, S: 局面, name, level, kind: 会用|会防, side, mode: same|avoid|maxkill, answer, bad, maxKill }
+//   maxkill：走完之后，对方（可先给一枚子升一级）任何一种行动当手最多杀 maxKill 个子
+{
+  const fs = require('fs'), dir = path.join(__dirname, 'exam_tactics');
+  const kills = (S, side) => {   // side 的对手走一步（可先升级）最多杀几个 side 的子
+    const opp = S.turn, st = [S]; let best = 0;
+    if (!S.upgraded) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.s === opp && p.t !== 'k') { const U = BF.ai.upgradeState(S, [f, r]); if (U) st.push(U); } }
+    for (const X of st) for (const e of BF.ai.gen(X, false)) { const R = BF.attempt(X, e.a); if (!R) continue; const n = (R.ev || []).filter(v => v.e === 'kill' && v.s === side).length; if (n > best) best = n; }
+    return best;
+  };
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b), main = seq => seq[seq.length - 1];
+  for (const f of fs.existsSync(dir) ? fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort() : []) {
+    const it = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    Q.push({
+      name: it.name, cat: `战术·${it.level}级·${it.kind}`, desc: it.desc, rules: { bs: !!(it.opts || {}).bs, r6: !!(it.opts || {}).r6 },
+      build: () => { const g = new BF.Game(); g.reset(JSON.parse(JSON.stringify(it.S))); return g; },
+      check: it.mode === 'maxkill' ? (seq, g0) => { const g = play(g0, seq); return !!g && !g.result && kills(g.S, it.side) <= it.maxKill; }
+        : it.mode === 'avoid' ? seq => !same(main(seq), main(it.bad))
+        : seq => same(main(seq), main(it.answer)) && it.answer.filter(a => a.k === 'up').every(u => seq.some(a => same(a, u))),
+      answer: it.answer, bad: it.bad, avoidOnly: it.mode === 'avoid' && !it.answer,
+    });
+  }
+}
 const EXAM_RULES = { bs: false, r6: false };
 {
   const { applyRules } = require('./game_load.js');
   for (const q of Q) { const b = q.build; q.build = () => { applyRules(q.rules || EXAM_RULES); return b(); }; }
+}
+
+// 2026-10-17 象棋Balance：现行规则下判卷不对或局面建不出来的旧题，先停用（原因见 --lint 输出），待重出。
+//   31–37 是“破釜后技能被封三回合”时代的题（现行背水一战没有技能封锁）；实22 的原对局在现行规则下重放不了。
+{
+  const STALE = { '30 防贴脸将军': '错误示范在现行规则下也判对，题目失效', '31 护驾被封：马闷杀': '旧规则（破釜封技能）', '32 飞越被封：车进象口抢杀': '旧规则（破釜封技能）', '34 踏营被封：车捉双': '旧规则（破釜封技能）', '35 踏营被封：关门打马': '旧规则（破釜封技能）', '36 吃炮不怕破釜：护驾被封就闷杀': '旧规则（破釜封技能）', '37 先吃炮：破釜之后再防也来得及': '旧规则（破釜封技能）', '实5 吃车不吃（随机挑错）': '标准答案在现行规则下判错', '实8 升兵还是升炮': '标准答案在现行规则下不合法', '实22 随机挑错：升士护帅': '原对局在现行规则下重放不了' };
+  for (const q of Q) if (STALE[q.name] && !q.disabled) q.disabled = '现行规则下失效：' + STALE[q.name];
 }
 async function lint() {
   let bad = 0;
@@ -685,7 +745,8 @@ async function lint() {
     if (q.disabled) { console.log(`－ ${q.name}  停用：${q.disabled}`); continue; }
     const errs = [];
     pid = 500;
-    const g = q.build();
+    let g;
+    try { g = q.build(); } catch (e) { bad++; console.log(`✗ ${q.name}  局面建不出来（规则改过、旧对局重放不了）：${e.message}`); continue; }
     const S = g.S, b = S.board;
     // 将帅照面（决战里取消飞将，不算）
     const kr = BF.ai ? (() => { for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = b[r][f]; if (p && p.t === 'k' && p.s === 'r') return [f, r]; } return null; })() : null;
@@ -699,7 +760,7 @@ async function lint() {
     const other = S.turn === 'r' ? 'b' : 'r';
     if (!S.final && XQ.inCheck(b, other)) errs.push('不走棋的一方正被将军（局面不合法）');
     if (!q.multi) {
-      if (!q.answer && q.cat !== '实战') errs.push('没有标准答案');
+      if (!q.answer && q.cat !== '实战' && !q.avoidOnly) errs.push('没有标准答案');   // 只考“别走那步”的题可以没有标准答案
       else if (q.answer) {
         const seq = q.answer.map(a => JSON.parse(JSON.stringify(a)));
         pid = 500; if (!play(q.build(), seq)) errs.push('标准答案不合法 ' + JSON.stringify(q.answer));
