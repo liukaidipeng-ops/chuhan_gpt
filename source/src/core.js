@@ -330,7 +330,7 @@ const Core = (() => {
     if (ECO && renderer.shadowMap.enabled && (performance.now() < activeUntil || (shT += raw) > 0.5)) { renderer.shadowMap.needsUpdate = true; shT = 0; }
     for (const h of frameHooks) h(dt, raw);
     Cam.update(raw);
-    if (Core.render && !held) { renderer.render(scene, camera); drawN++; }   // held：换影子开关后，新着色器还在后台编，先停画（不然当场同步编、卡住）
+    if (Core.render && !held) { if (Core.post && Core.post.active()) Core.post.render(scene, camera); else renderer.render(scene, camera); drawN++; }   // held：换影子开关后，新着色器还在后台编，先停画（不然当场同步编、卡住）
   }
 
   // ---------- 贴图工具 ----------
@@ -535,7 +535,7 @@ const Core = (() => {
     gpu: GPU, softGL, DIAG, get parallelGL() { return parallelGL; }, get userQ() { return userQ; },
     isMobile, poke, get ECO() { return ECO; },
     setEco(on) { if (DIAG.has('eco')) return; ECO = !!on; renderer.shadowMap.autoUpdate = !ECO; if (!ECO) renderer.shadowMap.needsUpdate = true; },
-    renderer, scene, camera, sun, hemi, Time, onFrame, tween, sleep, ease, Cam, canvasTex, Tex, rnd, inkBlot,
+    post: null, renderer, scene, camera, sun, hemi, Time, onFrame, tween, sleep, ease, Cam, canvasTex, Tex, rnd, inkBlot,
     toon, outlineMat, outlineShared, inked, merge, M4, disposeTree, compileBg, viewShift, get shiftNow() { return shiftF.slice(); },
     start() { clock.start(); loop(); },
     get drawN() { return drawN; },
