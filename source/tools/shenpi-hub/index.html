@@ -1,0 +1,777 @@
+<title>楚汉审批台</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@900&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* 版式：一件一张卡，手机竖屏优先；顶部分页（待批 / 已批 / 部门），底部固定「全部提交」。颜色沿用各部门审批台的朱、米白、墨 */
+:root {
+  --paper: #f0e7d2; --card: #f8f2e3; --ink: #141311; --ink2: #5d554a; --rule: #cdbf9f;
+  --zhu: #a8281c; --zhu-soft: #f3dcd6; --on-zhu: #ffffff;
+  --ok: #2c6646; --ok-soft: #dcebe0; --amber: #855600; --amber-soft: #f3e7c8; --grey-soft: #e4dccb;
+  --scrim: rgba(20, 19, 17, .88);
+  --display: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #181613; --card: #221f1b; --ink: #ece3cd; --ink2: #a99f8c; --rule: #3d372e;
+  --zhu: #e0604f; --zhu-soft: #3c201b; --on-zhu: #1a0f0d;
+  --ok: #7cc196; --ok-soft: #1d3326; --amber: #e0b35a; --amber-soft: #382c14; --grey-soft: #2c2823;
+  --scrim: rgba(0, 0, 0, .9); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --paper: #181613; --card: #221f1b; --ink: #ece3cd; --ink2: #a99f8c; --rule: #3d372e;
+  --zhu: #e0604f; --zhu-soft: #3c201b; --on-zhu: #1a0f0d;
+  --ok: #7cc196; --ok-soft: #1d3326; --amber: #e0b35a; --amber-soft: #382c14; --grey-soft: #2c2823;
+  --scrim: rgba(0, 0, 0, .9); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.6 var(--body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 120px; display: grid; gap: 16px; }
+a { color: var(--zhu); overflow-wrap: anywhere; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--zhu); outline-offset: 2px; }
+
+header.hd { display: grid; gap: 8px; }
+.hd .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { margin: 0; font: 900 30px/1.1 var(--display); letter-spacing: .06em; text-wrap: balance; }
+.count { display: flex; align-items: baseline; gap: 6px; color: var(--ink2); }
+.count b { font: 900 34px/1 var(--display); color: var(--zhu); font-variant-numeric: tabular-nums; }
+.count.zero b { color: var(--ok); }
+.notify { margin: 0; font-size: 13px; color: var(--ink2); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.notify.bad { color: var(--zhu); }
+
+nav.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); padding-block: 8px; display: grid; gap: 8px; border-bottom: 1px solid var(--rule); }
+.tabrow, .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { border: 0; background: none; padding: 6px 10px; border-radius: 6px; font-weight: 700; color: var(--ink2); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+.tab small { font-weight: 500; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.chip { border: 1px solid var(--rule); background: var(--card); border-radius: 999px; padding: 2px 10px; font-size: 13px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--zhu); background: var(--zhu-soft); color: var(--zhu); font-weight: 700; }
+.chip small { margin-left: 3px; font-variant-numeric: tabular-nums; }
+.search { width: 100%; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; }
+
+.list { display: grid; gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; scroll-margin-top: 120px; }
+.meta { display: flex; gap: 6px 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink2); align-items: center; }
+.dept { background: var(--ink); color: var(--paper); border-radius: 4px; padding: 0 6px; font-weight: 700; }
+.code { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.badge { border-radius: 4px; padding: 0 6px; font-weight: 700; font-size: 12px; }
+.badge.new { background: var(--amber-soft); color: var(--amber); }
+.badge.demo { background: var(--grey-soft); color: var(--ink2); }
+.card h2 { margin: 0; font: 900 20px/1.35 var(--display); text-wrap: balance; }
+.ask { margin: 0; font-weight: 700; }
+.points { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+.prev { margin: 0; font-size: 13px; color: var(--amber); background: var(--amber-soft); border-radius: 6px; padding: 6px 10px; }
+
+dl.facts { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13.5px; border-left: 3px solid var(--rule); padding-left: 10px; }
+dl.facts dt { color: var(--ink2); white-space: nowrap; }
+dl.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+dl.facts dd.warn { color: var(--zhu); }
+
+.media { display: grid; gap: 12px; }
+.media figure { margin: 0; display: grid; gap: 4px; min-width: 0; }
+.shot { display: block; width: 100%; padding: 0; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--paper); cursor: zoom-in; }
+.shot img { display: block; width: 100%; height: auto; }
+.media video { width: 100%; display: block; border-radius: 6px; background: #000; }
+.media audio { width: 100%; }
+.cap { font-size: 13px; color: var(--ink2); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.src { font-size: 11.5px; border: 1px solid var(--rule); border-radius: 4px; padding: 0 5px; color: var(--ink2); }
+.src.sim { border-color: var(--amber); color: var(--amber); }
+.mini { border: 1px solid var(--rule); background: none; border-radius: 6px; padding: 2px 8px; font-size: 13px; cursor: pointer; }
+.mini:disabled { opacity: .5; cursor: default; }
+
+.rec { margin: 0; font-size: 14px; }
+.rec b { color: var(--zhu); }
+.opts { display: grid; gap: 8px; }
+.opt { text-align: left; border: 1.5px solid var(--rule); background: var(--paper); border-radius: 8px; padding: 10px 12px; cursor: pointer; display: grid; gap: 2px; }
+.opt b { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opt span { font-size: 13px; color: var(--ink2); }
+.opt i { font-style: normal; font-size: 11.5px; background: var(--zhu); color: var(--on-zhu); border-radius: 4px; padding: 0 5px; }
+.opt[aria-pressed="true"] { border-color: var(--zhu); background: var(--zhu-soft); }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.b { border: 1.5px solid var(--ink); background: none; border-radius: 8px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
+.b[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.b.quiet { border-color: var(--rule); font-weight: 500; }
+.b.quiet[aria-pressed="true"] { background: var(--ink2); border-color: var(--ink2); color: var(--paper); }
+.b:disabled, .opt:disabled { opacity: .5; cursor: default; }
+
+.note { display: grid; gap: 6px; }
+.note-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.note label { font-weight: 700; font-size: 14px; }
+.note label small { font-weight: 400; color: var(--ink2); margin-left: 6px; }
+.note textarea { width: 100%; min-height: 72px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); font: inherit; resize: vertical; }
+.tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.addimg { position: relative; overflow: hidden; }
+.addimg input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.thumbs { display: flex; gap: 6px; flex-wrap: wrap; }
+.thumb { position: relative; width: 72px; height: 72px; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--paper); display: grid; place-items: center; font-size: 11px; color: var(--ink2); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+.thumb button { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--ink); color: var(--paper); cursor: pointer; line-height: 1; }
+.picked { margin: 0; font-size: 13.5px; color: var(--ink2); border-top: 1px dashed var(--rule); padding-top: 8px; }
+.picked b { color: var(--zhu); }
+.err { margin: 0; color: var(--zhu); font-weight: 700; font-size: 14px; }
+
+.row { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: 48px 1fr; gap: 12px; min-width: 0; }
+.seal { width: 48px; height: 48px; border: 2.5px solid currentColor; border-radius: 6px; display: grid; place-items: center; font: 900 22px/1 var(--display); transform: rotate(-6deg); }
+.seal.approved, .seal.chosen { color: var(--zhu); }
+.seal.changes { color: var(--amber); }
+.seal.hold, .seal.closed { color: var(--ink2); }
+.row .body { display: grid; gap: 4px; min-width: 0; }
+.row .t { margin: 0; font-weight: 700; }
+.row .r { margin: 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.row .side { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--ink2); }
+.st { margin: 0; font-size: 13.5px; }
+.st.ok { color: var(--ok); }
+.st.wait { color: var(--amber); }
+.st.bad { color: var(--zhu); }
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 13px; border-left: 2px solid var(--rule); padding-left: 10px; }
+.log b { font-weight: 700; margin-right: 4px; }
+.log .blocked b { color: var(--zhu); }
+.log .live b, .log .done b { color: var(--ok); }
+.log time { color: var(--ink2); margin-right: 6px; font-variant-numeric: tabular-nums; }
+
+.depts { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.dc { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.dc h3 { margin: 0; font: 900 17px/1.3 var(--display); }
+.dc dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13.5px; }
+.dc dt { color: var(--ink2); }
+.dc dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.dc dd.hot { color: var(--zhu); }
+.dc .when { font-size: 12px; color: var(--ink2); margin: 0; }
+
+.empty { text-align: center; color: var(--ink2); padding: 32px 8px; border: 1px dashed var(--rule); border-radius: 10px; }
+.empty b { display: block; font: 900 20px/1.4 var(--display); color: var(--ink); }
+.foot { font-size: 12.5px; color: var(--ink2); }
+
+.bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--card); border-top: 1px solid var(--rule);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+.bar .in { max-width: 760px; margin: 0 auto; display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; }
+.bar .n { font-size: 14px; font-variant-numeric: tabular-nums; }
+.bar .n b { color: var(--zhu); }
+.bar .sp { flex: 1; }
+.bar .go { background: var(--zhu); color: var(--on-zhu); border: 0; border-radius: 8px; padding: 9px 18px; font-weight: 700; cursor: pointer; }
+.bar .go:disabled { opacity: .45; cursor: default; }
+.bar .msg { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--ink2); }
+.bar .msg:empty { display: none; }
+
+.over { position: fixed; inset: 0; z-index: 20; background: var(--scrim); display: grid; place-items: center;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.lb img { max-width: 100%; max-height: calc(100vh - 120px); object-fit: contain; display: block; margin: 0 auto; }
+.lb .lbbar { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; align-items: center; color: #ece3cd; font-size: 13px; }
+.lb .lbbar button { border: 1px solid #ece3cd; background: none; color: #ece3cd; border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+.ed { align-content: center; gap: 10px; }
+.ed canvas { max-width: 100%; max-height: calc(100vh - 170px); touch-action: none; background: #fff; display: block; margin: 0 auto; cursor: crosshair; }
+.ed .edbar { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.ed .edbar button { border: 1px solid #ece3cd; background: none; color: #ece3cd; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.ed .edbar button[aria-pressed="true"] { background: #ece3cd; color: #141311; }
+.ed .edbar .sw { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
+.ed .edtip { margin: 0; text-align: center; color: #ece3cd; font-size: 13px; }
+.ed .done { background: #a8281c; border-color: #a8281c; color: #fff; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header class="hd" id="hd">
+    <div class="top">
+      <h1>楚汉审批台</h1>
+      <div class="count" id="count"><b id="n">…</b><span id="nl">正在读审批记录</span></div>
+    </div>
+    <p class="notify" id="notify"><span id="notifyText">正在连 Claude…</span><button class="mini" id="notifyTest" type="button" hidden>发一条测试通知</button></p>
+  </header>
+
+  <nav class="tabs" aria-label="分页">
+    <div class="tabrow" role="tablist">
+      <button class="tab" role="tab" id="tab-pending" aria-selected="true" type="button">待批<small id="tn-pending"></small></button>
+      <button class="tab" role="tab" id="tab-done" aria-selected="false" type="button">已批<small id="tn-done"></small></button>
+      <button class="tab" role="tab" id="tab-depts" aria-selected="false" type="button">部门</button>
+    </div>
+    <div class="chips" id="chips" aria-label="按部门看"></div>
+    <input class="search" id="search" type="search" placeholder="按编号、标题、部门找" hidden>
+  </nav>
+
+  <section id="v-pending" class="list" aria-live="polite"></section>
+  <section id="v-done" class="list" hidden></section>
+  <section id="v-depts" hidden></section>
+  <div class="empty" id="empty" hidden><b>没有等你批的</b>各部门送审后会出现在这里，按部门筛选在上面。</div>
+  <p class="foot" id="foot">每件卡写清楚：要你定什么、候选是哪一版、包含和不包含什么、已测和没测的。点选后在底部「全部提交」一起交，只发一条通知；部门收到会在卡上写回执。</p>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <div class="in">
+    <span class="n" id="barN"></span>
+    <span class="sp"></span>
+    <button class="b quiet" id="bJump" type="button">跳到没点选的</button>
+    <button class="go" id="bAll" type="button" disabled>全部提交</button>
+    <p class="msg" id="barMsg"></p>
+  </div>
+</div>
+
+<div class="over lb" id="lb" hidden>
+  <div>
+    <img id="lbImg" alt="">
+    <div class="lbbar"><button id="lbPrev" type="button">上一张</button><span id="lbCap"></span><button id="lbNext" type="button">下一张</button><button id="lbClose" type="button">关掉</button></div>
+  </div>
+</div>
+
+<div class="over ed" id="ed" hidden>
+  <canvas id="edCv"></canvas>
+  <div class="edbar">
+    <button type="button" data-tool="pen" aria-pressed="true">画笔</button>
+    <button type="button" data-tool="rect" aria-pressed="false">框</button>
+    <button type="button" data-tool="arrow" aria-pressed="false">箭头</button>
+    <button type="button" data-tool="crop" aria-pressed="false">裁剪</button>
+    <button type="button" class="sw" data-color="#e0321f" aria-pressed="true" aria-label="红" style="background:#e0321f"></button>
+    <button type="button" class="sw" data-color="#f2c230" aria-pressed="false" aria-label="黄" style="background:#f2c230"></button>
+    <button type="button" class="sw" data-color="#2f8cff" aria-pressed="false" aria-label="蓝" style="background:#2f8cff"></button>
+    <button type="button" id="edUndo">撤销</button>
+    <button type="button" id="edCancel">不要了</button>
+    <button type="button" id="edDone" class="done">附到备注</button>
+  </div>
+  <p class="edtip" id="edTip"></p>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const pad = n => String(n).padStart(2, '0');
+  const when = iso => { const d = new Date(iso); return iso && !isNaN(d) ? pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) : ''; };
+  const mmss = t => Math.floor(t / 60) + ':' + pad(Math.floor(t % 60));
+  const arr = v => Array.isArray(v) ? v : [];
+  const srcOf = m => m && (m.url || (m.id ? '/_blob/' + m.id : ''));
+  function linked(text) {
+    const f = document.createDocumentFragment(), re = /https:\/\/[A-Za-z0-9._~:\/?#\[\]@!$&'()*+,;=%-]+/g, s = String(text); let i = 0, m;
+    while ((m = re.exec(s))) { if (m.index > i) f.append(s.slice(i, m.index)); const a = el('a', null, m[0]); a.href = m[0]; a.target = '_blank'; a.rel = 'noopener'; f.append(a); i = m.index + m[0].length; }
+    if (i < s.length) f.append(s.slice(i)); return f;
+  }
+
+  // 「通过」到底允许做到哪一步：送审卡写 pass，页面照这个字面写给 Ham 看，提交时一起存进决定
+  const PASS = {
+    '方向': '只认可方向，正式版还要再送审',
+    '整合': '可以接进游戏做整合测试，不等于上线',
+    '上线': '可以交 TD 上线，只限本卡写的候选和范围',
+  };
+  // 材料是怎么来的：模拟的、效果图都要标出来，不能当成真机或实机
+  const SRC = { '实机': '游戏实机画面', '录屏': '游戏录屏', '真机': '手机真机实测', '浏览器模拟': '浏览器模拟手机，不是真机', '效果图': '效果图，不是游戏画面', '样片': '样片', '小样': '声音小样' };
+  const SIM = new Set(['浏览器模拟', '效果图', '样片', '小样']);
+  // 部门回执里的处理阶段（部门写中文或这些键都行）
+  const STAGE = { accepted: '已接手', doing: '在做', blocked: '受阻', review: '等复审', done: '做完', live: '已上线', cancelled: '取消' };
+  const STAGE_KEY = Object.fromEntries(Object.entries(STAGE).map(([k, v]) => [v, k]));
+  const stageKey = s => STAGE[s] ? s : (STAGE_KEY[s] || s);
+  const SEAL = { approved: '准', chosen: '选', changes: '改', hold: '缓', closed: '结' };
+  const DEPT_ORDER = ['TD', '角色部', '美术总监', '声音部', 'CG组', '优化部', '数值部', '顾问部'];
+
+  let db = null, loaded = { items: false, decisions: false }, readOnly = false;
+  let items = [], decs = new Map(), rcpts = new Map(), notices = new Map(), deptDocs = new Map();
+  let tab = 'pending', deptFilter = '', query = '', allBusy = false;
+  const ui = {}, nodes = new Map();
+  const S = id => ui[id] || (ui[id] = { pick: null, rev: 0, draft: '', files: [], uploading: 0, err: '' });
+
+  // ---------- 状态：一件卡现在算待批还是已批 ----------
+  const rev = it => Number(it.rev) || 1;
+  function phase(d) {
+    const dec = decs.get(d.id), st = d.it.state || 'open';
+    if (st === 'superseded') return 'gone';
+    const decided = dec && dec.status && (Number(dec.rev) || 1) >= rev(d.it);
+    if (decided) return 'done';
+    if (st !== 'open') return 'closed';
+    return 'pending';
+  }
+  const ackOk = (dec, rc) => !!(rc && rc.ack && rc.ack.at && dec && dec.at && rc.ack.at >= dec.at);
+  const lastStage = rc => { const l = arr(rc && rc.log); return l.length ? stageKey(l[l.length - 1].stage) : ''; };
+
+  // ---------- 备注附图：上传或粘贴，存进本页素材库 ----------
+  let assetsP = null;
+  const getAssets = () => assetsP || (assetsP = window.claude.use('assets').catch(() => null));
+  async function addFiles(id, files) {
+    const st = S(id), imgs = [...files].filter(f => f && /^image\//.test(f.type)).slice(0, 6);
+    if (!imgs.length) return;
+    const assets = await getAssets();
+    if (!assets) { st.err = '这个打开方式传不了图（只有能编辑的人可以传）。'; render(); return; }
+    st.uploading += imgs.length; st.err = ''; render();
+    for (const f of imgs) {
+      try { const r = await assets.upload(f); st.files.push({ id: r.id, url: r.url }); }
+      catch (e) { st.err = '图没传上（' + ((e && e.code) || '出错') + '），再试一次。'; }
+      st.uploading--; render();
+    }
+  }
+
+  // ---------- 截图标注：画笔 / 框 / 箭头 / 裁剪，导出 PNG 附进备注 ----------
+  const ED = { id: null, img: null, W: 0, H: 0, ops: [], cur: null, crop: null, hist: [], tool: 'pen', color: '#e0321f', busy: false };
+  const cv = $('edCv'), cx = cv.getContext('2d');
+  const lw = () => Math.max(3, Math.round(ED.W / 220));
+  const norm = r => r && ({ x: Math.min(r.x0, r.x1), y: Math.min(r.y0, r.y1), w: Math.abs(r.x1 - r.x0), h: Math.abs(r.y1 - r.y0) });
+  function drawOp(o) {
+    cx.strokeStyle = o.c; cx.lineWidth = o.w; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.beginPath();
+    if (o.t === 'pen') o.pts.forEach((p, i) => i ? cx.lineTo(p.x, p.y) : cx.moveTo(p.x, p.y));
+    else if (o.t === 'rect') { const r = norm(o); cx.rect(r.x, r.y, r.w, r.h); }
+    else if (o.t === 'arrow') {
+      const a = Math.atan2(o.y1 - o.y0, o.x1 - o.x0), hl = o.w * 4.5;
+      cx.moveTo(o.x0, o.y0); cx.lineTo(o.x1, o.y1);
+      cx.moveTo(o.x1, o.y1); cx.lineTo(o.x1 - hl * Math.cos(a - .45), o.y1 - hl * Math.sin(a - .45));
+      cx.moveTo(o.x1, o.y1); cx.lineTo(o.x1 - hl * Math.cos(a + .45), o.y1 - hl * Math.sin(a + .45));
+    }
+    cx.stroke();
+  }
+  function redraw(showCrop = true) {
+    cx.clearRect(0, 0, ED.W, ED.H); cx.drawImage(ED.img, 0, 0, ED.W, ED.H);
+    ED.ops.forEach(drawOp); if (ED.cur && ED.cur.t !== 'crop') drawOp(ED.cur);
+    const c = showCrop && norm(ED.cur && ED.cur.t === 'crop' ? ED.cur : ED.crop);
+    if (c && c.w > 2 && c.h > 2) {
+      cx.save(); cx.fillStyle = 'rgba(0,0,0,.55)'; cx.beginPath(); cx.rect(0, 0, ED.W, ED.H); cx.rect(c.x, c.y, c.w, c.h); cx.fill('evenodd');
+      cx.strokeStyle = '#ece3cd'; cx.lineWidth = Math.max(2, lw() / 2); cx.setLineDash([lw() * 2, lw() * 1.5]); cx.strokeRect(c.x, c.y, c.w, c.h); cx.restore();
+    }
+  }
+  const press = (sel, attr, v) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b.dataset[attr] === v ? 'true' : 'false'));
+  function openEditor(id, src) {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 2000 / img.naturalWidth);
+      Object.assign(ED, { id, img, W: Math.round(img.naturalWidth * k), H: Math.round(img.naturalHeight * k), ops: [], cur: null, crop: null, hist: [], busy: false, tool: 'pen' });
+      cv.width = ED.W; cv.height = ED.H; press('#ed [data-tool]', 'tool', 'pen');
+      $('edTip').textContent = '直接在图上画；「裁剪」拖一个框，只留框里那块。画好点「附到备注」。';
+      $('edDone').disabled = false; $('edDone').textContent = '附到备注'; $('ed').hidden = false; redraw();
+    };
+    img.onerror = () => { S(id).err = '这张图打不开，没法标注。'; render(); };
+    img.src = src;
+  }
+  const closeEd = () => { $('ed').hidden = true; ED.img = null; ED.cur = null; };
+  const ptr = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * ED.W / r.width, y: (e.clientY - r.top) * ED.H / r.height }; };
+  cv.addEventListener('pointerdown', e => {
+    if (!ED.img) return; e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    const p = ptr(e), w = lw();
+    ED.cur = ED.tool === 'pen' ? { t: 'pen', c: ED.color, w, pts: [p] } : { t: ED.tool, c: ED.color, w, x0: p.x, y0: p.y, x1: p.x, y1: p.y }; redraw();
+  });
+  cv.addEventListener('pointermove', e => { if (!ED.cur) return; const p = ptr(e); if (ED.cur.t === 'pen') ED.cur.pts.push(p); else { ED.cur.x1 = p.x; ED.cur.y1 = p.y; } redraw(); });
+  const endStroke = () => {
+    const o = ED.cur; if (!o) return; ED.cur = null;
+    if (o.t === 'crop') { const c = norm(o); if (c.w > 8 && c.h > 8) { ED.hist.push({ k: 'crop', prev: ED.crop }); ED.crop = o; } }
+    else if (o.t === 'pen' ? o.pts.length > 1 : Math.hypot(o.x1 - o.x0, o.y1 - o.y0) > 4) { ED.ops.push(o); ED.hist.push({ k: 'op' }); }
+    redraw();
+  };
+  cv.addEventListener('pointerup', endStroke); cv.addEventListener('pointercancel', endStroke);
+  document.querySelectorAll('#ed [data-tool]').forEach(b => b.addEventListener('click', () => { ED.tool = b.dataset.tool; press('#ed [data-tool]', 'tool', ED.tool); }));
+  document.querySelectorAll('#ed [data-color]').forEach(b => b.addEventListener('click', () => { ED.color = b.dataset.color; press('#ed [data-color]', 'color', ED.color); }));
+  $('edUndo').addEventListener('click', () => { const h = ED.hist.pop(); if (!h) return; if (h.k === 'op') ED.ops.pop(); else ED.crop = h.prev; redraw(); });
+  $('edCancel').addEventListener('click', closeEd);
+  $('edDone').addEventListener('click', async () => {
+    if (!ED.img || ED.busy) return; ED.busy = true; $('edDone').disabled = true; $('edDone').textContent = '正在附上…';
+    const id = ED.id, c = norm(ED.crop) || { x: 0, y: 0, w: ED.W, h: ED.H }, out = document.createElement('canvas');
+    redraw(false);
+    out.width = Math.max(1, Math.round(c.w)); out.height = Math.max(1, Math.round(c.h));
+    out.getContext('2d').drawImage(cv, c.x, c.y, c.w, c.h, 0, 0, out.width, out.height);
+    let blob = null;
+    try { blob = await new Promise((res, rej) => out.toBlob(b => b ? res(b) : rej(new Error('导不出图')), 'image/png')); }
+    catch (e) { $('edTip').textContent = '这张图导不出来（' + e.message + '），可以用系统截图后点「上传图片」。'; ED.busy = false; $('edDone').disabled = false; $('edDone').textContent = '附到备注'; return; }
+    closeEd(); await addFiles(id, [new File([blob], '标注.png', { type: 'image/png' })]);
+  });
+
+  // ---------- 看大图：同一张卡里的图可以前后翻（改前 / 改后对照） ----------
+  const LB = { list: [], i: 0 };
+  function openLb(list, i) { LB.list = list; LB.i = i; showLb(); $('lb').hidden = false; }
+  function showLb() {
+    const m = LB.list[LB.i]; if (!m) return;
+    $('lbImg').src = m.src; $('lbImg').alt = m.cap || ''; $('lbCap').textContent = (LB.list.length > 1 ? (LB.i + 1) + ' / ' + LB.list.length + '　' : '') + (m.cap || '');
+    $('lbPrev').hidden = $('lbNext').hidden = LB.list.length < 2;
+  }
+  const stepLb = k => { if (LB.list.length < 2) return; LB.i = (LB.i + k + LB.list.length) % LB.list.length; showLb(); };
+  const closeLb = () => { $('lb').hidden = true; $('lbImg').removeAttribute('src'); };
+  $('lbPrev').addEventListener('click', e => { e.stopPropagation(); stepLb(-1); });
+  $('lbNext').addEventListener('click', e => { e.stopPropagation(); stepLb(1); });
+  $('lbClose').addEventListener('click', closeLb);
+  $('lb').addEventListener('click', e => { if (e.target === $('lb') || e.target === $('lbImg')) closeLb(); });
+  document.addEventListener('keydown', e => {
+    if (!$('ed').hidden && e.key === 'Escape') return closeEd();
+    if ($('lb').hidden) return;
+    if (e.key === 'Escape') closeLb(); else if (e.key === 'ArrowLeft') stepLb(-1); else if (e.key === 'ArrowRight') stepLb(1);
+  });
+
+  function thumbs(list, onRemove) {
+    const box = el('div', 'thumbs'), all = list.map((f, i) => ({ src: srcOf(f), cap: '附图 ' + (i + 1) }));
+    list.forEach((f, i) => {
+      const t = el('div', 'thumb'), g = el('img'); g.src = srcOf(f); g.alt = '附图 ' + (i + 1);
+      g.addEventListener('click', () => openLb(all, i)); t.appendChild(g);
+      if (onRemove) { const x = el('button', null, '×'); x.type = 'button'; x.setAttribute('aria-label', '去掉这张'); x.addEventListener('click', () => onRemove(i)); t.appendChild(x); }
+      box.appendChild(t);
+    });
+    return box;
+  }
+
+  // ---------- 通知：页面替 Ham 发评论给 Claude（看着这个页面的部门会话都收得到） ----------
+  let comments = null, canSend = 'wait';
+  async function checkSend() {
+    try { comments = comments || await window.claude.use('comments'); } catch (e) { comments = null; }
+    if (!comments) canSend = 'off';
+    else { try { canSend = await comments.canSendToClaude(); } catch (e) { canSend = 'off'; } }
+    showNotify(); return canSend;
+  }
+  const SEND_WHY = {
+    available: '提交后页面会替你发一条评论给 Claude，各部门的会话都看得到（第一次会问能不能替你发评论，点允许）。',
+    no_session: '现在没有 Claude 会话在看这个页面，提交后通知不到，提交完请在聊天里说一声。',
+    writers_only: '这个账号只能评论，不能替你通知 Claude，提交完请在聊天里说一声。',
+    off: '这个打开方式发不了通知（试试在电脑上用 claude.ai 网页打开），提交完请在聊天里说一声。',
+    wait: '正在连 Claude…',
+  };
+  function showNotify() {
+    $('notifyText').textContent = SEND_WHY[canSend] || SEND_WHY.off;
+    $('notify').classList.toggle('bad', canSend !== 'available' && canSend !== 'wait');
+    $('notifyTest').hidden = canSend === 'wait';
+  }
+  async function send(text) {
+    const can = await checkSend();
+    if (can !== 'available') return { ok: false, code: can };
+    try { const anchor = await comments.anchorFor($('hd')); await comments.sendToClaude({ anchor, text }); return { ok: true, code: '' }; }
+    catch (e) { return { ok: false, code: (e && e.code) || 'unknown' }; }
+  }
+  $('notifyTest').addEventListener('click', async () => {
+    const b = $('notifyTest'); b.disabled = true; b.textContent = '正在发…';
+    const r = await send('【楚汉审批台】测试通知，只测通知，不用处理，也不要据此做任何改动。');
+    b.textContent = r.ok ? '测试通知发出去了' : '没发出去（' + r.code + '）';
+    setTimeout(() => { b.disabled = false; b.textContent = '发一条测试通知'; }, 4000);
+  });
+
+  // ---------- 点选和提交 ----------
+  const optOf = (it, key) => arr(it.options).find(o => String(o.key) === String(key));
+  function pickWords(it, p) {
+    if (!p) return '';
+    if (p.status === 'approved') return '通过' + (it.pass ? '（' + it.pass + '）' : '');
+    if (p.status === 'chosen') { const o = optOf(it, p.choice); return '选「' + (o ? o.label || o.key : p.choice) + '」' + (o && o.pass ? '（' + o.pass + '）' : ''); }
+    if (p.status === 'hold') return '暂缓';
+    return it.kind === 'choice' ? '都不合适，另说' : '要改';
+  }
+  const passOf = (it, p) => p.status === 'approved' ? (it.pass || '') : p.status === 'chosen' ? ((optOf(it, p.choice) || {}).pass || it.pass || '') : '';
+  const same = (a, b) => !!a && !!b && a.status === b.status && String(a.choice || '') === String(b.choice || '');
+  function choose(d, p) { const st = S(d.id); st.pick = same(st.pick, p) ? null : p; st.rev = rev(d.it); st.err = ''; render(); }
+
+  function summaryText(batch, lines, left) {
+    const byDept = new Map();
+    for (const l of lines) { if (!byDept.has(l.dept)) byDept.set(l.dept, []); byDept.get(l.dept).push(l.text); }
+    let t = '【楚汉审批台】Ham 一次提交了 ' + lines.length + ' 件（批次 ' + batch + '）' + (left ? '，还剩 ' + left + ' 件没批' : '，全部批完') + '：';
+    for (const [dept, ls] of byDept) t += '\n▸ ' + dept + '（' + ls.length + '）\n' + ls.join('\n');
+    return t;
+  }
+
+  async function submitAll() {
+    if (allBusy || !db) return;
+    const pend = items.filter(d => phase(d) === 'pending'), picked = pend.filter(d => S(d.id).pick);
+    if (!picked.length) return;
+    for (const d of picked) {
+      const st = S(d.id), note = st.draft.trim();
+      st.err = st.rev !== rev(d.it) ? '这件刚更新成第 ' + rev(d.it) + ' 版，内容可能变了，看一遍再重新点选。'
+        : st.pick.status === 'changes' && !note ? '选了「' + pickWords(d.it, st.pick) + '」，请在备注里写要怎么改。'
+        : st.uploading ? '图还在上传，等一下再交。' : '';
+      if (st.err && st.rev !== rev(d.it)) st.pick = null;
+    }
+    const bad = picked.find(d => S(d.id).err);
+    if (bad) { render(); const n = $('card-' + bad.id); if (n) n.scrollIntoView({ behavior: 'smooth', block: 'center' }); setBar('有一件还不能交，先看红字。'); return; }
+
+    allBusy = true; setBar('正在提交…'); render();
+    const now = new Date().toISOString(), batch = 'b' + now.replace(/\D/g, '').slice(2, 14) + Math.random().toString(36).slice(2, 5);
+    const lines = [], saved = [];
+    for (const d of picked) {
+      const st = S(d.id), p = st.pick, it = d.it, note = st.draft.trim(), images = st.files.map(f => ({ id: f.id, url: f.url }));
+      const prev = decs.get(d.id), history = arr(prev && prev.history).slice(-19);
+      if (prev && prev.status) history.push(Object.assign({}, prev, { history: undefined, replacedAt: now }));
+      const label = pickWords(it, p);
+      const body = {
+        rev: rev(it), status: p.status, choice: p.choice || '', label, pass: passOf(it, p), note, images, at: now, batch,
+        // 提交那一刻 Ham 看到的是什么：编号、候选、范围、材料，之后卡片再改也查得到
+        snap: { code: it.code || '', title: it.title || '', candidate: it.candidate || '', scope: it.scope || null, media: arr(it.media).map(m => ({ type: m.type || 'image', src: srcOf(m), cap: m.cap || '' })) },
+        history,
+      };
+      try {
+        await db.doc('decisions/' + d.id).set(JSON.parse(JSON.stringify(body)));
+        lines.push({ dept: it.dept || '未分部门', text: '· ' + (it.code || d.id) + (rev(it) > 1 ? ' 第' + rev(it) + '版' : '') + '「' + (it.title || '') + '」：' + label + (body.pass ? '，' + (PASS[body.pass] || body.pass) : '') + (note ? '。备注：' + note : '') + (images.length ? '（附 ' + images.length + ' 张图）' : '') });
+        saved.push(d.id); Object.assign(st, { pick: null, draft: '', files: [], err: '' });
+      } catch (e) {
+        if (e && e.code === 'invalid_argument') readOnly = true;
+        st.err = readOnly ? '这个账号只能看，不能批。' : '这一件没存上（' + ((e && e.code) || '出错') + '），再点一次「全部提交」。';
+      }
+    }
+    let msg = '存好了 ' + saved.length + ' 件' + (saved.length < picked.length ? '，' + (picked.length - saved.length) + ' 件没存上（看红字）' : '') + '。';
+    if (saved.length) {
+      const left = items.filter(d => phase(d) === 'pending' && !saved.includes(d.id)).length;
+      const text = summaryText(batch, lines, left) + '\n\n请出题部门：读 decisions/<卡片id>，照 Ham 原话记进拍板记录，在 receipts/<卡片id> 写 ack 回执。别的部门的件不用管。';
+      const r = await send(text);
+      try { await db.doc('notices/' + batch).set({ at: now, items: saved, ok: r.ok, code: r.code, text }); } catch (e) { /* 通知记录没存上不影响决定本身 */ }
+      msg += r.ok ? '已经发评论通知各部门，等它们写回执。' : '没能通知到（' + r.code + '），请在聊天里说一声「审批台批好了」，或点已批里的「复制摘要」发过去。';
+    }
+    allBusy = false; render(); setBar(msg);
+  }
+
+  async function withdraw(id) {                             // 撤回：决定放进历史，卡片回到待批；按 Ham 定的规矩不发通知
+    const cur = decs.get(id); if (!cur || !db) return;
+    const now = new Date().toISOString(), history = arr(cur.history).slice(-19);
+    history.push(Object.assign({}, cur, { history: undefined, withdrawnAt: now }));
+    try { await db.doc('decisions/' + id).set(JSON.parse(JSON.stringify({ rev: 0, status: '', withdrawnAt: now, history }))); }
+    catch (e) { S(id).err = '没撤回成功（' + ((e && e.code) || '出错') + '），再点一次。'; render(); }
+  }
+
+  async function copySummary(n, btn) {
+    const t = n && n.text ? n.text : '';
+    try { await navigator.clipboard.writeText(t); btn.textContent = '复制好了，去聊天里粘贴'; }
+    catch (e) { btn.textContent = '复制不了，长按下面这段手动复制'; const p = el('p', 'r', t); btn.after(p); }
+  }
+
+  function nextUnpicked() {
+    const list = visible('pending').filter(d => !S(d.id).pick).map(d => $('card-' + d.id)).filter(Boolean);
+    if (!list.length) { setBar('都点选过了，点「全部提交」。'); return; }
+    (list.find(n => n.getBoundingClientRect().top > 140) || list[0]).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  const setBar = t => { $('barMsg').textContent = t || ''; };
+
+  // ---------- 卡片 ----------
+  function facts(it) {
+    const dl = el('dl', 'facts'), add = (k, v, cls) => { if (!v || (Array.isArray(v) && !v.length)) return; dl.append(el('dt', null, k)); const dd = el('dd', cls); dd.append(linked(Array.isArray(v) ? v.join('；') : v)); dl.append(dd); };
+    add('候选', it.candidate); add('基线', it.baseline);
+    add('包含', it.scope && it.scope.in); add('不包含', it.scope && it.scope.out);
+    add('已测', it.checked); add('没测', it.unchecked, 'warn');
+    return dl.children.length ? dl : null;
+  }
+  function media(d, markable) {
+    const box = el('div', 'media'), it = d.it, list = arr(it.media).filter(srcOf);
+    const pics = list.filter(m => (m.type || 'image') === 'image').map(m => ({ src: srcOf(m), cap: m.cap || '' }));
+    list.forEach(m => {
+      const f = el('figure'), type = m.type || 'image', src = srcOf(m), cap = el('figcaption', 'cap');
+      if (m.src) { const s = el('span', 'src' + (SIM.has(m.src) ? ' sim' : ''), m.src); s.title = SRC[m.src] || ''; cap.append(s); }
+      if (m.cap) cap.append(linked(m.cap));
+      if (type === 'image') {
+        const b = el('button', 'shot'), g = el('img'); b.type = 'button'; b.setAttribute('aria-label', '放大看：' + (m.cap || it.title || ''));
+        g.src = src; g.alt = m.cap || ''; g.loading = 'lazy'; b.append(g);
+        const i = pics.findIndex(p => p.src === src); b.addEventListener('click', () => openLb(pics, Math.max(0, i)));
+        f.append(b, cap);
+        if (markable) { const mk = el('button', 'mini', '✎ 截这张标注'); mk.type = 'button'; mk.disabled = allBusy; mk.addEventListener('click', () => openEditor(d.id, src)); cap.append(mk); }
+      } else {
+        const p = el(type === 'audio' ? 'audio' : 'video'); p.src = src; p.controls = true; p.preload = type === 'audio' ? 'none' : 'metadata';
+        if (type === 'video') { p.playsInline = true; p.muted = !!m.muted; if (m.loop) p.loop = true; }
+        f.append(p, cap);
+        if (markable) {   // 试听、看片时记下时间点，插进备注
+          const tb = el('button', 'mini', '⏱ 记下这个时间点'); tb.type = 'button'; tb.disabled = allBusy;
+          tb.addEventListener('click', () => {
+            const st = S(d.id), tag = '[' + (m.cap ? m.cap.slice(0, 12) + ' ' : '') + mmss(p.currentTime || 0) + '] ';
+            st.draft = (st.draft && !/\s$/.test(st.draft) ? st.draft + '\n' : st.draft) + tag;
+            const ta = $('note-' + d.id); if (ta) { ta.value = st.draft; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+          });
+          cap.append(tb);
+        }
+      }
+      box.append(f);
+    });
+    return list.length ? box : null;
+  }
+  function metaRow(d, extra) {
+    const it = d.it, meta = el('div', 'meta');
+    if (it.dept) meta.append(el('span', 'dept', it.dept));
+    if (it.code) meta.append(el('span', 'code', it.code));
+    if (rev(it) > 1) meta.append(el('span', 'badge new', '第 ' + rev(it) + ' 版'));
+    if (it.demo) meta.append(el('span', 'badge demo', '示例'));
+    if (it.createdAt) meta.append(el('span', null, when(it.createdAt) + ' 送审'));
+    if (extra) meta.append(extra);
+    return meta;
+  }
+  function pendingCard(d) {
+    const it = d.it, st = S(d.id), c = el('article', 'card'); c.id = 'card-' + d.id;
+    c.append(metaRow(d), el('h2', null, it.title || '（没写标题）'));
+    const dec = decs.get(d.id), last = dec && dec.status ? dec : arr(dec && dec.history).slice(-1)[0];
+    if (last && last.status && rev(it) > 1) c.append(el('p', 'prev', '上一版（第 ' + (last.rev || 1) + ' 版）你' + (last.withdrawnAt ? '选过又撤回了：' : '选了：') + (last.label || last.status) + (last.note ? '。备注：' + last.note : '')));
+    if (it.ask) c.append(el('p', 'ask', it.ask));
+    if (arr(it.points).length) { const ul = el('ul', 'points'); it.points.forEach(p => { const li = el('li'); li.append(linked(p)); ul.append(li); }); c.append(ul); }
+    const fx = facts(it); if (fx) c.append(fx);
+    const md = media(d, true); if (md) c.append(md);
+    if (it.rec) {
+      const r = el('p', 'rec'), o = optOf(it, it.rec);
+      r.append(el('b', null, '推荐：' + (o ? o.label || o.key : it.rec === 'approve' ? '通过' : it.rec)));
+      if (it.recWhy) r.append('　' + it.recWhy); c.append(r);
+    }
+    const dis = allBusy;
+    if (it.kind === 'choice' && arr(it.options).length) {
+      const box = el('div', 'opts');
+      for (const o of it.options) {
+        const p = { status: 'chosen', choice: String(o.key) }, b = el('button', 'opt'); b.type = 'button'; b.disabled = dis;
+        b.setAttribute('aria-pressed', same(st.pick, p) ? 'true' : 'false');
+        const bt = el('b', null, o.label || o.key); if (String(o.key) === String(it.rec)) bt.append(el('i', null, '推荐')); b.append(bt);
+        const desc = [o.desc, (o.pass || it.pass) ? '选它 = ' + (PASS[o.pass || it.pass] || o.pass || it.pass) : ''].filter(Boolean).join('　');
+        if (desc) b.append(el('span', null, desc));
+        b.addEventListener('click', () => choose(d, p)); box.append(b);
+      }
+      c.append(box);
+    } else {
+      const box = el('div', 'opts'), b = el('button', 'opt'), p = { status: 'approved' }; b.type = 'button'; b.disabled = dis;
+      b.setAttribute('aria-pressed', same(st.pick, p) ? 'true' : 'false');
+      const bt = el('b', null, '通过' + (it.pass ? '（' + it.pass + '）' : '')); if (it.rec === 'approve') bt.append(el('i', null, '推荐')); b.append(bt);
+      b.append(el('span', null, it.pass ? PASS[it.pass] || it.pass : '没写通过到哪一步，按「只认可方向」理解'));
+      b.addEventListener('click', () => choose(d, p)); box.append(b); c.append(box);
+    }
+    const acts = el('div', 'acts');
+    const mk = (label, p) => { const b = el('button', 'b quiet', label); b.type = 'button'; b.disabled = dis; b.setAttribute('aria-pressed', same(st.pick, p) ? 'true' : 'false'); b.addEventListener('click', () => { choose(d, p); if (p.status === 'changes' && S(d.id).pick) { const t = $('note-' + d.id); if (t) t.focus(); } }); return b; };
+    acts.append(mk(it.kind === 'choice' ? '都不合适，另说' : '要改', { status: 'changes' }), mk('暂缓', { status: 'hold' }));
+    c.append(acts);
+
+    const nb = el('div', 'note'), head = el('div', 'note-head'), lab = el('label'), ta = el('textarea'), tools = el('div', 'tools');
+    ta.id = 'note-' + d.id; lab.htmlFor = ta.id;
+    const must = st.pick && st.pick.status === 'changes';
+    lab.append('备注', el('small', null, must ? '要改的话必须写' : '可以不写'));
+    ta.placeholder = must ? '哪张图、哪个地方、想要什么样' : '想补充的话写这里，跟结果一起交给' + (it.dept || '部门');
+    ta.value = st.draft; ta.disabled = dis;
+    ta.addEventListener('input', () => { st.draft = ta.value; });
+    ta.addEventListener('paste', e => { const fs = [...((e.clipboardData && e.clipboardData.files) || [])]; if (fs.some(f => /^image\//.test(f.type))) { e.preventDefault(); addFiles(d.id, fs); } });
+    const add = el('label', 'mini addimg'), inp = el('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true; inp.disabled = dis;
+    inp.addEventListener('change', () => { addFiles(d.id, inp.files); inp.value = ''; }); add.append('＋ 上传图片', inp);
+    tools.append(add); head.append(lab, tools); nb.append(head, ta);
+    if (st.files.length || st.uploading) {
+      const tb = thumbs(st.files, i => { st.files.splice(i, 1); render(); });
+      for (let k = 0; k < st.uploading; k++) tb.append(el('div', 'thumb', '上传中…'));
+      nb.append(tb);
+    }
+    c.append(nb);
+    const pk = el('p', 'picked');
+    if (st.pick) { pk.append('你选的：', el('b', null, pickWords(it, st.pick)), '　最后在底部点「全部提交」一起交'); } else pk.textContent = '还没点选';
+    c.append(pk);
+    if (st.err) c.append(el('p', 'err', st.err));
+    return c;
+  }
+
+  function doneRow(d) {
+    const it = d.it, ph = phase(d), dec = ph === 'done' ? decs.get(d.id) : null, rc = rcpts.get(d.id), st = S(d.id);
+    const r = el('div', 'row'), body = el('div', 'body'), key = dec ? dec.status : 'closed';
+    r.append(el('div', 'seal ' + key, SEAL[key] || '批'));
+    body.append(metaRow(d), el('p', 't', it.title || ''));
+    if (dec) {
+      body.append(el('p', 'r', (dec.label || dec.status) + (dec.pass ? '：' + (PASS[dec.pass] || dec.pass) : '') + (dec.note ? '\n备注：' + dec.note : '')));
+      if (arr(dec.images).length) body.append(thumbs(dec.images));
+      // 回执：部门写 ack 之后才算收到；通知只说明「发出去了」，不等于部门看到了
+      const n = notices.get(dec.batch);
+      if (ackOk(dec, rc)) body.append(el('p', 'st ok', '✓ ' + (it.dept || '部门') + '已收到 · ' + when(rc.ack.at) + (rc.ack.text ? '：' + rc.ack.text : '')));
+      else if (n && n.ok) body.append(el('p', 'st wait', '已发评论通知，等' + (it.dept || '部门') + '确认收到…'));
+      else {
+        const p = el('p', 'st bad', n ? '没通知到（' + (n.code || '原因不明') + '），请在聊天里说一声。' : '没有通知记录，请在聊天里说一声。');
+        if (n && n.text) { const cb = el('button', 'mini', '复制摘要'); cb.type = 'button'; cb.addEventListener('click', () => copySummary(n, cb)); p.append(' ', cb); }
+        body.append(p);
+      }
+    } else body.append(el('p', 'r', it.state === 'closed' ? '部门已把这件关掉，没经你点选。' + (it.closeNote ? '\n' + it.closeNote : '') : ''));
+    const log = arr(rc && rc.log).filter(e => !dec || !e.at || e.at >= dec.at);
+    if (log.length) {
+      const ul = el('ul', 'log');
+      log.slice(-6).forEach(e => { const k = stageKey(e.stage), li = el('li', k); li.append(el('time', null, when(e.at)), el('b', null, STAGE[k] || e.stage || '')); li.append(linked(e.text || '')); ul.append(li); });
+      body.append(ul);
+    }
+    const side = el('div', 'side');
+    if (dec) side.append(el('span', null, when(dec.at) + ' 批'));
+    if (dec) { const u = el('button', 'mini', '撤回'); u.type = 'button'; u.disabled = allBusy; u.title = '退回待批，不发通知'; u.addEventListener('click', () => withdraw(d.id)); side.append(u); }
+    body.append(side);
+    if (st.err) body.append(el('p', 'err', st.err));
+    r.append(body); r.id = 'row-' + d.id;
+    return r;
+  }
+
+  // ---------- 部门一览：全部由送审卡、决定和回执算出来，不另存 ----------
+  function deptView() {
+    const box = el('div', 'depts'), names = deptNames();
+    for (const name of names) {
+      const mine = items.filter(d => (d.it.dept || '未分部门') === name);
+      let pend = 0, noAck = 0, doing = 0, blocked = 0, fin = 0, lastAt = '';
+      for (const d of mine) {
+        const ph = phase(d), dec = decs.get(d.id), rc = rcpts.get(d.id);
+        if (ph === 'pending') pend++;
+        if (ph === 'done') {
+          if (!ackOk(dec, rc)) noAck++;
+          else { const s = lastStage(rc); if (s === 'blocked') blocked++; else if (s === 'done' || s === 'live' || s === 'cancelled') fin++; else doing++; }
+        }
+        for (const t of [d.it.createdAt, dec && dec.at, rc && rc.ack && rc.ack.at, ...arr(rc && rc.log).map(e => e.at)]) if (t && t > lastAt) lastAt = t;
+      }
+      const c = el('section', 'dc'), dl = el('dl'), row = (k, v, hot) => { dl.append(el('dt', null, k), el('dd', hot && v ? 'hot' : null, String(v))); };
+      c.append(el('h3', null, name));
+      row('等你批', pend, true); row('批了、没回执', noAck, true); row('在做', doing); row('受阻', blocked, true); row('做完 / 上线', fin);
+      c.append(dl);
+      const info = deptDocs.get(name);
+      c.append(el('p', 'when', lastAt ? '最近动静 ' + when(lastAt) : '还没有送审'));
+      if (info && info.note) c.append(el('p', 'when', info.note));
+      c.addEventListener('click', () => { deptFilter = name; setTab(pend ? 'pending' : 'done'); });
+      c.style.cursor = 'pointer';
+      box.append(c);
+    }
+    return box;
+  }
+
+  function deptNames() {
+    const seen = new Set(items.map(d => d.it.dept || '未分部门'));
+    for (const k of deptDocs.keys()) seen.add(k);
+    return [...seen].sort((a, b) => { const ia = DEPT_ORDER.indexOf(a), ib = DEPT_ORDER.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b, 'zh'); });
+  }
+  function visible(which) {
+    const q = query.trim().toLowerCase();
+    return items.filter(d => {
+      const ph = phase(d);
+      if (which === 'pending' ? ph !== 'pending' : !(ph === 'done' || ph === 'closed')) return false;
+      if (deptFilter && (d.it.dept || '未分部门') !== deptFilter) return false;
+      if (which === 'done' && q) return [d.it.code, d.it.title, d.it.dept, d.id].some(s => String(s || '').toLowerCase().includes(q));
+      return true;
+    }).sort(which === 'pending'
+      ? (a, b) => (DEPT_ORDER.indexOf(a.it.dept) - DEPT_ORDER.indexOf(b.it.dept)) || String(a.it.createdAt || '').localeCompare(String(b.it.createdAt || ''))
+      : (a, b) => String(((decs.get(b.id) || {}).at) || b.it.createdAt || '').localeCompare(String(((decs.get(a.id) || {}).at) || a.it.createdAt || '')));
+  }
+
+  function chips() {
+    const box = $('chips'), names = deptNames(), pendBy = {};
+    items.forEach(d => { if (phase(d) === 'pending') { const k = d.it.dept || '未分部门'; pendBy[k] = (pendBy[k] || 0) + 1; } });
+    const mk = (label, val, n) => { const b = el('button', 'chip', label); b.type = 'button'; b.setAttribute('aria-pressed', deptFilter === val ? 'true' : 'false'); if (n) b.append(el('small', null, String(n))); b.addEventListener('click', () => { deptFilter = deptFilter === val && val ? '' : val; render(); }); return b; };
+    box.replaceChildren(mk('全部', '', 0), ...names.map(n => mk(n, n, tab === 'pending' ? pendBy[n] : 0)));
+    box.hidden = tab === 'depts' || !names.length;
+  }
+
+  function sync(box, list) { const cur = [...box.children]; if (cur.length !== list.length || cur.some((n, i) => n !== list[i])) box.replaceChildren(...list); }
+  function render() {
+    const ready = loaded.items && loaded.decisions;
+    const allPend = items.filter(d => phase(d) === 'pending'), P = visible('pending'), D = visible('done');
+    const build = (d, pend) => {
+      const st = S(d.id), sig = JSON.stringify([pend, d.it, decs.get(d.id), rcpts.get(d.id), pend ? null : notices.get((decs.get(d.id) || {}).batch), st.pick, st.files, st.uploading, st.err, allBusy]);
+      const old = nodes.get(d.id); if (old && old.sig === sig) return old.node;
+      const node = pend ? pendingCard(d) : doneRow(d); nodes.set(d.id, { sig, node }); return node;
+    };
+    if (ready) {
+      sync($('v-pending'), P.map(d => build(d, true)));
+      sync($('v-done'), D.map(d => build(d, false)));
+      if (tab === 'depts') $('v-depts').replaceChildren(deptView());
+      $('n').textContent = allPend.length; $('nl').textContent = allPend.length ? '件等你批' : '件待批';
+      $('count').classList.toggle('zero', !allPend.length);
+      $('tn-pending').textContent = allPend.length || ''; $('tn-done').textContent = items.filter(d => phase(d) === 'done').length || '';
+    }
+    $('empty').hidden = !(ready && tab === 'pending' && !P.length);
+    if (!$('empty').hidden) $('empty').querySelector('b').textContent = deptFilter ? deptFilter + '没有等你批的' : '没有等你批的';
+    chips();
+    const nPick = allPend.filter(d => S(d.id).pick).length;
+    $('bar').hidden = !(ready && allPend.length);
+    $('barN').replaceChildren('已点选 ', el('b', null, String(nPick)), ' / 共 ' + allPend.length + ' 件');
+    $('bAll').disabled = allBusy || !nPick; $('bAll').textContent = allBusy ? '正在提交…' : '全部提交' + (nPick ? '（' + nPick + '）' : '');
+    $('bJump').hidden = tab !== 'pending'; $('bJump').disabled = !P.some(d => !S(d.id).pick);
+  }
+
+  function setTab(t) {
+    tab = t;
+    for (const k of ['pending', 'done', 'depts']) { $('tab-' + k).setAttribute('aria-selected', k === t ? 'true' : 'false'); $('v-' + k).hidden = k !== t; }
+    $('search').hidden = t !== 'done';
+    render(); window.scrollTo({ top: 0 });
+  }
+  $('tab-pending').addEventListener('click', () => setTab('pending'));
+  $('tab-done').addEventListener('click', () => setTab('done'));
+  $('tab-depts').addEventListener('click', () => setTab('depts'));
+  $('search').addEventListener('input', e => { query = e.target.value; render(); });
+  $('bAll').addEventListener('click', submitAll);
+  $('bJump').addEventListener('click', nextUnpicked);
+
+  (async () => {
+    try { db = await window.claude.use('db'); } catch (e) { db = null; }
+    checkSend();
+    if (!db) { $('n').textContent = '–'; $('nl').textContent = '读不到审批记录'; $('foot').textContent = '请登录 claude.ai 后在 Claude 里打开这个页面。'; return; }
+    const lost = () => { $('nl').textContent = '连接断了，刷新一下'; };
+    const toMap = snap => new Map(snap.docs.map(x => [x.id, x.data() || {}]));
+    db.collection('items').onSnapshot(s => { items = s.docs.map(x => ({ id: x.id, it: x.data() || {} })); loaded.items = true; render(); }, lost);
+    db.collection('decisions').onSnapshot(s => { decs = toMap(s); loaded.decisions = true; render(); }, lost);
+    db.collection('receipts').onSnapshot(s => { rcpts = toMap(s); render(); }, lost);
+    db.collection('notices').orderBy('at', 'desc').limit(200).onSnapshot(s => { notices = toMap(s); render(); }, () => {});
+    db.collection('depts').onSnapshot(s => { deptDocs = toMap(s); render(); }, () => {});
+  })();
+})();
+</script>
