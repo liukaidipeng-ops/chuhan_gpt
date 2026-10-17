@@ -18,22 +18,31 @@ function rng(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.
 async function playOut(me, opp, seed) {
   Math.random = rng(seed * 2654435761);
   const g = new BF.Game(); g.reset(JSON.parse(JSON.stringify(Q.S)));
-  const sg = Q.side === 'r' ? 1 : -1, startRound = g.round;
+  const sg = Q.side === 'r' ? 1 : -1, startRound = g.round, inc = { r: 0, b: 0 };   // inc：窗口内各方挣到的军功（只记增加，花掉的不扣）
   while (!g.result && g.round < startRound + Q.horizon) {
     if (g.status && g.status.mustPass) { g.apply({ k: 'pass' }); continue; }
     const AI = g.S.turn === Q.side ? me : opp;
     const seq = await AI.think(BF.cloneState(g.S), 'hard'); if (!seq.length) break;
-    for (const a of seq) if (!g.apply(a)) throw new Error('非法行动 ' + JSON.stringify(a));
+    for (const a of seq) { const m0 = { ...g.S.merit }; if (!g.apply(a)) throw new Error('非法行动 ' + JSON.stringify(a)); for (const s of ['r', 'b']) if (g.S.merit[s] > m0[s]) inc[s] += g.S.merit[s] - m0[s]; }
   }
   if (Q.metric === 'win') return g.result ? (g.result.winner === Q.side ? 1 : 0) : 0.5;
   if (Q.metric === 'merit') return sg * (g.S.merit.r - g.S.merit.b);
+  if (Q.metric === 'both') return [sg * (inc.r - inc.b), sg * neutral(g.S)];   // 战术部门 B12 回复：挣到的军功差 + 局面分，两项分开报
   return sg * neutral(g.S);   // material
 }
 (async () => {
   const opp = loadAI('src/bfai.js'), cand = loadAI(candFile), ref = loadAI(refFile);
   const rc = [], rr = [];
   for (let s = 1; s <= opt.seeds; s++) { rc.push(await playOut(cand, opp, s)); rr.push(await playOut(ref, opp, s)); }
-  const avg = a => a.reduce((x, y) => x + y, 0) / a.length, notWorse = rc.filter((v, i) => v >= rr[i]).length;
+  const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+  if (Q.metric === 'both') {
+    const part = (j, label) => { const c = rc.map(v => v[j]), r = rr.map(v => v[j]), nw = c.filter((v, i) => v >= r[i]).length, ok = avg(c) >= avg(r) && nw >= Math.ceil(opt.seeds * 0.7);
+      console.log(`  ${label}：被考 ${avg(c).toFixed(2)}，参照 ${avg(r).toFixed(2)}；不差于参照 ${nw}/${opt.seeds}；逐种子 被考 [${c.map(v => +v.toFixed(2))}] 参照 [${r.map(v => +v.toFixed(2))}]`); return ok; };
+    console.log(`【${Q.name}】${Q.intent || ''}（${Q.side === 'r' ? '汉' : '楚'}方视角，${Q.horizon} 回合 × ${opt.seeds} 种子）`);
+    const a = part(0, '窗口内挣到的军功差'), b = part(1, '局面分');
+    console.log(`  → ${a && b ? '过' : '不过'}（两项都不比参照差才过）`); return;
+  }
+  const notWorse = rc.filter((v, i) => v >= rr[i]).length;
   const pass = avg(rc) > avg(rr) && notWorse >= Math.ceil(opt.seeds * 0.7);
   console.log(`【${Q.name}】${Q.intent || ''}`);
   console.log(`  ${Q.metric}（${Q.side === 'r' ? '汉' : '楚'}方视角，${Q.horizon} 回合 × ${opt.seeds} 种子）：被考 ${avg(rc).toFixed(2)}，参照 ${avg(rr).toFixed(2)}；不差于参照 ${notWorse}/${opt.seeds} → ${pass ? '过' : '不过'}`);
