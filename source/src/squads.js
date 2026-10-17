@@ -58,7 +58,7 @@ const Squads = (() => {
   class Squad {
     constructor(t, side, anchor, yaw) {
       this.t = t; this.side = side; this.anchor = anchor.clone(); this.yaw = yaw;
-      this.group = new THREE.Group(); scene.add(this.group);
+      this.group = new THREE.Group(); this.group.userData.environmentExcluded = true; scene.add(this.group);   // 对局模型与棋盘同亮度，不套用营地夜景材质；重建/演出也沿用。
       this.updaters = [];
       this.off = onFrame(dt => { for (const u of this.updaters) u(dt); });
       this.dead = false;
@@ -1011,7 +1011,7 @@ const Squads = (() => {
       } else this.group.add(this.hero.group);
       // 随从：前两名执戟护卫，后两名旗手各擎一面帅旗（行进时旗举得更高、猎猎作响）
       this.guard = opts.guard === false ? null : new TroopSquad('k', side, anchor, yaw, 'halberd', this.isX ? [[0.34, -0.35], [-0.34, -0.35], [0.2, -0.68], [-0.2, -0.68]] : [[0.3, -0.15], [-0.3, -0.15], [0.2, -0.5], [-0.2, -0.5]], SC);
-      if (this.guard) this.flags = (this.isX ? ['楚', '將'] : ['漢', '帥']).map(ch => { const f = Models.makeBanner(side, ch); f.group.scale.setScalar(KFLAG); scene.add(f.group); return f; });
+      if (this.guard) this.flags = (this.isX ? ['楚', '將'] : ['漢', '帥']).map(ch => { const f = Models.makeBanner(side, ch); f.group.userData.environmentExcluded = true; f.group.scale.setScalar(KFLAG); scene.add(f.group); return f; });
       this.flagK = 0;
       this.walkT = 0; this.walking = 0;
       this.updaters.push(dt => {
@@ -1604,7 +1604,7 @@ const Squads = (() => {
         if (sq.horse && !sq.mounted) sq.horse.speed = 0;
         // 一面写着棋子字的旗：由领头的背在身后（帅将的旗由随从擎着，只留「帥 / 將」一面）
         if (u.t === 'k') { if (sq.flags && sq.flags.length > 1) { scene.remove(sq.flags[0].group); sq.flags = [sq.flags[1]]; } }
-        else { ns.flag = Models.makeBanner(u.s, XQ.NAMES[u.s][u.t]); ns.flag.group.scale.setScalar(0.001); scene.add(ns.flag.group); }
+        else { ns.flag = Models.makeBanner(u.s, XQ.NAMES[u.s][u.t]); ns.flag.group.userData.environmentExcluded = true; ns.flag.group.scale.setScalar(0.001); scene.add(ns.flag.group); }
         // 脚下的小圈：汉红、楚黑，半透明、一呼一吸，方便看清这枚子站在哪个点上
         ns.ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ map: ringTex, color: u.s === 'r' ? 0xc8281a : 0x141210, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -14, polygonOffsetUnits: -14 }));
         ns.ring.renderOrder = 4;   // 永远压在血迹、焦土这些地面痕迹上面

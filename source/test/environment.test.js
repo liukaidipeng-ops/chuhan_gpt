@@ -1,0 +1,46 @@
+// Day/night must not recolor playable models or collapse distinct model shaders.
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+const THREE = require('three');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xe9dfc9);
+scene.fog = new THREE.Fog(0xe9dfc9, 26, 120);
+const board = new THREE.Group(), models = new THREE.Group();
+models.userData.environmentExcluded = true;
+scene.add(board, models);
+const mat = new THREE.MeshToonMaterial({ color: 0xa8321f });
+const boardPiece = new THREE.Mesh(undefined, mat), model = new THREE.Mesh(undefined, mat);
+board.add(boardPiece); models.add(model);
+const camp = new THREE.Mesh(undefined, mat); scene.add(camp);
+const alternate = mat.clone();
+alternate.onBeforeCompile = shader => { shader.vertexShader += '\n// alternate batching'; };
+alternate.customProgramCacheKey = () => 'alternate-batch';
+const batch = new THREE.Mesh(undefined, alternate); scene.add(batch);
+const arrays = new THREE.Mesh(undefined, [mat, alternate]); scene.add(arrays);
+const context = vm.createContext({ THREE, Core: { scene, onFrame() {}, poke() {} }, Board: { root: board }, Camp: { camps: [] } });
+const env = vm.runInContext(fs.readFileSync(require.resolve('../src/environment.js'), 'utf8') + '\nEnvironmentMode', context);
+const originalBackground = scene.background.getHex();
+for (let round = 0; round < 3; round++) {
+  env.set('night');
+  assert.strictEqual(boardPiece.material, mat, 'board stays lit');
+  assert.strictEqual(model.material, mat, 'playable model stays lit');
+  assert.notStrictEqual(camp.material, mat, 'camp still gets night shading');
+  assert.notStrictEqual(camp.material.customProgramCacheKey(), batch.material.customProgramCacheKey(), 'different model shader variants cannot share a night program');
+  assert.strictEqual(arrays.material[0], camp.material, 'shared material keeps its shared night variant');
+  assert.strictEqual(arrays.material[1], batch.material);
+  const shader = { uniforms: {}, vertexShader: '#include <project_vertex>', fragmentShader: '#include <opaque_fragment>' };
+  batch.material.onBeforeCompile(shader, {});
+  assert(shader.vertexShader.includes('// alternate batching'), 'original shader hook remains active');
+  assert(shader.fragmentShader.includes('focusStrength'), 'night shading remains active');
+  const rebuilt = new THREE.Mesh(undefined, alternate); models.add(rebuilt);
+  assert.strictEqual(rebuilt.material, alternate, 'model created at night retains original material');
+  env.set('day');
+  assert.strictEqual(camp.material, mat, 'day restores the exact original material');
+  assert.strictEqual(batch.material, alternate);
+  assert.deepStrictEqual(arrays.material, [mat, alternate]);
+  assert.strictEqual(rebuilt.material, alternate);
+  assert.strictEqual(scene.background.getHex(), originalBackground);
+  models.remove(rebuilt);
+}
+console.log('ENVIRONMENT PASS: 3 cycles, playable/board exclusion, shader variants/hooks, arrays, night model creation and day restore');

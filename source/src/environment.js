@@ -1,4 +1,4 @@
-// Isolated live-rendering art prototype C2. No board or UI edits.
+// Day/night affects the surroundings; the board and playable models keep their own lighting.
 const EnvironmentMode = (() => {
  const originals=new Map(),cache=new Map(),strength={value:0};
  const bg=Core.scene.background.clone(),fog=Core.scene.fog.color.clone();
@@ -8,12 +8,12 @@ const EnvironmentMode = (() => {
  Core.onFrame(()=>{if(!active)return;if(campStamp!==Camp.camps[0])refreshFires();torches.forEach((t,i)=>fireData.value[i].set(t.p.x,t.p.y,t.p.z,t.f.userData.lord?(t.f.userData.lit||0):1));});
  function apply(){Core.scene.traverse(o=>{
   if(!o.isMesh||!o.material)return;
-  for(let p=o;p;p=p.parent)if(p===Board.root)return;
+  for(let p=o;p;p=p.parent)if(p===Board.root||p.userData.environmentExcluded)return;
   if(originals.has(o)){const m=originals.get(o);o.material=Array.isArray(m)?m.map(x=>cache.get(x)||x):(cache.get(m)||m);return;}
   const convert=m=>{
    if(m.isShaderMaterial||m.transparent||m.blending===THREE.AdditiveBlending)return m;
    if(cache.has(m))return cache.get(m);
-   const n=m.clone(),before=m.onBeforeCompile;
+   const n=m.clone(),before=m.onBeforeCompile,baseKey=m.customProgramCacheKey();
    n.onBeforeCompile=(s,r)=>{
     if(before)before.call(n,s,r);
     s.uniforms.focusStrength=strength;s.uniforms.focusFires=fireData;
@@ -39,7 +39,8 @@ const EnvironmentMode = (() => {
     const marker=s.fragmentShader.includes('#include <opaque_fragment>')?'#include <opaque_fragment>':'#include <output_fragment>';
     s.fragmentShader=s.fragmentShader.replace(marker,code+marker);
    };
-   n.customProgramCacheKey=()=> 'focus-preview-c-v2';cache.set(m,n);return n;
+   // Preserve the original shader variant (e.g. troop batching) inside the night variant.
+   n.customProgramCacheKey=()=> 'focus-preview-c-v3|'+baseKey;cache.set(m,n);return n;
   };
   originals.set(o,o.material);o.material=Array.isArray(o.material)?o.material.map(convert):convert(o.material);
  });}
