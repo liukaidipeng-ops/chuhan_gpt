@@ -1,7 +1,8 @@
-# 战术部门：职责和工作流（草案 v0.1，待 Ham 点头、TD 同意）
+# 战术部门：职责和工作流（草案 v0.2，待 Ham 点头、TD 同意）
 
 > 起草：象棋Balance（session_01D66ZQy8VhNQQC21aH7QFZw），2026-10-17，照 Ham 原话：“帮我建立一个战术部门……写好部门的 workflow、职责，战术部门也会研究分析我上传的实战局内对局，寻找套路，形成可行的战术。”
 > 底子：ChatGPT 留下的《楚汉首批机制战术手册》v0.1 / v0.2（`chuhan_ai_bench` 分支 `docs/tactics-manual`，`docs/tactics/`），以及电脑十级认证表（`chuhan_ai_bench` 分支 `claude/chuhan-xiangqi-chat-x9kpy8`，`lab/docs/AI-LEVELS.md`，Ham 10-17 审批台 bal-001 通过方向）。
+> v0.2（流程部门意见）：团队文件跟 `WORKFLOW.md` 放同一处；补上审批台回执。
 > 本部门先读总工作流 `WORKFLOW.md`（`dev`），这里只写战术部门自己的事；和总工作流冲突时以总工作流为准。
 
 ---
@@ -67,10 +68,12 @@ Ham 要的“完美电脑”按十级表来考：七级起考战术（七级短�
 
 拍板记录：`source/docs/collab/decisions-战术部门.md`（照 Ham 原话记）。
 
+**审批台回执**（`WORKFLOW.md` 第 3 节第 6、7 条）：用 `ArtifactComments` watch 楚汉审批台；Ham 每次提交，都在 `receipts/<编号>` 写 `ack` 回执（时间照实填，要晚于决定时间）；Ham 撤回也要写回执，说明做到哪一步。
+
 ## 6. 分支和文件（草案，等 TD 同意）
 - 分支：`liukaidipeng-ops/chuhan_ai_bench` 的 `claude/tactics`（公开仓库，验证脚本能在 GitHub 免费机器上跑）。
 - 自己管的文件：`docs/tactics/`（手册、战术卡、复盘报告）、`tactics/`（局面文件、重放 / 验证脚本、证据 JSON）。
-- 团队文件（在 `chuhan_v01`）：`TACTICS-WORKFLOW.md`（本文件）、`tactics-to-balance.md`、`decisions-战术部门.md`。
+- 团队文件：`TACTICS-WORKFLOW.md`（本文件）、`tactics-to-balance.md`、`decisions-战术部门.md`，**跟 `WORKFLOW.md` 放同一处**：现在是 `chuhan_v01` 的 `dev`；TD 按 td-001（以 `chuhan_gpt` 为准、`chuhan_v01` 冻结只读）迁到 `chuhan_gpt` 后，一起搬过去。
 
 ## 7. 汇报规矩（照总工作流第 7 节）
 - 中文、简洁、手机能看；结论先行，一页纸以内，细节进附录。
