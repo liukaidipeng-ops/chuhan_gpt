@@ -104,7 +104,11 @@ const Ending = (() => {
   // 保存/恢复场景氛围
   let saved = null;
   function mood(bg, fogNear, fogFar, sunPos, sunCol, sunInt, hemiInt) {
-    if (!saved) saved = { bg: scene.background.clone(), fn: scene.fog.near, ff: scene.fog.far, fc: scene.fog.color.clone(), sp: Core.sun.position.clone(), st: Core.sun.target.position.clone(), sc: Core.sun.color.clone(), si: Core.sun.intensity, hi: Core.hemi.intensity };
+    if (!saved) {
+      const c = Core.sun.shadow.camera;
+      saved = { bg: scene.background.clone(), fn: scene.fog.near, ff: scene.fog.far, fc: scene.fog.color.clone(), sp: Core.sun.position.clone(), st: Core.sun.target.position.clone(), sc: Core.sun.color.clone(), si: Core.sun.intensity, hi: Core.hemi.intensity,
+        shadowCamera: {left:c.left,right:c.right,top:c.top,bottom:c.bottom,near:c.near,far:c.far,zoom:c.zoom} };
+    }
     scene.background.set(bg); scene.fog.color.set(bg); scene.fog.near = fogNear; scene.fog.far = fogFar;
     Core.sun.position.copy(sunPos); Core.sun.color.set(sunCol); Core.sun.intensity = sunInt; Core.hemi.intensity = hemiInt;
   }
@@ -112,7 +116,9 @@ const Ending = (() => {
     if (!saved) return;
     scene.background.copy(saved.bg); scene.fog.color.copy(saved.fc); scene.fog.near = saved.fn; scene.fog.far = saved.ff;
     Core.sun.position.copy(saved.sp); Core.sun.target.position.copy(saved.st); Core.sun.color.copy(saved.sc); Core.sun.intensity = saved.si; Core.hemi.intensity = saved.hi;
-    Core.sun.shadow.camera.left = -9; Core.sun.shadow.camera.right = 9; Core.sun.shadow.camera.top = 9; Core.sun.shadow.camera.bottom = -9; Core.sun.shadow.camera.updateProjectionMatrix();
+    Object.assign(Core.sun.shadow.camera, saved.shadowCamera);
+    Core.sun.shadow.camera.updateProjectionMatrix();
+    Core.renderer.shadowMap.needsUpdate = true;
     saved = null;
   }
   function sunAt(O, off, target, size = 14) {
