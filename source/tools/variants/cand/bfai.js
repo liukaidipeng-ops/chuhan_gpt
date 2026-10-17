@@ -27,7 +27,7 @@
   const BSMIN = ENV.BFAI_BSMIN != null ? +ENV.BFAI_BSMIN : 1;
   const BSV = ENV.BFAI_BSV != null ? +ENV.BFAI_BSV : 3;   // 背水一战还没用时在估值里值几分（和破釜沉舟一样先记 3）
   const UPX = ENV.BFAI_UPX === '1';
-  const DEFUP = ENV.BFAI_DEFUP === '1';
+  const DEFUP = ENV.BFAI_DEFUP === '1' || ENV.BFAI_DEFUP === '2';
   const CHKUP = ENV.BFAI_CHKUP === '1';   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
   const PFC = +(ENV.BFAI_PFC || 0), PFA = +(ENV.BFAI_PFA || 0), PFD = +(ENV.BFAI_PFD || 0);
   const HPF = [0, 1, 1.5, 1.9, 2.2], HPF_DEF = [0, 1, 1.15, 1.28, 1.36], HPF_ADV = [0, 1, 1.55, 1.75, 1.85];
@@ -534,7 +534,11 @@
     if (CHKUP && chk) { const ck = new Set(XQ.checkers(S.board, me === 'r' ? 'b' : 'r')); let n = 0;
       for (const c of skipped.concat(cand).filter(c => !top.includes(c)).sort((x, y) => y.gain - x.gain)) { if (n >= 2) break;
         if (A.moveTargets(c.S, c.at[0], c.at[1]).some(m => { const q = c.S.board[m.to[1]][m.to[0]]; return q && ck.has(q.id); })) { top.push(c); n++; } } }
-    if (DEFUP) { const d = skipped.filter(c => { const p = S.board[c.at[1]][c.at[0]]; return p && (p.t === 'a' || p.t === 'e') && !c.must; }).sort((x, y) => y.gain - x.gain)[0]; if (d) top.push(d); }
+    // BFAI_DEFUP=2：只在九宫受压时给名额（对方至少两个车马炮兵压到我方九宫前后：离底线 4 行以内、2～6 路）。
+    //   不受压也给的话，电脑没事就升士相（K8 第 71 条计划题：连将收钱的汉方把钱花在升士上，局面分 6.3 → 2.8）
+    const press = () => { let n = 0; for (let r = 0; r < 10; r++) for (let f = 2; f <= 6; f++) { const p = S.board[r][f];
+      if (p && p.s !== me && 'rncp'.includes(p.t) && (me === 'r' ? r <= 3 : r >= 6)) n++; } return n >= 2; };
+    if (DEFUP && (ENV.BFAI_DEFUP !== '2' || press())) { const d = skipped.filter(c => { const p = S.board[c.at[1]][c.at[0]]; return p && (p.t === 'a' || p.t === 'e') && !c.must; }).sort((x, y) => y.gain - x.gain)[0]; if (d) top.push(d); }
     if (rec) for (const c of skipped) { const p = S.board[c.at[1]][c.at[0]]; if (!top.includes(c)) rec.push({ at: c.at, t: p.t, lv: p.lv, gain: +c.gain.toFixed(2), why: '筛子：守子没被捉 / 攒钱' }); }
     if (rec) for (const c of cand) if (!top.includes(c)) { const p = S.board[c.at[1]][c.at[0]]; rec.push({ at: c.at, t: p.t, lv: p.lv, gain: +c.gain.toFixed(2), why: '名额满了（只留前三种）' }); }
     // 根上补一个“升了攻击变大、能打死原来打不死的子”的升级（筛子挡掉的也算）：象 / 士二级、兵三级、车马炮按 r6 表升级都会加攻击。
