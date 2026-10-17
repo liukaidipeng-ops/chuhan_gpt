@@ -539,6 +539,10 @@
     const press = () => { let n = 0; for (let r = 0; r < 10; r++) for (let f = 2; f <= 6; f++) { const p = S.board[r][f];
       if (p && p.s !== me && 'rncp'.includes(p.t) && (me === 'r' ? r <= 3 : r >= 6)) n++; } return n >= 2; };
     if (DEFUP && (ENV.BFAI_DEFUP !== '2' || press())) { const d = skipped.filter(c => { const p = S.board[c.at[1]][c.at[0]]; return p && (p.t === 'a' || p.t === 'e') && !c.must; }).sort((x, y) => y.gain - x.gain)[0]; if (d) top.push(d); }
+    // BFAI_RUPX：根上“升完解锁技能”的升级也留名额，最多两个（Ham 试玩 g21 第 78 条：升三级兵到四级再兵 3,3→3,2，汉 270 种应着全被一步杀；静态分排不进前三被筛掉）
+    if (ENV.BFAI_RUPX === '1') { let n = 0;
+      const lvOf = c => { const q = c.S.board[c.at[1]][c.at[0]]; return q && potInfo(me, q.t, q.lv - 1).sk ? q.lv : 0; };   // 升到的级别越高、解锁的技能越狠，先给
+      for (const c of skipped.concat(cand).filter(c => !top.includes(c) && lvOf(c)).sort((x, y) => lvOf(y) - lvOf(x) || y.gain - x.gain)) { if (n >= 2) break; top.push(c); n++; } }
     if (rec) for (const c of skipped) { const p = S.board[c.at[1]][c.at[0]]; if (!top.includes(c)) rec.push({ at: c.at, t: p.t, lv: p.lv, gain: +c.gain.toFixed(2), why: '筛子：守子没被捉 / 攒钱' }); }
     if (rec) for (const c of cand) if (!top.includes(c)) { const p = S.board[c.at[1]][c.at[0]]; rec.push({ at: c.at, t: p.t, lv: p.lv, gain: +c.gain.toFixed(2), why: '名额满了（只留前三种）' }); }
     // 根上补一个“升了攻击变大、能打死原来打不死的子”的升级（筛子挡掉的也算）：象 / 士二级、兵三级、车马炮按 r6 表升级都会加攻击。
@@ -806,6 +810,36 @@
       } catch (e) { if (e !== TIMEOUT) throw e; }
       deadline = Infinity; nodeCap = Infinity;
       if (bp) { pick = bp; kids = kids.concat([bp]); if (TR) TR.art = { a: actOf(bp), v: +bp.v.toFixed(3), need: +need.toFixed(3) }; }
+    }
+    // BFAI_MATE2：两步杀（静着之后对方怎么应——含先升级——我都有一步杀）。搜索浅时（手机上 2～3 层）看不出这是杀，
+    //   只当普通好棋，随机噪声还会把它换掉（Ham 试玩 g21 第 78 条：兵 3,3→3,2 排第一、只比第二名多 0.01，被换掉后汉翻盘）。
+    //   根上前 4 名各查一遍，查到就走；不是杀的通常第一种应着就查完
+    if (ENV.BFAI_MATE2 === '1' && L.depth >= 2 && !fin0 && pick && !pick.done) {
+      const myMate1 = T => {
+        const st = [T];
+        if (!T.upgraded) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = T.board[r][f]; if (p && p.s === me && p.t !== 'k') { const U = A.upgradeState(T, [f, r]); if (U) st.push(U); } }
+        for (const X of st) for (const e of A.gen(X, false)) { const R = BF.attempt(X, e.a); if (!R || R.free) continue; const ev = BF.evaluate(R.S); if (ev && ev.result && ev.result.winner === me) return true; }
+        return false;
+      };
+      const forced = T => {
+        if (!T || T.final || T.turn === me) return false;
+        const opp = T.turn, st = [T]; let n = 0;
+        if (!T.upgraded) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = T.board[r][f]; if (p && p.s === opp && p.t !== 'k') { const U = A.upgradeState(T, [f, r]); if (U) st.push(U); } }
+        for (const X of st) for (const e of A.gen(X, false)) {
+          if (now() > hardEnd2) return false;
+          const R = BF.attempt(X, e.a); if (!R || R.free) continue; n++;
+          const ev = BF.evaluate(R.S); if (ev && ev.result) { if (ev.result.winner !== me) return false; continue; }
+          if (R.S.turn !== me || !myMate1(R.S)) return false;
+        }
+        return n > 0;
+      };
+      try {
+        let kf = null, kr = null; for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.s !== me && p.t === 'k') { kf = f; kr = r; } }
+        const near = k => { const a = k.a; return a && a.to && kf != null && Math.max(Math.abs(a.to[0] - kf), Math.abs(a.to[1] - kr)) <= 2; };
+        const threat = T => { const N = BF.cloneState(T); N.turn = me; N.upgraded = false; N.freeUsed = false; N.jmLock = null; return myMate1(N); };   // 对方停一手我就能一步杀
+        const pool2 = kids.filter(k => k.S && !k.done).slice(0, 4).concat(kids.filter(k => k.S && !k.done && near(k)).slice(0, 12));
+        for (const k of [...new Set(pool2)]) if (threat(k.S) && forced(k.S)) { if (k !== pick) { if (TR) TR.mate2 = { from: actOf(pick), to: actOf(k) }; pick = k; } else if (TR) TR.mate2 = { kept: actOf(k) }; break; }
+      } catch (e) { }
     }
     // 一步杀保险：走完这一步以后，对方能不能一步将死我（可以先给一枚子升一级再走）；能就按排名往下换一个不送杀的
     //   （送一步杀等于必输，最多往下找 80 个；都送杀时再试平时不肯用的召回良将）。只在选中的这步送杀时才多花时间
