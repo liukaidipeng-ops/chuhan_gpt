@@ -187,6 +187,7 @@
     models: store.get('models', 0), eco: store.get('eco', Core.isMobile ? 1 : 0), debris: store.get('debris', 3), confirm: store.get('confirm', 1), turnfx: store.get('turnfx', 'wave'),   // confirm：落子要点两下（Ham 10-09 要的，防误触；默认开）
     vis: store.get('vis', store.get('fx', 1) === 0 ? 'low' : 'cine'), gore: store.get('gore', 3), server: store.get('server', ''),
     environment: store.get('environment', 'day'),
+    tilt: store.get('tilt', 0),   // 移轴虚化：默认关，卡或发热的人不会被动开着
     turnReminder: store.get('turnReminder', 1),
     speed: store.get('speed', 1.5), // 动画播放速度
   };
@@ -203,10 +204,11 @@
     EnvironmentMode.set(S.environment);
     Fx.level = S.vis; Fx.gore = +S.gore; Voice.enabled = !!+S.voice; Voice.mode = +S.voice === 2 ? 'real' : 'orig';
     Squads.Stand.set(!!+S.models); Fx.keep = +S.debris || 0; Core.setEco(!!+S.eco);
+    if (Core.post && Core.post.set) Core.post.set({ tilt: !!+S.tilt });
     Core.Time.boost = +S.speed || 1.5;
     Sfx.setVol('music', S.vMusic / 100 * 0.9); Sfx.setVol('sfx', S.vSfx / 100); Sfx.setVol('voice', S.vVoice / 100);
     Net.custom = S.server || '';
-    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment', 'turnReminder']) store.set(k, S[k]);
+    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment', 'turnReminder', 'tilt']) store.set(k, S[k]);
   }
   Net.custom = S.server || '';
   Core.Time.boost = +S.speed || 1.5;
