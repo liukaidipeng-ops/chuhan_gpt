@@ -18,7 +18,7 @@ Ham 10-10 11:53 原话（项目前台转达）：“所有需要我拍板的内�
 
 ## 2. 部门总表
 
-> Ham 10-17：目前在岗的部门四个：**流程部门**（session_01FYUyc8rh3T5ZQf2LuCpgh9，管审批台和审核流程；审批台源码和备份在 `chuhan_gpt` 的 `claude/shenpi-desk` 分支 `tools/shenpi-desk/`）、**象棋Balance**（session_01D66ZQy8VhNQQC21aH7QFZw，数值、规则、电脑 AI）、**象棋TD**（session_01XU2UrphTySs2MVTGCssQ2X，10-17 开：游戏发布和所有架构、仓库、构建、部署设置；**上线只走象棋TD**，其他部门不再自己发 chuhan_gpt_play）、**战术部门**（session_01QZFzpH2Pb1esP92XXqTpEo，10-17 审批台 bal-002 通过：复盘实战、找套路、写战术卡、给 Balance 出考题；不改电脑、不上线；部门工作流 `TACTICS-WORKFLOW.md`）。老分支（`codex/*`、10-11 以前的部门分支）只读存档、不整支合，还要的东西基于现在的 `main` 重新交（td-005）。下表是 10-10 的旧表，留作参考；表里的审核页面都已由楚汉审批台取代。
+> Ham 10-17：目前在岗的部门五个：**流程部门**（session_01FYUyc8rh3T5ZQf2LuCpgh9，管审批台和审核流程；审批台源码和备份在 `chuhan_gpt` 的 `claude/shenpi-desk` 分支 `tools/shenpi-desk/`）、**象棋Balance**（session_01D66ZQy8VhNQQC21aH7QFZw，数值、规则、电脑 AI）、**象棋TD**（session_01XU2UrphTySs2MVTGCssQ2X，10-17 开：游戏发布和所有架构、仓库、构建、部署设置；**上线只走象棋TD**，其他部门不再自己发 chuhan_gpt_play）、**战术部门**（session_01QZFzpH2Pb1esP92XXqTpEo，10-17 审批台 bal-002 通过：复盘实战、找套路、写战术卡、给 Balance 出考题；不改电脑、不上线；部门工作流 `TACTICS-WORKFLOW.md`）、**美术部门**（session_01AdTNXYZq2QmWEW2V4s7SNR，10-17 Ham 直接设立：负责人是顶级美术总监，管 UI 设计、交互设计、棋子设计、角色设计；分工草案待 Ham 在审批台 art-001 起批，技能特效、过场 CG、角色动画归属待定；改游戏代码交补丁给象棋TD）。老分支（`codex/*`、10-11 以前的部门分支）只读存档、不整支合，还要的东西基于现在的 `main` 重新交（td-005）。下表是 10-10 的旧表，留作参考；表里的审核页面都已由楚汉审批台取代。
 
 | 部门 | 管什么 | 会话 | 分支 | 自己管的文件 | 审核页面 |
 |---|---|---|---|---|---|
