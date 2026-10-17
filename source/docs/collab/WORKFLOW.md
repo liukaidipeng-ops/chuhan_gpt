@@ -18,7 +18,7 @@ Ham 10-10 11:53 原话（项目前台转达）：“所有需要我拍板的内�
 
 ## 2. 部门总表
 
-> Ham 10-17：目前在岗的部门只有两个：**流程部门**（session_01FYUyc8rh3T5ZQf2LuCpgh9，管审批台和审核流程，分支 `claude/shenpi-hub`）和**象棋Balance**（session_01D66ZQy8VhNQQC21aH7QFZw）。下表是 10-10 的旧表，留作参考；表里的审核页面都已由楚汉审批台取代。
+> Ham 10-17：目前在岗的部门三个：**流程部门**（session_01FYUyc8rh3T5ZQf2LuCpgh9，管审批台和审核流程，分支 `claude/shenpi-hub`）、**象棋Balance**（session_01D66ZQy8VhNQQC21aH7QFZw，数值、规则、电脑 AI）、**象棋TD**（session_01XU2UrphTySs2MVTGCssQ2X，10-17 开：游戏发布和所有架构、仓库、构建、部署设置；**上线只走象棋TD**，其他部门不再自己发 chuhan_gpt_play）。下表是 10-10 的旧表，留作参考；表里的审核页面都已由楚汉审批台取代。
 
 | 部门 | 管什么 | 会话 | 分支 | 自己管的文件 | 审核页面 |
 |---|---|---|---|---|---|
