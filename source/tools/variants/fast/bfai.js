@@ -82,7 +82,7 @@
   let atkC = null, mlvC = null, ucC = null;
   const atkW = p => { if (!atkC) atkC = {}; const a = atkC[p.t] || (atkC[p.t] = []), lv = p.lv || 1; let x = a[lv]; if (x === undefined) x = a[lv] = A.atk(p); return x; };
   const maxLvW = t => { if (!mlvC) mlvC = {}; let x = mlvC[t]; if (x === undefined) x = mlvC[t] = BF.maxLvOf(t); return x; };
-  const upCostW = p => { if (!ucC) ucC = new Map(); const k = p.t + p.lv + (p.rh ? 'h' : '') + ':' + (p.xp || 0); let x = ucC.get(k); if (x === undefined) { x = A.upCost(p); ucC.set(k, x); } return x; };
+  const upCostW = p => { const xp = p.xp || 0; if (xp > 15 || !(xp >= 0) || xp !== (xp | 0)) return A.upCost(p); if (!ucC) ucC = {}; const a = ucC[p.t] || (ucC[p.t] = []), i = ((p.lv || 1) * 2 + (p.rh ? 1 : 0)) * 16 + xp; let x = a[i]; if (x === undefined) x = a[i] = A.upCost(p); return x; };   // 下标：等级 × 召回半价 × 甲片（甲片 ≤ 15，再多直接算）
   function potInfo(s, t, lv) {
     if (!potC) potC = { r: {}, b: {} };
     const a = potC[s][t] || (potC[s][t] = []);
@@ -134,7 +134,7 @@
       if (p.t === 'k') {
         if (fin) { const inside = f >= 3 && f <= 5 && adv >= 7; x = 6 + p.hp * EW.fk_hp + adv * EW.fk_adv + (inside ? EW.fk_in : 0) + Math.abs(f - 4) * EW.fk_off; }
         else { x = EW.k_adv * adv + (f !== 4 ? EW.k_off : 0);   // 平时主帅老实待在原位
-          if (EW.k_free) { let c = 0; for (const [df, dr] of KFD) { const F = f + df, R = r + dr; if (F >= 3 && F <= 5 && (s === 'r' ? R >= 0 && R <= 2 : R >= 7 && R <= 9) && !b[R][F]) c++; } x += EW.k_free * c; }   // 九宫里还空几格能躲
+          if (EW.k_free) { let c = 0; for (let i = 0; i < 4; i++) { const F = f + KFD[i][0], R = r + KFD[i][1]; if (F >= 3 && F <= 5 && (s === 'r' ? R >= 0 && R <= 2 : R >= 7 && R <= 9) && !b[R][F]) c++; } x += EW.k_free * c; }   // 九宫里还空几格能躲
         }
       } else {
         x = baseValW(p, s === 'r' ? hvB : hvR);
