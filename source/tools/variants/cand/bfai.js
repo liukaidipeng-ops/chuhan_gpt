@@ -815,10 +815,14 @@
     //   只当普通好棋，随机噪声还会把它换掉（Ham 试玩 g21 第 78 条：兵 3,3→3,2 排第一、只比第二名多 0.01，被换掉后汉翻盘）。
     //   根上前 4 名各查一遍，查到就走；不是杀的通常第一种应着就查完
     if (ENV.BFAI_MATE2 === '1' && L.depth >= 2 && !fin0 && pick && !pick.done) {
+      let work = 0; const WORK = +(ENV.BFAI_MATE2W || 8000);   // 这一段最多试走多少次（对方被逼得很紧的局面里，不设上限会一直算下去）
+      let hint = null;   // 上一种应着之后找到的那步杀（先升哪枚子、走哪步），下一种应着先试它，多数一次就中
+      const win1 = (X, a) => { if (++work > WORK) throw TIMEOUT; const R = BF.attempt(X, a); if (!R || R.free) return false; const ev = BF.evaluate(R.S); return !!(ev && ev.result && ev.result.winner === me); };
       const myMate1 = T => {
-        const st = [T];
-        if (!T.upgraded) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = T.board[r][f]; if (p && p.s === me && p.t !== 'k') { const U = A.upgradeState(T, [f, r]); if (U) st.push(U); } }
-        for (const X of st) for (const e of A.gen(X, false)) { const R = BF.attempt(X, e.a); if (!R || R.free) continue; const ev = BF.evaluate(R.S); if (ev && ev.result && ev.result.winner === me) return true; }
+        if (hint) { const X = hint.at ? (!T.upgraded && A.upgradeState(T, hint.at)) : T; if (X && win1(X, hint.a)) return true; }
+        const st = [{ X: T, at: null }];
+        if (!T.upgraded) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = T.board[r][f]; if (p && p.s === me && p.t !== 'k') { const U = A.upgradeState(T, [f, r]); if (U) st.push({ X: U, at: [f, r] }); } }
+        for (const { X, at } of st) for (const e of A.gen(X, false)) if (win1(X, e.a)) { hint = { at, a: e.a }; return true; }
         return false;
       };
       const forced = T => {
