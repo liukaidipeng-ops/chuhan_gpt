@@ -70,8 +70,9 @@ Ham 要的“完美电脑”按十级表来考：七级起考战术（七级短�
 
 **审批台回执**（`WORKFLOW.md` 第 3 节第 6、7 条）：用 `ArtifactComments` watch 楚汉审批台；Ham 每次提交，都在 `receipts/<编号>` 写 `ack` 回执（时间照实填，要晚于决定时间）；Ham 撤回也要写回执，说明做到哪一步。
 
-## 6. 分支和文件（草案，等 TD 同意）
+## 6. 分支和文件（象棋TD 10-17 已同意）
 - 分支：`liukaidipeng-ops/chuhan_ai_bench` 的 `claude/tactics`（公开仓库，验证脚本能在 GitHub 免费机器上跑）。
+- 验证脚本引用游戏引擎时，以 `chuhan_gpt` 的 `main` 为准（象棋TD 10-17）。
 - 自己管的文件：`docs/tactics/`（手册、战术卡、复盘报告）、`tactics/`（局面文件、重放 / 验证脚本、证据 JSON）。
 - 团队文件：`TACTICS-WORKFLOW.md`（本文件）、`tactics-to-balance.md`、`decisions-战术部门.md`，**跟 `WORKFLOW.md` 放同一处**：现在是 `chuhan_v01` 的 `dev`；TD 按 td-001（以 `chuhan_gpt` 为准、`chuhan_v01` 冻结只读）迁到 `chuhan_gpt` 后，一起搬过去。
 
