@@ -251,7 +251,9 @@
   let kdMe = null;   // 危险延伸只管“这一步是谁在想”的那一方（见 kdDanger）
   let upPly = -1;   // 在第几层考虑“对方先升级再走”（-1 = 不考虑）
   let upAll = false;   // 裁判开关 LEVELS.<档>.upAll（只给复盘工具用，默认关）：对方“先升级再走”所有升法都看，第 1、第 3 层都看
-  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0)) && !S.upgraded;
+  // 自己下一回合也可能先升级（第 38 题：下回合进账就够升车绝杀，原来只在对方那一层考虑升级，这笔账看不到）
+  const UP2 = ENV.BFAI_UP2 === '1';
+  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && ply === 2 && upPly >= 0)) && !S.upgraded;
   let pfPly = -1;   // 在第几层考虑“对方（楚）用破釜沉舟连走两步”（-1 = 不考虑）
   const pfCache = new Map();   // 每个局面的破釜沉舟组合只算一次（逐层加深时重复用）
   const upCache = new Map();   // “对方先升级再走”的那几个局面，同样每个局面只生成一次
