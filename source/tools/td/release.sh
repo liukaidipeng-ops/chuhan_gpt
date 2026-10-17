@@ -19,7 +19,7 @@ SRC=$(git rev-parse --short HEAD)
 # 2. 测试 + 构建
 cd source
 [ -f node_modules/three/build/three.min.js ] || npm install --no-audit --no-fund
-for t in rules engine jieqi bingfa beishui r6 game-issue-repo; do node test/$t.test.js | tail -1; done
+for t in rules engine jieqi bingfa beishui r6 game-issue-repo environment ending-shadow; do node test/$t.test.js | tail -1; done
 node build.js
 cd dist/site
 VER=$(node -pe "require('./version.json').v")
@@ -32,6 +32,9 @@ echo "线上 $OLD → 新 $VER（source $SRC）"
 for f in index.html version.json voice-real.bin voice-bf.bin voice-orig.bin sfx.bin music-war.mp3; do
   if cmp -s "$ROOT/source/dist/site/$f" "$f"; then echo "  $f 不变"; else echo "  $f 变了"; fi
 done
+# 去掉版本号再比 index.html：只差版本号说明线上和 main 一致；差得多说明线上被手补过，或 main 有新改动
+norm() { sed 's/[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}-[0-9a-f]\{6\}/VER/g' "$1" | fold -w200; }
+echo "  index.html 去掉版本号后不同的行：$(diff <(norm "$ROOT/source/dist/site/index.html") <(norm index.html) | grep '^[<>]' | grep -vc 'LD(0\.')（加载进度数不算）"
 grep -q "$VER" "$ROOT/source/dist/site/index.html" || { echo "index.html 里没有版本号 $VER"; exit 1; }
 
 # 4. 拷产物、提交
