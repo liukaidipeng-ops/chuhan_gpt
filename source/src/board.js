@@ -1382,6 +1382,37 @@ const Board = (() => {
       c.scale.setScalar(1.7 - 0.7 * e); c.position.y = 0.004 + (1 - e) * 0.5;
     }
   });
+  // ---- 棋子头上的牌（美术部门 art-007，Ham 10-18 审批台第 5 版「整合」）----
+  //   攻 2 的子挂横长的攻击字牌；技能按这枚子当前等级已有的挂正方形技能牌，冷却中半透明、走完的部分顺时针变实；
+  //   拒马架起来时别的牌都收起，只挂一块大的反色激活牌（也照样显示冷却）。设置里「棋子头上的牌」可以关
+  let badgesOn = true;
+  const badgeGroups = new Set();
+  Core.onFrame(() => {   // 牌子永远摆正朝屏幕上方：棋子转向（执黑、转镜头）时跟着纠正
+    if (!badgeGroups.size) return;
+    const view = Board.viewSide === 'b' ? Math.PI : 0;
+    for (const u of badgeGroups) {
+      const m = u.userData.piece;
+      if (!u.parent || !u.parent.parent) { for (const c of u.children) c.material.dispose(); badgeGroups.delete(u); continue; }
+      u.rotation.y = view - m.rotation.y;
+    }
+  });
+  function addBadges(d, m, p, b) {
+    const u = new THREE.Group(); u.userData.piece = m; d.add(u); badgeGroups.add(u);
+    const put = (tex, w, h, x, y, z) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(w, h, 1); sp.renderOrder = 16; sp.position.set(x, y, z); u.add(sp); };
+    const jm = b.skills.find(k => k.sk === 'juma');
+    if (b.jm) { put(Badges.texture('jumaOn', p.s, 0, jm ? jm.f : 1), 0.52, 0.52, 0, PH + 0.26, -0.4); return; }
+    const keys = (b.ak >= 2 ? [{ sk: 'atk', f: 1 }] : []).concat(b.skills);   // 攻 1 不标（Ham 10-18）
+    if (!keys.length) return;
+    const H = keys.length > 2 ? 0.3 : 0.36, gap = 0.03, wOf = k => H * Badges.aspect(k.sk);
+    let x = -(keys.reduce((a, k) => a + wOf(k), 0) + gap * (keys.length - 1)) / 2;
+    for (const k of keys) { const w = wOf(k); put(Badges.texture(k.sk, p.s, b.ak, k.f), w, H, x + w / 2, PH + 0.2, -0.36); x += w + gap; }
+  }
+  function badgeInfo(game, p) {
+    const cfg = game.cfg || BF.CFG;
+    const frac = sk => { const c = (cfg.skills[sk] || {}).cooldown || 0; return c ? 1 - Math.min(1, game.cdLeft(p, sk) / c) : 1; };   // 冷却按 cdLeft（TD 10-18 定：这一方下次轮到时还要等几回合）
+    return { ak: game.atkOf(p), skills: BF.levelInfo(p.t, p.s, p.lv, cfg).skills.map(sk => ({ sk, f: frac(sk) })), jm: !!game.jmActive(p) };
+  }
+  function setBadges(on) { badgesOn = !!on; if (lastGame && lastGame.bf) decorateAll(lastGame); }
   function decorate(m, p, o = {}) {
     KingStone.restore(m);
     if (m.userData.deco) { m.remove(m.userData.deco); m.userData.deco = null; }
@@ -1415,6 +1446,7 @@ const Board = (() => {
       const ring = footRing(p.hp, max, p.s);
       ring.userData.hpBar = { hp: p.hp, max }; d.add(ring);
     }
+    if (o.badges) addBadges(d, m, p, o.badges);
     if (o.jm) {
       for (let i = 0; i < 10; i++) {
         const a = i / 10 * Math.PI * 2, sk = new THREE.Mesh(stakeGeo, stakeMat);
@@ -1456,7 +1488,7 @@ const Board = (() => {
   function decoOpts(game, p) {
     const fx = game.fx, hm = p.s === 'r' && p.t === 'k' && fx.hm > 0, sm = p.s === 'b' && p.t !== 'k' && fx.sm > 0;
     const bz = !!(game.frozen && game.frozen(p));   // 背水一战用过的子：下回合不能动，同样套上锁链
-    return { skillMode: !!game.bf, jm: game.jmActive(p), hm, dim: sm || bz, chain: hm || sm || bz, gold: !!(game.revived && game.revived(p)) };
+    return { skillMode: !!game.bf, jm: game.jmActive(p), hm, dim: sm || bz, chain: hm || sm || bz, gold: !!(game.revived && game.revived(p)), badges: badgesOn && game.bf && p.t !== 'k' && p.lv >= 2 ? badgeInfo(game, p) : null };
   }
   // 改质感参数后重建全部升级材质，并把棋盘上的子重新装扮一遍
   function skinTune(patch) {
@@ -2201,6 +2233,6 @@ const Board = (() => {
   return {
     root, TOP, PH, HALF, X, Z, pos, setPosition, syncPosition, pieces, piecesRoot, makePiece, faceViewer,
     showMoves, clearMoves, flashBad, hoverMark, showZone, showBad, showStep, setGlow, setUpgradeHints, showLast, pick, meshAt, get hovered() { return hovered; }, ringTex, glowTex, wakes, water, waterMat, decal, flatGeo, pine, deco, FONT, footRing,
-    viewSide: 'r', setSkin, dress, get lastGame() { return lastGame; }, skinTune, get SK() { return SK; }, pieceWood, RZ, BZ, BX, BRIDGE_X, faceTex, backTex, setFace, makeRiver, mtTex, decorate, decorateAll, decoOpts, reconcile, plateGeo, plateOn,
+    viewSide: 'r', setSkin, dress, setBadges, get lastGame() { return lastGame; }, skinTune, get SK() { return SK; }, pieceWood, RZ, BZ, BX, BRIDGE_X, faceTex, backTex, setFace, makeRiver, mtTex, decorate, decorateAll, decoOpts, reconcile, plateGeo, plateOn,
   };
 })();

@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const D = __dirname;
-const order = ['rules', 'bingfa', 'bfai', 'engine', 'core', 'duel', 'face', 'king-stone', 'soft-shadows', 'shadow-depth', 'board', 'turnglow', 'models', 'elephantlv', 'tiger', 'juma', 'audio', 'endtunes', 'fx', 'upfx', 'squads', 'camp', 'spect', 'ending', 'net', 'ui', 'jq', 'bfx', 'merit', 'luozi', 'environment', 'atmosphere', 'post', 'turn-review', 'game-issue-repo', 'main', 'piece-hover-c'];
+const order = ['rules', 'bingfa', 'bfai', 'engine', 'core', 'duel', 'face', 'king-stone', 'soft-shadows', 'shadow-depth', 'badges', 'board', 'turnglow', 'models', 'elephantlv', 'tiger', 'juma', 'audio', 'endtunes', 'fx', 'upfx', 'squads', 'camp', 'spect', 'ending', 'net', 'ui', 'jq', 'bfx', 'merit', 'luozi', 'environment', 'atmosphere', 'post', 'turn-review', 'game-issue-repo', 'main', 'piece-hover-c'];
 const tpl = fs.readFileSync(path.join(D, 'src/template.html'), 'utf8');
 const three = fs.readFileSync(path.join(D, 'node_modules/three/build/three.min.js'), 'utf8');
 const qr = fs.readFileSync(path.join(D, 'node_modules/qrcode-generator/dist/qrcode.js'), 'utf8');

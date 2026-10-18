@@ -193,6 +193,7 @@
     environment: store.get('environment', 'day'),
     tilt: store.get('tilt', 0),   // 移轴虚化：默认关，卡或发热的人不会被动开着
     turnReminder: store.get('turnReminder', 1),
+    badges: store.get('badges', 1),   // 棋子头上的攻击字牌、技能牌（美术部门 art-007；Ham 10-18：设置里能关）
     speed: store.get('speed', 1.5), // 动画播放速度
   };
   // 配音：2 = 写实版（新的默认），1 = 原版，0 = 关。老玩家存的是 1（开），头一回替他换到写实版，之后随他自己选
@@ -212,7 +213,8 @@
     Core.Time.boost = +S.speed || 1.5;
     Sfx.setVol('music', S.vMusic / 100 * 0.9); Sfx.setVol('sfx', S.vSfx / 100); Sfx.setVol('voice', S.vVoice / 100);
     Net.custom = S.server || '';
-    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment', 'turnReminder', 'tilt']) store.set(k, S[k]);
+    Board.setBadges(!!+S.badges);
+    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment', 'turnReminder', 'tilt', 'badges']) store.set(k, S[k]);
   }
   Net.custom = S.server || '';
   Core.Time.boost = +S.speed || 1.5;
