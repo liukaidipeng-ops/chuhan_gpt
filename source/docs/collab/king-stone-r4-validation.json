@@ -1,0 +1,242 @@
+{
+  "build": {
+    "command": "node build.js",
+    "exitCode": 0,
+    "version": "2026.10.18-58976b",
+    "htmlSHA256": "86bc8ae740641da9323d6301c3f91ee330e25c799b064a914619b2a04408a821"
+  },
+  "existingTests": {
+    "command": "npm test",
+    "exitCode": 0,
+    "groups": [
+      "rules",
+      "jieqi",
+      "bingfa",
+      "engine",
+      "game-issue-repo"
+    ],
+    "note": "Only existing bounded tests; no additional training or long self-play."
+  },
+  "unit": {
+    "command": "node test/king-stone.test.js",
+    "exitCode": 0,
+    "coverage": [
+      "normal/hidden/non-king exclusion",
+      "no ordinary-mode asset requests",
+      "late load after mode exit",
+      "original material fallback",
+      "dim reset",
+      "cloned ghost wall UV",
+      "asset failure without retry loop"
+    ]
+  },
+  "releaseChecks": {
+    "beishui": "66 passed",
+    "r6": "91 passed",
+    "environment": "passed",
+    "ending-shadow": "passed",
+    "releaseScriptSyntax": "bash -n passed; release script not executed"
+  },
+  "baseCommit": "ff5665eef5727e2b3f2ad86205fb8cd1e3eefdb8",
+  "codeCommit": "89309c80becaaa349fdb41c8e8738d8261b18f2b",
+  "assetVersion": "0fda31c5fde4",
+  "browser": {
+    "startedUTC": "2026-10-18T05:14:37.652336+00:00",
+    "completedUTC": "2026-10-18T05:21:59.264635+00:00",
+    "browser": "154.0.8037.57",
+    "checks": [
+      {
+        "name": "normal wood: all piece geometry/material/texture fingerprints match main; zero asset requests",
+        "value": "cbb482f8a5e5725395c2ed22567f3e746cd95398d2775c64765baaabf7adc367"
+      },
+      {
+        "name": "normal silver: all piece geometry/material/texture fingerprints match main; zero asset requests",
+        "value": "38780d8715088f6ae382a699bdd812abef47de583c837bd8b6bbff7cf433434d"
+      },
+      {
+        "name": "normal gold: all piece geometry/material/texture fingerprints match main; zero asset requests",
+        "value": "6eaf082ef1de154413b1a28da3a33ba45acc70d7f0fd87a6bedd6657de8b3e73"
+      },
+      {
+        "name": "normal jade: all piece geometry/material/texture fingerprints match main; zero asset requests",
+        "value": "9b55a080f5138b5f53b6e8dcfbfb919509b161f45ed91349d0c0829914581442"
+      },
+      {
+        "name": "normal jieqi: all piece geometry/material/texture fingerprints match main; zero asset requests",
+        "value": "3f8f5f5820aa2ad623472f66194f68b1f1de9dac83793cfebf0fea422f7eba1e"
+      },
+      {
+        "name": "skill: exactly two kings changed; other 30 material fingerprints and all geometry match main",
+        "value": {
+          "pieces": 32,
+          "history": 0,
+          "notes": 0,
+          "skill": true,
+          "kings": [
+            {
+              "side": "r",
+              "stone": "01-R4",
+              "body": "MeshPhysicalMaterial"
+            },
+            {
+              "side": "b",
+              "stone": "01-R4",
+              "body": "MeshPhysicalMaterial"
+            }
+          ],
+          "otherStone": 0,
+          "glError": 0,
+          "state": "ready",
+          "render": true,
+          "eco": true
+        }
+      },
+      {
+        "name": "skill-only lazy assets: twelve requests, no runtime generation",
+        "value": 12
+      },
+      {
+        "name": "decoded production textures exactly match approved R4 RGBA hashes",
+        "value": true
+      },
+      {
+        "name": "king move and repeated click commit once with matching history",
+        "value": true
+      },
+      {
+        "name": "undo restores king and history",
+        "value": true
+      },
+      {
+        "name": "existing hero models remain authoritative and return to discs",
+        "value": true
+      },
+      {
+        "name": "restart preserves skill king appearance",
+        "value": true
+      },
+      {
+        "name": "after leaving skill mode, normal wood material fingerprints still match main",
+        "value": true
+      },
+      {
+        "name": "skill day/night and top/default camera transitions",
+        "value": {
+          "pieces": 32,
+          "history": 0,
+          "notes": 0,
+          "skill": true,
+          "kings": [
+            {
+              "side": "r",
+              "stone": "01-R4",
+              "body": "MeshPhysicalMaterial"
+            },
+            {
+              "side": "b",
+              "stone": "01-R4",
+              "body": "MeshPhysicalMaterial"
+            }
+          ],
+          "otherStone": 0,
+          "glError": 0,
+          "state": "ready",
+          "render": true,
+          "eco": true
+        }
+      },
+      {
+        "name": "mobile touch viewport, default and top view",
+        "value": {
+          "pieces": 32,
+          "history": 0,
+          "notes": 0,
+          "skill": true,
+          "kings": [
+            {
+              "side": "r",
+              "stone": "01-R4",
+              "body": "MeshPhysicalMaterial"
+            },
+            {
+              "side": "b",
+              "stone": "01-R4",
+              "body": "MeshPhysicalMaterial"
+            }
+          ],
+          "otherStone": 0,
+          "glError": 0,
+          "state": "ready",
+          "render": true,
+          "eco": true
+        }
+      }
+    ],
+    "errors": [],
+    "normalSignatures": {
+      "baseline": {
+        "wood": "cbb482f8a5e5725395c2ed22567f3e746cd95398d2775c64765baaabf7adc367",
+        "silver": "38780d8715088f6ae382a699bdd812abef47de583c837bd8b6bbff7cf433434d",
+        "gold": "6eaf082ef1de154413b1a28da3a33ba45acc70d7f0fd87a6bedd6657de8b3e73",
+        "jade": "9b55a080f5138b5f53b6e8dcfbfb919509b161f45ed91349d0c0829914581442",
+        "jieqi": "3f8f5f5820aa2ad623472f66194f68b1f1de9dac83793cfebf0fea422f7eba1e"
+      },
+      "candidate": {
+        "wood": "cbb482f8a5e5725395c2ed22567f3e746cd95398d2775c64765baaabf7adc367",
+        "silver": "38780d8715088f6ae382a699bdd812abef47de583c837bd8b6bbff7cf433434d",
+        "gold": "6eaf082ef1de154413b1a28da3a33ba45acc70d7f0fd87a6bedd6657de8b3e73",
+        "jade": "9b55a080f5138b5f53b6e8dcfbfb919509b161f45ed91349d0c0829914581442",
+        "jieqi": "3f8f5f5820aa2ad623472f66194f68b1f1de9dac83793cfebf0fea422f7eba1e"
+      }
+    }
+  },
+  "environment": {
+    "os": "Linux x86_64",
+    "renderer": "Chromium ANGLE SwiftShader software GPU",
+    "desktopViewport": [
+      960,
+      720
+    ],
+    "mobileViewport": [
+      390,
+      844
+    ],
+    "mobile": "iPhone UA/touch simulation; not physical hardware or Safari",
+    "quality": "mid",
+    "normalRender": true,
+    "eco": true
+  },
+  "harnessNote": "First pass stopped at the hero-model transition: Stand.count becomes 32 before disc visibility finishes changing. Corrected the harness to wait for the actual transition condition and resumed the remaining UI/mobile checks. Earlier passed fingerprint and movement checks were not repeated; product code/build unchanged. Final aggregate: 15 checks passed, no recorded page errors.",
+  "notTested": [
+    "physical mobile devices",
+    "Safari/WebGL1",
+    "hardware GPU frame rate/temperature/VRAM",
+    "real slow-network experience",
+    "online multiplayer",
+    "voice regeneration",
+    "long matches/full skill-effect combinations",
+    "deployment/CDN verification"
+  ],
+  "screenshots": [
+    {
+      "file": "evidence/king-stone-r4/skill-pc-day.png",
+      "sha256": "1989890a65399e1a5b3e7e0dc8e101dd3514f3983b0965e9314865276a60b6a5",
+      "bytes": 1157868
+    },
+    {
+      "file": "evidence/king-stone-r4/skill-pc-night.png",
+      "sha256": "fdb99bde60138d198a45f34430b08c20e1120b025b4bcdac9f1557bc82ca92fd",
+      "bytes": 1089575
+    },
+    {
+      "file": "evidence/king-stone-r4/skill-mobile-day.png",
+      "sha256": "0c30c772052e165f6a0757670f5f242162bc1595ab41b0ecad5f86b73c448191",
+      "bytes": 510335
+    },
+    {
+      "file": "evidence/king-stone-r4/skill-mobile-top.png",
+      "sha256": "9464559c3d80ac4551143f4ed8e235ad57a71688d4716621adf8585377adcdbf",
+      "bytes": 506345
+    }
+  ]
+}
