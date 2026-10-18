@@ -67,6 +67,9 @@ A2['atk2'] = ('<path d="M34 6 L40 16 L40 62 L28 62 L28 16Z" stroke="none"/><rect
               '<text x="74" y="78" font-size="62" font-weight="900" text-anchor="middle" font-family="serif" stroke="none">2</text>')
 SETS = [('A2', '甲 · 实心剪影 · 第 2 版（倒角正方形）', A2)]
 TAB = lambda bg, h: f'<svg viewBox="0 0 100 100" height="{h}"><rect x="2" y="2" width="96" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="82" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
+# 攻击字牌：横长的倒角长方形（Ham 10-18：和技能牌做出差别）
+def rtab(icon, bg, h): return (f'<svg viewBox="0 0 140 100" height="{h}"><rect x="2" y="2" width="136" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="122" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
+                               f'<g transform="translate(36 15) scale(.7)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>')
 def tab(icon, bg, h): return TAB(bg, h) + f'<g transform="translate(17 17) scale(.66)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>'
 CSS = '''body{margin:0;background:#efe6d2;font-family:"WenQuanYi Zen Hei",sans-serif;color:#141311}
 h1{margin:0;padding:20px 28px;background:#141311;color:#f0e7d2;font-size:34px}
@@ -79,7 +82,8 @@ h1{margin:0;padding:20px 28px;background:#141311;color:#f0e7d2;font-size:34px}
 with sync_playwright() as p:
   br = p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
   for key, name, S in SETS:
-    cells = ''.join(f'<div class="c"><div><span class="n">{cn}</span><span class="u">{who}</span></div><div class="t">{tab(S[k], "#8e2418", 96)}{tab(S[k], "#141311", 96)}</div><div class="s"><small>实际大小≈</small>{tab(S[k], "#8e2418", 22)}{tab(S[k], "#141311", 22)}</div></div>' for k, cn, who in SK)
+    T = lambda k, bg, h: rtab(S[k], bg, h) if k == 'atk2' else tab(S[k], bg, h)
+    cells = ''.join(f'<div class="c"><div><span class="n">{cn}</span><span class="u">{who}</span></div><div class="t">{T(k, "#8e2418", 96)}{T(k, "#141311", 96)}</div><div class="s"><small>实际大小≈</small>{T(k, "#8e2418", 22)}{T(k, "#141311", 22)}</div></div>' for k, cn, who in SK)
     html = f'<html><head><meta charset="utf-8"><style>{CSS}</style></head><body><h1>技能图标 · 方案{name}（效果图）</h1><div class="g">{cells}</div></body></html>'
     open(f'{OUT}/sheet_{key}.html', 'w').write(html)
     pg = br.new_page(viewport={'width': 1300, 'height': 900}, device_scale_factor=1.5)
@@ -90,7 +94,8 @@ with sync_playwright() as p:
   pg = br.new_page(viewport={'width': 200, 'height': 200})
   for k, icon in A2.items():
     for sd, bg in (('r', '#8e2418'), ('b', '#141311')):
-      pg.set_content(f'<html><body style="margin:0;background:transparent">{tab(icon, bg, 192)}</body></html>')
+      svg = rtab(icon, bg, 192) if k == 'atk2' else tab(icon, bg, 192)
+      pg.set_content(f'<html><body style="margin:0;background:transparent">{svg}</body></html>')
       fn = f'{OUT}/badges/{k}_{sd}.png'; pg.locator('svg').screenshot(path=fn, omit_background=True)
       data[k + '_' + sd] = 'data:image/png;base64,' + base64.b64encode(open(fn, 'rb').read()).decode()
   open(f'{OUT}/badges.js', 'w').write('window.ART_BADGES=' + json.dumps(data) + ';')
