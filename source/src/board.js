@@ -1477,6 +1477,32 @@ const Board = (() => {
   function jmTab(side, v, cd) { return tabTex(side, (g, w, h) => {
     if (cd) { g.globalAlpha = 0.4; jumaIcon(g, w * 0.34, h * 0.6, 0.8, v); g.globalAlpha = 1; g.font = `900 112px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = PAPER; g.fillText(String(cd), w * 0.72, h * 0.62); }
     else jumaIcon(g, w / 2, h * 0.6, 1.15, v); }, 'jm' + v + '_' + cd); }
+  // ---- 第 4 版（Ham 10-18 聊天）：12 刺用棋子自己的材质（金配金、玉配玉）；有刺就不要攻击牌；技能冷却用图标转圈，不写数字 ----
+  function jmTabCd(side, v, f) {   // f：冷却已走完的比例，0～1；1 = 好了
+    return tabTex(side, (g, w, h) => {
+      const cx = w / 2, cy = h * 0.6;
+      jumaIcon(g, cx, cy, 1.15, v); if (f >= 1) return;
+      // 还没转完的那一块盖暗：从十二点顺时针，亮的部分 = 已经走完的冷却
+      g.save(); g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, 160, -Math.PI / 2 + f * Math.PI * 2, Math.PI * 1.5); g.closePath(); g.clip();
+      g.fillStyle = 'rgba(10,9,8,0.68)'; g.fillRect(0, 0, w, h); g.restore();
+    }, 'jmcd' + v + '_' + Math.round(f * 100));
+  }
+  function atkProto4(d, p, ak, u, m) {
+    if (ak >= 2) {
+      const geo = ringGet('spkB4', () => { const N = 12, parts = [];
+        for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2, sh = new THREE.Shape(), r0 = 0.392, r1 = 0.27, w = 0.085;
+          const ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(a + Math.PI / 2), st = Math.sin(a + Math.PI / 2);
+          sh.moveTo(ca * r0 + ct * w / 2, sa * r0 + st * w / 2); sh.lineTo(ca * r1, sa * r1); sh.lineTo(ca * r0 - ct * w / 2, sa * r0 - st * w / 2); sh.closePath(); parts.push(sh); }
+        const q = new THREE.ExtrudeGeometry(parts, { depth: 0.022, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.01, bevelSegments: 2 }); q.rotateX(-Math.PI / 2); return q; });
+      const lv = Math.min(4, p.lv), S = levelSkins()[lv], vi = p.id != null ? Math.abs(p.id | 0) % 3 : 0;
+      const mat = lv >= 4 ? S.gold : (S.bodies ? S.bodies[vi] : S.body);   // 玉子：配口沿那圈金（玉刺太素，看不出）——另拍一张纯玉的对照
+      const mm = new THREE.Mesh(geo, window.ATKV === 13 ? ringGet('spk3_' + HPC[p.s], () => new THREE.MeshPhysicalMaterial({ color: HPC[p.s], metalness: 0.2, roughness: 0.35, clearcoat: 0.8 })) : window.JADESPK && lv >= 4 ? S.bodies[vi] : mat); mm.position.y = PH + 0.003; mm.castShadow = false; d.add(mm);
+    }
+    if (p.lv < 2 || p.t !== 'p') return;
+    const f = p.id % 2 ? 0.25 : 1;   // 演示：id 单数的兵冷却走了四分之一
+    const t = jmTabCd(p.s, (window.JMV | 0) || 2, f), H = 0.36, W = H * 1.4;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(W, H, 1); sp.renderOrder = 16; sp.position.set(0, PH + 0.2, -0.4); u.add(sp);
+  }
   function atkProto3(d, p, ak, AV, u) {
     if (ak >= 2) {
       const col = AV === 10 ? (LV_ETCH[Math.min(4, p.lv)] || 0x5d6570) : HPC[p.s];
@@ -1497,7 +1523,7 @@ const Board = (() => {
   function atkProto(d, p, max, kingF, m) {
     const AV = window.ATKV | 0; if (!AV || kingF || p.t === 'k') return;
     const ak = BF.ai.atk(p);
-    if (AV >= 5) { const u = new THREE.Group(); u.rotation.y = -(m ? m.rotation.y : 0); d.add(u); return AV >= 10 ? atkProto3(d, p, ak, AV, u) : atkProto2(d, p, ak, AV, u); }
+    if (AV >= 5) { const u = new THREE.Group(); u.rotation.y = -(m ? m.rotation.y : 0); d.add(u); return AV >= 12 ? atkProto4(d, p, ak, u, m) : AV >= 10 ? atkProto3(d, p, ak, AV, u) : atkProto2(d, p, ak, AV, u); }
     if (AV === 1 && ak >= 2) {
       const mat = ringGet('atkM', () => new THREE.MeshPhysicalMaterial({ color: ATK_COL, emissive: ATK_COL, emissiveIntensity: 0.25, metalness: 0.5, roughness: 0.3, clearcoat: 0.6 }));
       const geo = ringGet('atkG', () => { const sh = new THREE.Shape(); sh.moveTo(-0.075, 0); sh.lineTo(0.075, 0); sh.lineTo(0, 0.26); sh.closePath(); const q = new THREE.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2 }); q.rotateX(-Math.PI / 2); return q; });
