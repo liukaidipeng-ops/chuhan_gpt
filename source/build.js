@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const D = __dirname;
-const order = ['rules', 'bingfa', 'bfai', 'engine', 'core', 'duel', 'face', 'soft-shadows', 'shadow-depth', 'board', 'turnglow', 'models', 'elephantlv', 'tiger', 'juma', 'audio', 'endtunes', 'fx', 'upfx', 'squads', 'camp', 'spect', 'ending', 'net', 'ui', 'jq', 'bfx', 'merit', 'luozi', 'environment', 'atmosphere', 'post', 'turn-review', 'game-issue-repo', 'main', 'piece-hover-c'];
+const order = ['rules', 'bingfa', 'bfai', 'engine', 'core', 'duel', 'face', 'king-stone', 'soft-shadows', 'shadow-depth', 'board', 'turnglow', 'models', 'elephantlv', 'tiger', 'juma', 'audio', 'endtunes', 'fx', 'upfx', 'squads', 'camp', 'spect', 'ending', 'net', 'ui', 'jq', 'bfx', 'merit', 'luozi', 'environment', 'atmosphere', 'post', 'turn-review', 'game-issue-repo', 'main', 'piece-hover-c'];
 const tpl = fs.readFileSync(path.join(D, 'src/template.html'), 'utf8');
 const three = fs.readFileSync(path.join(D, 'node_modules/three/build/three.min.js'), 'utf8');
 const qr = fs.readFileSync(path.join(D, 'node_modules/qrcode-generator/dist/qrcode.js'), 'utf8');
@@ -43,7 +43,15 @@ const bfPack = Buffer.concat(bfParts), bfVer = crypto.createHash('sha1').update(
 const REAL = { url: 'voice-real.bin?v=' + realVer, idx: realIdx, text: realMeta.text || {}, bf: { url: 'voice-bf.bin?v=' + bfVer, idx: bfIdx } };
 // 主帅头像：事先画好的两张图（tools/faces.py 生成 img/face-r.jpg、face-b.jpg），内嵌进页面，打开时不用现画
 const FACES = {}; for (const k of ['r', 'b']) { const f = path.join(D, 'img', `face-${k}.jpg`); if (fs.existsSync(f)) FACES[k] = 'data:image/jpeg;base64,' + fs.readFileSync(f).toString('base64'); }
-const data = `window.VOICE_LINES=${JSON.stringify(L)};window.VOICE_ORIG=${JSON.stringify(ORIG)};window.VOICE_REAL=${JSON.stringify(REAL)};window.SFX_PACK=${JSON.stringify(SFXP)};window.FACES=${JSON.stringify(FACES)};`;
+const kingStoneDir = path.join(D, 'img/king-stone-r4');
+const kingStoneManifest = JSON.parse(fs.readFileSync(path.join(kingStoneDir, 'manifest.json'), 'utf8'));
+for (const file of kingStoneManifest.files) {
+  const bytes = fs.readFileSync(path.join(kingStoneDir, file.file));
+  if (crypto.createHash('sha256').update(bytes).digest('hex') !== file.sha256) throw new Error('King stone asset hash mismatch: ' + file.file);
+}
+if (crypto.createHash('sha256').update(kingStoneManifest.files.map(f => f.sha256).join('')).digest('hex').slice(0, 12) !== kingStoneManifest.version) throw new Error('King stone asset version mismatch');
+const kingStoneAssets = { base: 'king-stone-r4/', version: kingStoneManifest.version };
+const data = `window.KING_STONE_ASSETS=${JSON.stringify(kingStoneAssets)};window.VOICE_LINES=${JSON.stringify(L)};window.VOICE_ORIG=${JSON.stringify(ORIG)};window.VOICE_REAL=${JSON.stringify(REAL)};window.SFX_PACK=${JSON.stringify(SFXP)};window.FACES=${JSON.stringify(FACES)};`;
 // 规则引擎和技能模式的电脑单独放一个 <script id="eng">：页面照常执行，另外整段原样塞进 Web Worker 里算棋
 const ENG = ['rules', 'bingfa', 'bfai'];
 const src = n => `// ---- ${n}.js ----\n` + fs.readFileSync(path.join(D, 'src', n + '.js'), 'utf8');
@@ -79,3 +87,9 @@ fs.writeFileSync(path.join(D, 'dist/site/voice-orig.bin'), origPack.b);
 fs.writeFileSync(path.join(D, 'dist/site/sfx.bin'), sfxPack.b);
 console.log('version', ver);
 console.log('built', (out.length / 1024).toFixed(0) + ' KB', 'orig:', Object.keys(origIdx).length, (origPack.b.length / 1024).toFixed(0) + ' KB', 'real:', Object.keys(realIdx).length, (realPack.length / 1024).toFixed(0) + ' KB', 'bf:', Object.keys(bfIdx).length, (bfPack.length / 1024).toFixed(0) + ' KB', 'sfx:', (sfxPack.b.length / 1024).toFixed(0) + ' KB');
+
+// Skill-mode king assets load only on demand; also support the standalone HTML path.
+for (const outDir of [path.join(D, 'dist/king-stone-r4'), path.join(D, 'dist/site/king-stone-r4')]) {
+  fs.mkdirSync(outDir, { recursive: true });
+  for (const file of kingStoneManifest.files) fs.copyFileSync(path.join(kingStoneDir, file.file), path.join(outDir, file.file));
+}

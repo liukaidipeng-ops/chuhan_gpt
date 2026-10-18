@@ -730,6 +730,7 @@ const Board = (() => {
       let m = pieces.get(p.id);
       if (m && (m.userData.s !== p.s || m.userData.t !== p.t || !m.parent)) { piecesRoot.remove(m); pieces.delete(p.id); m = null; }
       if (!m) { m = makePiece(p); piecesRoot.add(m); pieces.set(p.id, m); }
+      if (!game.bf) KingStone.restore(m);
       m.position.copy(pos(f, r)); m.visible = true; m.scale.setScalar(1); m.rotation.x = 0; m.rotation.z = 0;
     }
     for (const [id, m] of [...pieces]) if (!keep.has(id)) { piecesRoot.remove(m); pieces.delete(id); }
@@ -1234,6 +1235,7 @@ const Board = (() => {
       },
     };
     plateOn.envMap = envTex; plateOn.needsUpdate = true;
+    KingStone.setEnvironment(envTex);
     return skins;
   }
   // ---- 升级后的字：掐丝珐琅（汉朱红、楚乌黑的釉面，金/银丝勾边，釉面有清漆般的光泽） ----
@@ -1381,10 +1383,11 @@ const Board = (() => {
     }
   });
   function decorate(m, p, o = {}) {
+    KingStone.restore(m);
     if (m.userData.deco) { m.remove(m.userData.deco); m.userData.deco = null; }
     const face = m.children[1];
     const body = m.children[0];
-    if (!p || (!p.lv && !(p.t === 'k' && p.w))) { m.userData.skinned = false; m.userData.mat = 1; if (body) body.material = pieceWood; if (m.children[2]) m.children[2].visible = true; skinFace(m, p, 0); if (face && face.material) face.material.color.set(o.dim ? 0x8f8a84 : 0xffffff); return; }
+    if (!p || (!p.lv && !(p.t === 'k' && p.w))) { m.userData.skinned = false; m.userData.mat = 1; if (body) body.material = pieceWood; if (m.children[2]) m.children[2].visible = true; skinFace(m, p, 0); if (face && face.material) face.material.color.set(o.dim ? 0x8f8a84 : 0xffffff); KingStone.apply(m, p, !!o.skillMode, o.dim, plateOn.envMap); return; }
     const d = new THREE.Group(); m.add(d); m.userData.deco = d;
     const kingF = p.t === 'k' && p.w, max = kingF ? BF.CFG.finalKingHp : BF.hpOf(p.t, p.lv);   // 决战里的帅将：3 点生命，也挂血条
     // 棋身：一级木、二级乌银错花、三级錾金、四级羊脂白玉金丝嵌；升级后的字换成掐丝珐琅
@@ -1448,11 +1451,12 @@ const Board = (() => {
       halo.scale.set(1.9, 1, 1.9); halo.position.y = 0.006; halo.userData.halo = true; g.add(halo);
       d.add(g); auras.add(g);
     }
+    KingStone.apply(m, p, !!o.skillMode, o.dim, plateOn.envMap);
   }
   function decoOpts(game, p) {
     const fx = game.fx, hm = p.s === 'r' && p.t === 'k' && fx.hm > 0, sm = p.s === 'b' && p.t !== 'k' && fx.sm > 0;
     const bz = !!(game.frozen && game.frozen(p));   // 背水一战用过的子：下回合不能动，同样套上锁链
-    return { jm: game.jmActive(p), hm, dim: sm || bz, chain: hm || sm || bz, gold: !!(game.revived && game.revived(p)) };
+    return { skillMode: !!game.bf, jm: game.jmActive(p), hm, dim: sm || bz, chain: hm || sm || bz, gold: !!(game.revived && game.revived(p)) };
   }
   // 改质感参数后重建全部升级材质，并把棋盘上的子重新装扮一遍
   function skinTune(patch) {
@@ -1503,7 +1507,7 @@ const Board = (() => {
       m.position.copy(pos(f, r));
       m.rotation.set(0, Board.viewSide === 'b' ? Math.PI : 0, 0);
       if (m.userData.t !== p.t) setFace(m, p);
-      if (game.bf) decorate(m, p, decoOpts(game, p)); else if (pieceSkin && !m.userData.deco) dress(m, p);
+      if (game.bf) decorate(m, p, decoOpts(game, p)); else { KingStone.restore(m); if (pieceSkin && !m.userData.deco) dress(m, p); }
     }
   }
   // 棋子朝向：让字朝向当前观看方

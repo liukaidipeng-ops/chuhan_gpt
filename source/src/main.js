@@ -8,6 +8,8 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '技能模式里帅、将换成深朱、乌黑石材配金线勾云环，更显主帅身份（GPT 设计）',
+      '召回良将弹窗里二级可选的子改成浅银底、墨色字，不再看不清（美术部门）',
       '俯瞰、定盘视角下金属、玉质棋子不再反光发白（美术总监）',
       '技能模式战象背上的「象」字旗插进塔顶，不再浮在半空',
       '技能模式里兵、卒小队互相攻击时，切到全屏的一对一近身对打（一级 1 对 1、二级 2 对 2、三级 3 对 3、四级斩马刀手），吃子打死、扣血打伤，配格挡、扎中、倒地的声音（角色部、声音部）',
@@ -3101,7 +3103,8 @@
   async function reviveFlow() {
     const R = r6On(), list = game.reviveOptions(), blocked = game.reviveBlocked();
     const sm = t => `<small style="display:block;font-size:calc(12px * var(--fs,1));line-height:1.4;opacity:.85">${t}</small>`;
-    const silver = 'background:linear-gradient(160deg,#fbfcfd,#cfd6df 55%,#eef1f5);border-color:#8a94a3;box-shadow:inset 0 0 0 1px #fff8;';
+    // 二级：浅银底配墨字，白字在浅银上看不清（Ham 10-17 审批台 art-005 选乙）
+    const silver = 'background:linear-gradient(160deg,#fbfcfd,#cfd6df 55%,#eef1f5);border-color:#8a94a3;box-shadow:inset 0 0 0 1px #fff8;color:#141311;text-shadow:none;';
     const items = list.map((o, i) => ({ v: i, label: XQ.NAMES.r[o.t] + sm(LVCN[o.lv] + '级'), cls: 'r', w: '74px', style: o.lv >= 2 ? silver : '' }))
       .concat(blocked.map(t => ({ v: 'x', label: XQ.NAMES.r[t] + sm('原位被占'), cls: 'r', w: '74px', dis: true })));
     const v = await pick('召 回 良 将', `复活一枚被吃的子，放回原位（最多${LVCN[R.reviveLevel]}级）。`, items);

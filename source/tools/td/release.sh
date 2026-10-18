@@ -39,6 +39,9 @@ grep -q "$VER" "$ROOT/source/dist/site/index.html" || { echo "index.html 里没�
 
 # 4. 拷产物、提交
 for f in index.html version.json voice-real.bin voice-bf.bin voice-orig.bin sfx.bin music-war.mp3; do cp "$ROOT/source/dist/site/$f" .; done
+# G2：技能模式将帅按需读取的静态贴图，必须与对应 HTML 一起发布。
+mkdir -p king-stone-r4
+cp "$ROOT/source/dist/site/king-stone-r4/"*.png king-stone-r4/
 git add -A
 git commit -q -m "release: $MSG (source $SRC)"
 git log --oneline -1
