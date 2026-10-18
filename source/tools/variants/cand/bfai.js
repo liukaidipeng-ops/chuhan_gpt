@@ -26,9 +26,11 @@
   const bsOn = () => (CFG.beishui && CFG.beishui.on ? CFG.beishui : null);
   const BSMIN = ENV.BFAI_BSMIN != null ? +ENV.BFAI_BSMIN : 1;
   const BSV = ENV.BFAI_BSV != null ? +ENV.BFAI_BSV : 3;   // 背水一战还没用时在估值里值几分（和破釜沉舟一样先记 3）
-  const UPX = ENV.BFAI_UPX === '1';
-  const DEFUP = ENV.BFAI_DEFUP === '1' || ENV.BFAI_DEFUP === '2';
-  const CHKUP = ENV.BFAI_CHKUP === '1';   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
+  // 候选开关只给霸王、兵仙（搜索深度 ≥ 5 的档）；中档以下照线上原样（策略测试 H1：中档开了反而不升级保炮）。BFAI_ALLLV=1 时各档都开
+  let candLv = true;
+  const UPX0 = ENV.BFAI_UPX === '1'; let UPX = UPX0;
+  const DEFUP0 = ENV.BFAI_DEFUP === '1' || ENV.BFAI_DEFUP === '2'; let DEFUP = DEFUP0;
+  const CHKUP0 = ENV.BFAI_CHKUP === '1'; let CHKUP = CHKUP0;   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
   const PFC = +(ENV.BFAI_PFC || 0), PFA = +(ENV.BFAI_PFA || 0), PFD = +(ENV.BFAI_PFD || 0);
   const HPF = [0, 1, 1.5, 1.9, 2.2], HPF_DEF = [0, 1, 1.15, 1.28, 1.36], HPF_ADV = [0, 1, 1.55, 1.75, 1.85];
   // 两点血以上的进攻子逼到了对方家门口：过了河，或者是占着九宫那三条竖线的车（它来贴脸将军，一级的士、帅砍不死它）
@@ -252,8 +254,10 @@
   let upPly = -1;   // 在第几层考虑“对方先升级再走”（-1 = 不考虑）
   let upAll = false;   // 裁判开关 LEVELS.<档>.upAll（只给复盘工具用，默认关）：对方“先升级再走”所有升法都看，第 1、第 3 层都看
   // 自己下一回合也可能先升级（第 38 题：下回合进账就够升车绝杀，原来只在对方那一层考虑升级，这笔账看不到）
-  const UP2 = ENV.BFAI_UP2 === '1'; const UP2N = +(ENV.BFAI_UP2N || 9), UP2R = +(ENV.BFAI_UP2R || 0);   // BFAI_UP3：对方第 3 层也考虑先升级，和 UP2 对称（只给己方第 2 层会太乐观：g22 第 44 条以为马被吃了能升级吃回车，K11-1）
-  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && (ply === 2 || (ENV.BFAI_UP3 === '1' && ply === 3)) && upPly >= 0)) && !S.upgraded;
+  const UP20 = ENV.BFAI_UP2 === '1'; let UP2 = UP20; const UP2N = +(ENV.BFAI_UP2N || 9), UP2R = +(ENV.BFAI_UP2R || 0);   // BFAI_UP3：对方第 3 层也考虑先升级，和 UP2 对称（只给己方第 2 层会太乐观：g22 第 44 条以为马被吃了能升级吃回车，K11-1）
+  let pfEval = false, pfNoUp2 = false;   // BFAI_PFNOUP2：评估破釜沉舟时不加 UP2 那层（和线上一样估破釜；UP2 会把杀车之后的局面估得太好，策略测试 P4）
+    // BFAI_PFUP3：只在根上评估破釜沉舟的那几次搜索里，对方第 3 层也可以先升级（UP2 只给己方第 2 层会把破釜估得太好：P4、K11-1；全局开 UP3 太贵）
+  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval) && ply === 3)) && upPly >= 0)) && !S.upgraded;
   let pfPly = -1;   // 在第几层考虑“对方（楚）用破釜沉舟连走两步”（-1 = 不考虑）
   const pfCache = new Map();   // 每个局面的破釜沉舟组合只算一次（逐层加深时重复用）
   const upCache = new Map();   // “对方先升级再走”的那几个局面，同样每个局面只生成一次
@@ -626,6 +630,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; UP2 = UP20 && candLv;
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
@@ -803,6 +808,7 @@
       let bp = null;
       if (byNodes) nodeCap = nodes + Math.round(L.nodes * 0.4); else deadline = Math.min(hardEnd2, now() + Math.max(400, L.budget * 0.4));
       try {
+        pfEval = ENV.BFAI_PFUP3 === '1'; pfNoUp2 = ENV.BFAI_PFNOUP2 === '1';
         for (const k of pofu) {
           const w = decided(k.S, k.ev);
           k.v = w ? (w === me ? WIN : -WIN) : -ab(k.S, d1, -INF, -need + 0.01, 1);
@@ -810,13 +816,14 @@
           await breathe();
         }
       } catch (e) { if (e !== TIMEOUT) throw e; }
+      pfEval = false; pfNoUp2 = false;
       deadline = Infinity; nodeCap = Infinity;
       if (bp) { pick = bp; kids = kids.concat([bp]); if (TR) TR.art = { a: actOf(bp), v: +bp.v.toFixed(3), need: +need.toFixed(3) }; }
     }
     // BFAI_MATE2：两步杀（静着之后对方怎么应——含先升级——我都有一步杀）。搜索浅时（手机上 2～3 层）看不出这是杀，
     //   只当普通好棋，随机噪声还会把它换掉（Ham 试玩 g21 第 78 条：兵 3,3→3,2 排第一、只比第二名多 0.01，被换掉后汉翻盘）。
     //   根上前 4 名各查一遍，查到就走；不是杀的通常第一种应着就查完
-    if (ENV.BFAI_MATE2 === '1' && L.depth >= 2 && !fin0 && pick && !pick.done) {
+    if (ENV.BFAI_MATE2 === '1' && candLv && !fin0 && pick && !pick.done) {
       let work = 0; const WORK = +(ENV.BFAI_MATE2W || 8000);   // 这一段最多试走多少次（对方被逼得很紧的局面里，不设上限会一直算下去）
       let hint = null;   // 上一种应着之后找到的那步杀（先升哪枚子、走哪步），下一种应着先试它，多数一次就中
       const win1 = (X, a) => { if (++work > WORK) throw TIMEOUT; const R = BF.attempt(X, a); if (!R || R.free) return false; const ev = BF.evaluate(R.S); return !!(ev && ev.result && ev.result.winner === me); };
