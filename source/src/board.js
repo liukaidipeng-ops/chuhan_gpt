@@ -1398,7 +1398,7 @@ const Board = (() => {
     g.fillStyle = bg; g.fillRect(4, 4, w - 8, h - 8); g.strokeStyle = line; g.lineWidth = 6; g.strokeRect(18, 18, w - 36, h - 36);
     g.font = `900 104px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = fg; g.fillText(txt, w / 2, h / 2 + 6); })); } return atkTexC.get(k); };
   const tagSprite = (txt, bg, fg, line, hgt) => { const t = tagTex(txt, bg, fg, line), a = t.image.width / t.image.height;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false, toneMapped: false })); sp.scale.set(hgt * a, hgt, 1); sp.renderOrder = 16; return sp; };
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(hgt * a, hgt, 1); sp.renderOrder = 16; return sp; };
   // 原型里的技能牌只是演示：二级以上的兵 / 卒挂「拒」，id 单数的假装在冷却 3 回合
   const demoSkill = p => (p.t === 'p' && p.lv >= 2) ? ('拒' + (p.id % 2 ? '3' : '')) : '';
   function atkProto2(d, p, ak, AV, u) {
@@ -1439,10 +1439,65 @@ const Board = (() => {
       if (sk) { const sp = tagSprite(sk, bg, paper, paper, 0.38); sp.position.set(0.62, PH + 0.18, z); u.add(sp); }
     }
   }
+  // ---- 第 3 版（Ham 10-18 art-006 第 2 版批语）：10 刺乙同色錾刻 11 刺乙随血圈色；都加正上方攻击牌；window.JMV 1～3 拒马图标 ----
+  const LV_ETCH = { 2: 0x5d6570, 3: 0x7a4a14, 4: 0x8a7a52 };
+  function tabTex(side, draw, key) {   // 帽形牌：平底、拱顶，楚墨汉朱，内一道米白线
+    const k = 'tab' + side + key; if (atkTexC.has(k)) return atkTexC.get(k);
+    const t = canvasTex(224, 160, (g, w, h) => {
+      const path = (ins) => { g.beginPath(); g.moveTo(ins, h - ins); g.lineTo(ins, 62); g.quadraticCurveTo(ins, ins, w / 2, ins); g.quadraticCurveTo(w - ins, ins, w - ins, 62); g.lineTo(w - ins, h - ins); g.closePath(); };
+      g.fillStyle = side === 'r' ? '#8e2418' : '#141311'; path(4); g.fill();
+      g.strokeStyle = '#f0e7d2'; g.lineWidth = 5; path(16); g.stroke();
+      draw(g, w, h);
+    });
+    t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true;
+    atkTexC.set(k, t); return t;
+  }
+  const PAPER = '#f0e7d2';
+  function swordAt(g, x, y, s) {   // 剑：剑尖朝上
+    g.save(); g.translate(x, y); g.scale(s, s); g.fillStyle = PAPER;
+    g.beginPath(); g.moveTo(0, -46); g.lineTo(7, -34); g.lineTo(7, 14); g.lineTo(-7, 14); g.lineTo(-7, -34); g.closePath(); g.fill();
+    g.fillRect(-20, 14, 40, 7); g.fillRect(-4, 21, 8, 18); g.beginPath(); g.arc(0, 44, 6, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  function jumaIcon(g, x, y, s, v) {
+    g.save(); g.translate(x, y); g.scale(s, s); g.strokeStyle = PAPER; g.fillStyle = PAPER; g.lineCap = 'round';
+    if (v === 1) {   // 侧看拒马：一根横木，三对交叉尖桩
+      g.lineWidth = 10; g.beginPath(); g.moveTo(-46, 8); g.lineTo(46, 8); g.stroke();
+      g.lineWidth = 9; for (const cx of [-30, 0, 30]) { g.beginPath(); g.moveTo(cx - 16, 34); g.lineTo(cx + 14, -30); g.moveTo(cx + 16, 34); g.lineTo(cx - 14, -30); g.stroke(); }
+    } else if (v === 2) {   // 一个大叉 + 横木：最简
+      g.lineWidth = 14; g.beginPath(); g.moveTo(-36, 36); g.lineTo(36, -36); g.moveTo(36, 36); g.lineTo(-36, -36); g.stroke();
+      g.lineWidth = 11; g.beginPath(); g.moveTo(-48, 0); g.lineTo(48, 0); g.stroke();
+    } else {   // 三根斜尖桩插在地上
+      g.lineWidth = 9; g.beginPath(); g.moveTo(-46, 36); g.lineTo(46, 36); g.stroke();
+      for (const cx of [-26, 0, 26]) { g.beginPath(); g.moveTo(cx - 12, 36); g.lineTo(cx + 10, -34); g.lineTo(cx + 12, 36); g.closePath(); g.fill(); }
+    }
+    g.restore();
+  }
+  function atkTab(side, ak) { return tabTex(side, (g, w, h) => {
+    swordAt(g, w * 0.34, h * 0.58, 1.25); g.font = `900 112px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = PAPER; g.fillText(String(ak), w * 0.68, h * 0.62); }, 'atk' + ak); }
+  function jmTab(side, v, cd) { return tabTex(side, (g, w, h) => {
+    if (cd) { g.globalAlpha = 0.4; jumaIcon(g, w * 0.34, h * 0.6, 0.8, v); g.globalAlpha = 1; g.font = `900 112px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = PAPER; g.fillText(String(cd), w * 0.72, h * 0.62); }
+    else jumaIcon(g, w / 2, h * 0.6, 1.15, v); }, 'jm' + v + '_' + cd); }
+  function atkProto3(d, p, ak, AV, u) {
+    if (ak >= 2) {
+      const col = AV === 10 ? (LV_ETCH[Math.min(4, p.lv)] || 0x5d6570) : HPC[p.s];
+      const geo = ringGet('spkB', () => { const N = 12, parts = [];
+        for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2, sh = new THREE.Shape(), r0 = 0.398, r1 = 0.27, w = 0.085;
+          const ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(a + Math.PI / 2), st = Math.sin(a + Math.PI / 2);
+          sh.moveTo(ca * r0 + ct * w / 2, sa * r0 + st * w / 2); sh.lineTo(ca * r1, sa * r1); sh.lineTo(ca * r0 - ct * w / 2, sa * r0 - st * w / 2); sh.closePath(); parts.push(sh); }
+        const q = new THREE.ExtrudeGeometry(parts, { depth: 0.02, bevelEnabled: false }); q.rotateX(-Math.PI / 2); return q; });
+      const mat = ringGet('spk3_' + col, () => new THREE.MeshPhysicalMaterial({ color: col, metalness: AV === 10 ? 0.8 : 0.2, roughness: 0.35, clearcoat: 0.8 }));
+      const m = new THREE.Mesh(geo, mat); m.position.y = PH + 0.002; d.add(m);
+    }
+    if (p.lv < 2) return;
+    const tabs = [atkTab(p.s, ak)];
+    if (p.t === 'p') tabs.push(jmTab(p.s, (window.JMV | 0) || 1, p.id % 2 ? 3 : 0));   // 演示：id 单数的兵假装冷却 3 回合
+    const H = 0.36, W = H * 1.4, gap = 0.02, tot = tabs.length * W + (tabs.length - 1) * gap; let x = -tot / 2 + W / 2;
+    for (const t of tabs) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(W, H, 1); sp.renderOrder = 16; sp.position.set(x, PH + 0.2, -0.4); u.add(sp); x += W + gap; }
+  }
   function atkProto(d, p, max, kingF, m) {
     const AV = window.ATKV | 0; if (!AV || kingF || p.t === 'k') return;
     const ak = BF.ai.atk(p);
-    if (AV >= 5) { const u = new THREE.Group(); u.rotation.y = -(m ? m.rotation.y : 0); d.add(u); return atkProto2(d, p, ak, AV, u); }
+    if (AV >= 5) { const u = new THREE.Group(); u.rotation.y = -(m ? m.rotation.y : 0); d.add(u); return AV >= 10 ? atkProto3(d, p, ak, AV, u) : atkProto2(d, p, ak, AV, u); }
     if (AV === 1 && ak >= 2) {
       const mat = ringGet('atkM', () => new THREE.MeshPhysicalMaterial({ color: ATK_COL, emissive: ATK_COL, emissiveIntensity: 0.25, metalness: 0.5, roughness: 0.3, clearcoat: 0.6 }));
       const geo = ringGet('atkG', () => { const sh = new THREE.Shape(); sh.moveTo(-0.075, 0); sh.lineTo(0.075, 0); sh.lineTo(0, 0.26); sh.closePath(); const q = new THREE.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2 }); q.rotateX(-Math.PI / 2); return q; });
