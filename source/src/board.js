@@ -1526,7 +1526,7 @@ const Board = (() => {
   const badgeC = new Map();
   function badgeTex(key, f) {
     const k = key + '_' + Math.round(f * 100); if (badgeC.has(k)) return badgeC.get(k);
-    const c = document.createElement('canvas'); c.width = key.startsWith('atk') ? 308 : 192; c.height = 192; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    const c = document.createElement('canvas'); c.width = key.startsWith('atk') ? 279 : 192; c.height = 192; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const img = new Image(); img.onload = () => { const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, 192);
       if (f < 1) {   // 冷却中：整块半透明，已经走完的那一块（从十二点顺时针）是实的（Ham 10-18 art-007 第 3 版批语）
         g.clearRect(0, 0, c.width, 192); g.globalAlpha = 0.38; g.drawImage(img, 0, 0, c.width, 192); g.globalAlpha = 1;
@@ -1535,12 +1535,12 @@ const Board = (() => {
     img.src = (window.ART_BADGES || {})[key] || ''; badgeC.set(k, t); return t;
   }
   function atkProto5(d, p, ak, u, o) {
-    if (o.jm) { const H = 0.52, sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: badgeTex('jumaon_' + p.s, 1), transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false }));   // 拒马架起来：攻击牌、技能牌都收起，只挂一块大的激活牌
+    if (o.jm) { const H = 0.52, sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: badgeTex('jumaon_' + p.s, p.id % 2 ? 0.25 : 0.5), transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false }));   // 拒马架起来：攻击牌、技能牌都收起，只挂一块大的激活牌；激活牌也照样转圈显示冷却（Ham 10-18；演示：走了一半）
       sp.scale.set(H, H, 1); sp.renderOrder = 16; sp.position.set(0, PH + 0.26, -0.4); u.add(sp); return; }
     const keys = []; if (ak >= 2) keys.push(['atk2', 1]);
     for (const sk of BF.levelInfo(p.t, p.s, p.lv).skills) keys.push([sk, sk === 'juma' && p.id % 2 ? 0.25 : 1]);   // 演示：id 单数的兵拒马冷却走了四分之一
     if (!keys.length) return;
-    const H = keys.length > 2 ? 0.3 : 0.36, gap = 0.03, wOf = k => k.startsWith('atk') ? H * 1.6 : H, tot = keys.reduce((a, [k]) => a + wOf(k), 0) + (keys.length - 1) * gap; let x = -tot / 2;
+    const H = keys.length > 2 ? 0.3 : 0.36, gap = 0.03, wOf = k => k.startsWith('atk') ? H * 1.45 : H, tot = keys.reduce((a, [k]) => a + wOf(k), 0) + (keys.length - 1) * gap; let x = -tot / 2;
     for (const [k, f] of keys) { const W = wOf(k); x += W / 2; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: badgeTex(k + '_' + p.s, f), transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false }));
       sp.scale.set(W, H, 1); sp.renderOrder = 16; sp.position.set(x, PH + 0.2, -0.36); u.add(sp); x += W / 2 + gap; }
   }
