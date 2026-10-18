@@ -3,8 +3,9 @@
 import sys, os
 from playwright.sync_api import sync_playwright
 OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True)
-SK = [('juma','拒马','兵'),('shensu','神速营','兵'),('huifang','回防','兵'),('chongzhen','冲阵','车'),('taying','踏营','马'),('pili','霹雳','炮'),
+SK0 = [('juma','拒马','兵'),('shensu','神速营','兵'),('huifang','回防','兵'),('chongzhen','冲阵','车'),('taying','踏营','马'),('pili','霹雳','炮'),
       ('qishe','齐射','汉相'),('jianta','践踏','楚象'),('feiyue','飞越','相象'),('hujia','护驾','士'),('jinwei','铁甲禁卫','士')]
+SK = SK0 + [('atk2', '攻击 2', '字牌')]
 # 甲：实心剪影（粗、实，缩小后也认得）
 A = {
  'juma': '<g stroke-width="9" stroke-linecap="butt"><line x1="10" y1="56" x2="90" y2="56"/><line x1="16" y1="82" x2="40" y2="22"/><line x1="40" y1="82" x2="16" y2="22"/><line x1="38" y1="82" x2="62" y2="22"/><line x1="62" y1="82" x2="38" y2="22"/><line x1="60" y1="82" x2="84" y2="22"/><line x1="84" y1="82" x2="60" y2="22"/></g>',
@@ -51,9 +52,22 @@ C = {
  'hujia': grid() + '<circle cx="20" cy="80" r="9" stroke="none"/><rect x="70" y="10" width="20" height="20" stroke="none"/><path d="M28 70 Q34 32 66 26" fill="none" stroke-width="4"/><path d="M72 36 Q66 74 30 82" fill="none" stroke-width="4"/>',
  'jinwei': '<rect x="16" y="16" width="68" height="68" fill="none" stroke-width="4"/><path d="M16 16 L84 84 M84 16 L16 84" stroke-width="2.5" opacity=".6"/><circle cx="50" cy="50" r="11" stroke="none"/>' + ''.join(f'<line x1="50" y1="50" x2="{50+22*dx}" y2="{50+22*dy}" stroke-width="4"/>' for dx, dy in ((1,0),(-1,0),(0,1),(0,-1))),
 }
-SETS = [('A', '甲 · 实心剪影', A), ('B', '乙 · 线描', B), ('C', '丙 · 走法符号', C)]
-TAB = lambda bg, h: f'<svg viewBox="0 0 140 100" height="{h}"><path d="M3 97 L3 38 Q3 3 70 3 Q137 3 137 38 L137 97Z" fill="{bg}"/><path d="M11 89 L11 40 Q11 11 70 11 Q129 11 129 40 L129 89Z" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
-def tab(icon, bg, h): return TAB(bg, h) + f'<g transform="translate(35 22) scale(.7)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>'
+def wheel(cx, cy, r, op=1, w=7):
+  sp = ''.join(f'<line x1="{cx}" y1="{cy}" x2="{cx + r * __import__("math").cos(a * 3.14159 / 4):.1f}" y2="{cy + r * __import__("math").sin(a * 3.14159 / 4):.1f}" stroke-width="{w * .6}"/>' for a in range(8))
+  return f'<g opacity="{op}"><circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke-width="{w}"/>{sp}<circle cx="{cx}" cy="{cy}" r="{r * .28}" stroke="none"/></g>'
+A2 = dict(A)
+A2['chongzhen'] = wheel(32, 52, 22, .22, 6) + wheel(46, 52, 25, .45, 6) + wheel(66, 52, 28, 1, 8) + '<g stroke-width="4" opacity=".5"><line x1="4" y1="40" x2="16" y2="40"/><line x1="2" y1="64" x2="14" y2="64"/></g>'
+A2['jianta'] = ('<defs><mask id="lg"><rect width="100" height="100" fill="#fff"/>'
+                '<path d="M34 34 Q50 39 66 34 M33 50 Q50 55 67 50 M33 64 Q50 69 67 64" stroke="#000" stroke-width="3.5" fill="none"/></mask></defs>'
+                '<path mask="url(#lg)" d="M34 4 L66 4 Q70 40 70 62 Q72 76 82 82 Q86 88 80 90 L20 90 Q14 88 18 82 Q28 76 30 62 Q30 40 34 4Z" stroke="none"/>'
+                '<g stroke="none"><ellipse cx="30" cy="91" rx="8" ry="5"/><ellipse cx="50" cy="92" rx="8" ry="5"/><ellipse cx="70" cy="91" rx="8" ry="5"/></g>'
+                '<g stroke-width="5" fill="none" opacity=".7"><path d="M4 98 L12 88"/><path d="M96 98 L88 88"/></g>')
+A2['qishe'] = ''.join(f'<line x1="{x}" y1="{y}" x2="{x + 46}" y2="{y - 46}" stroke-width="6"/><path transform="translate({x + 50} {y - 50}) rotate(-45)" d="M0 0 L-16 -9 L-16 9Z" stroke="none"/>' for x, y in ((6, 66), (22, 82), (38, 98)))
+A2['atk2'] = ('<path d="M34 6 L40 16 L40 62 L28 62 L28 16Z" stroke="none"/><rect x="18" y="62" width="32" height="7" stroke="none"/><rect x="30" y="69" width="8" height="16" stroke="none"/><circle cx="34" cy="90" r="6" stroke="none"/>'
+              '<text x="74" y="78" font-size="62" font-weight="900" text-anchor="middle" font-family="serif" stroke="none">2</text>')
+SETS = [('A2', '甲 · 实心剪影 · 第 2 版（倒角正方形）', A2)]
+TAB = lambda bg, h: f'<svg viewBox="0 0 100 100" height="{h}"><rect x="2" y="2" width="96" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="82" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
+def tab(icon, bg, h): return TAB(bg, h) + f'<g transform="translate(17 17) scale(.66)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>'
 CSS = '''body{margin:0;background:#efe6d2;font-family:"WenQuanYi Zen Hei",sans-serif;color:#141311}
 h1{margin:0;padding:20px 28px;background:#141311;color:#f0e7d2;font-size:34px}
 .g{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px;box-sizing:border-box;width:1300px}
@@ -70,5 +84,15 @@ with sync_playwright() as p:
     open(f'{OUT}/sheet_{key}.html', 'w').write(html)
     pg = br.new_page(viewport={'width': 1300, 'height': 900}, device_scale_factor=1.5)
     pg.set_content(html); pg.screenshot(path=f'{OUT}/sheet_{key}.png', full_page=True); pg.close()
+  # 每个图标单独出一张 192px 的牌（汉朱、楚墨），再打成 badges.js 给原型用
+  import base64, json
+  os.makedirs(f'{OUT}/badges', exist_ok=True); data = {}
+  pg = br.new_page(viewport={'width': 200, 'height': 200})
+  for k, icon in A2.items():
+    for sd, bg in (('r', '#8e2418'), ('b', '#141311')):
+      pg.set_content(f'<html><body style="margin:0;background:transparent">{tab(icon, bg, 192)}</body></html>')
+      fn = f'{OUT}/badges/{k}_{sd}.png'; pg.locator('svg').screenshot(path=fn, omit_background=True)
+      data[k + '_' + sd] = 'data:image/png;base64,' + base64.b64encode(open(fn, 'rb').read()).decode()
+  open(f'{OUT}/badges.js', 'w').write('window.ART_BADGES=' + json.dumps(data) + ';')
   br.close()
 print('ok')
