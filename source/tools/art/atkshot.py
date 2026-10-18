@@ -15,7 +15,7 @@ SETUP = """()=>{const X=window.__xq,g=X.game;g.setup(T=>{const B=T.board;
  mv(0,0,0,3);mv(1,2,4,4);mv(1,0,2,2);
  mv(0,9,0,6);mv(7,9,6,7);mv(1,7,1,4);mv(2,9,4,7);
  lv(0,3,4);lv(4,4,3);lv(5,0,2);lv(2,2,2,1);lv(6,3,3);
- lv(0,6,2);lv(6,7,3,2);lv(4,7,4);lv(1,4,3,2);lv(4,6,3);lv(8,3,2);lv(8,6,2);lv(3,0,3);lv(7,2,3);
+ lv(0,6,2);lv(6,7,3,2);lv(4,7,4);lv(1,4,3,2);lv(4,6,3);lv(8,3,2);lv(8,6,2);lv(3,0,3);lv(7,2,3);for(const row of B)for(const q of row)if(q&&q.t==="p"&&q.s==="r"&&q.lv===3)q.jm=T.cnt.b+2;
  });X.Board.syncPosition(g);return g.S?1:0}"""
 with sync_playwright() as p:
   br = p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
