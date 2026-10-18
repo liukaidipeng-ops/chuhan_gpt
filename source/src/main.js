@@ -3101,7 +3101,8 @@
   async function reviveFlow() {
     const R = r6On(), list = game.reviveOptions(), blocked = game.reviveBlocked();
     const sm = t => `<small style="display:block;font-size:calc(12px * var(--fs,1));line-height:1.4;opacity:.85">${t}</small>`;
-    const silver = 'background:linear-gradient(160deg,#fbfcfd,#cfd6df 55%,#eef1f5);border-color:#8a94a3;box-shadow:inset 0 0 0 1px #fff8;';
+    // 二级：浅银底配墨字，白字在浅银上看不清（Ham 10-17 审批台 art-005 选乙）
+    const silver = 'background:linear-gradient(160deg,#fbfcfd,#cfd6df 55%,#eef1f5);border-color:#8a94a3;box-shadow:inset 0 0 0 1px #fff8;color:#141311;text-shadow:none;';
     const items = list.map((o, i) => ({ v: i, label: XQ.NAMES.r[o.t] + sm(LVCN[o.lv] + '级'), cls: 'r', w: '74px', style: o.lv >= 2 ? silver : '' }))
       .concat(blocked.map(t => ({ v: 'x', label: XQ.NAMES.r[t] + sm('原位被占'), cls: 'r', w: '74px', dis: true })));
     const v = await pick('召 回 良 将', `复活一枚被吃的子，放回原位（最多${LVCN[R.reviveLevel]}级）。`, items);
