@@ -1399,8 +1399,7 @@ const Board = (() => {
   function addBadges(d, m, p, b) {
     const u = new THREE.Group(); u.userData.piece = m; d.add(u); badgeGroups.add(u);
     const put = (tex, w, h, x, y, z) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(w, h, 1); sp.renderOrder = 16; sp.position.set(x, y, z); u.add(sp); };
-    const jm = b.skills.find(k => k.sk === 'juma');
-    if (b.jm) { put(Badges.texture('jumaOn', p.s, 0, jm ? jm.f : 1), 0.52, 0.52, 0, PH + 0.26, -0.4); return; }
+    if (b.jm) { put(Badges.texture('jumaOn', p.s, 0, b.jmLeft), 0.52, 0.52, 0, PH + 0.26, -0.4); return; }   // 激活牌显示拒马还剩多久：刚架起来全实，随回合从十二点顺时针变半透明（Ham 10-18）
     const keys = (b.ak >= 2 ? [{ sk: 'atk', f: 1 }] : []).concat(b.skills);   // 攻 1 不标（Ham 10-18）
     if (!keys.length) return;
     const H = keys.length > 2 ? 0.3 : 0.36, gap = 0.03, wOf = k => H * Badges.aspect(k.sk);
@@ -1410,7 +1409,8 @@ const Board = (() => {
   function badgeInfo(game, p) {
     const cfg = game.cfg || BF.CFG;
     const frac = sk => { const c = (cfg.skills[sk] || {}).cooldown || 0; return c ? 1 - Math.min(1, game.cdLeft(p, sk) / c) : 1; };   // 冷却按 cdLeft（TD 10-18 定：这一方下次轮到时还要等几回合）
-    return { ak: game.atkOf(p), skills: BF.levelInfo(p.t, p.s, p.lv, cfg).skills.map(sk => ({ sk, f: frac(sk) })), jm: !!game.jmActive(p) };
+    const jm = !!game.jmActive(p), dur = (cfg.skills.juma || {}).duration || 1;
+    return { ak: game.atkOf(p), skills: BF.levelInfo(p.t, p.s, p.lv, cfg).skills.map(sk => ({ sk, f: frac(sk) })), jm, jmLeft: jm ? Math.min(1, (p.jm - game.S.cnt[p.s === 'r' ? 'b' : 'r']) / dur) : 0 };
   }
   function setBadges(on) { badgesOn = !!on; if (lastGame && lastGame.bf) decorateAll(lastGame); }
   function decorate(m, p, o = {}) {
