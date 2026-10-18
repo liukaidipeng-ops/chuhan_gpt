@@ -252,8 +252,8 @@
   let upPly = -1;   // 在第几层考虑“对方先升级再走”（-1 = 不考虑）
   let upAll = false;   // 裁判开关 LEVELS.<档>.upAll（只给复盘工具用，默认关）：对方“先升级再走”所有升法都看，第 1、第 3 层都看
   // 自己下一回合也可能先升级（第 38 题：下回合进账就够升车绝杀，原来只在对方那一层考虑升级，这笔账看不到）
-  const UP2 = ENV.BFAI_UP2 === '1';
-  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && ply === 2 && upPly >= 0)) && !S.upgraded;
+  const UP2 = ENV.BFAI_UP2 === '1'; const UP2N = +(ENV.BFAI_UP2N || 9), UP2R = +(ENV.BFAI_UP2R || 0);   // BFAI_UP3：对方第 3 层也考虑先升级，和 UP2 对称（只给己方第 2 层会太乐观：g22 第 44 条以为马被吃了能升级吃回车，K11-1）
+  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && (ply === 2 || (ENV.BFAI_UP3 === '1' && ply === 3)) && upPly >= 0)) && !S.upgraded;
   let pfPly = -1;   // 在第几层考虑“对方（楚）用破釜沉舟连走两步”（-1 = 不考虑）
   const pfCache = new Map();   // 每个局面的破釜沉舟组合只算一次（逐层加深时重复用）
   const upCache = new Map();   // “对方先升级再走”的那几个局面，同样每个局面只生成一次
@@ -399,9 +399,11 @@
     let best = -INF, legal = 0, bm = null;
     // 对方应这一步时，也可能先花军功给某枚子升一级再走（多一点血：我方本来能吃掉的子就吃不掉了，打上去还会被弹回）
     if (upAt(S, ply)) {
-      const ups = upsOf(S, side);
+      let ups = upsOf(S, side), dr = 0;
+      // BFAI_UP2N / UP2R：UP2 加出来的那层（不是对方应着的那层）只留前几个升级、少算几层——每个升级都是整棵子树，全留会少算两层（K11-1，g22 第 44 条）
+      if (UP2 && ply !== upPly && !upAll) { ups = ups.slice(0, UP2N); dr = UP2R; }
       for (const u of ups) {
-        const v = ab(u.S, depth - extd, alpha, beta, ply, ext - extd);
+        const v = ab(u.S, Math.max(0, depth - extd - dr), alpha, beta, ply, ext - extd);
         if (v > best) { best = v; bm = null; }
         if (v > alpha) alpha = v;
         if (alpha >= beta) { if (TTB.size < 300000) TTB.set(tkey, { v: toTT(best, ply), f: 1, m: null }); return best; }
@@ -797,7 +799,7 @@
     // 破釜沉舟每局只有一次：留着杀车这样的大子——同样的深度下，比最好的普通走法多赚不到一个大子的量就先不用
     //   （对方的召回良将还在手里时，杀了车也会被救回来，搜索里算得到，自然就不急着用）
     if (pofu.length && bestV < WIN / 2) {
-      const PF_MIN = bsOn() ? BSMIN : 5, need = bestV + PF_MIN, d1 = Math.max(1, depthDone) - 1;
+      const PF_MIN = bsOn() ? BSMIN : 5, need = bestV + PF_MIN, d1 = Math.max(1, depthDone) - (ENV.BFAI_PFFULL === '1' ? 0 : 1);
       let bp = null;
       if (byNodes) nodeCap = nodes + Math.round(L.nodes * 0.4); else deadline = Math.min(hardEnd2, now() + Math.max(400, L.budget * 0.4));
       try {
