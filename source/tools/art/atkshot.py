@@ -7,7 +7,7 @@ OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True)
 url = pathlib.Path(SRC + '/dist/site/index.html').resolve().as_uri() + '#bf'
 VP = {'m': (390, 844, 2), 'land': (844, 390, 2), 'pc': (1280, 720, 1)}
 ONLYV = sys.argv[2].split(',') if len(sys.argv) > 2 else list(VP)
-ONLYA = [int(x) for x in sys.argv[3].split(',')] if len(sys.argv) > 3 else range(5)
+ONLYA = [int(x) for x in sys.argv[3].split(",")] if len(sys.argv) > 3 else range(5)
 SETUP = """()=>{const X=window.__xq,g=X.game;g.setup(T=>{const B=T.board;
  const lv=(f,r,l,hp)=>{const p=B[r][f];if(!p)return 'x';p.lv=l;p.hp=hp==null?X.BF.hpOf(p.t,l):hp;};
  const mv=(f,r,F,R)=>{B[R][F]=B[r][f];B[r][f]=null;};

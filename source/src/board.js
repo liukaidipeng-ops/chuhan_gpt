@@ -1392,9 +1392,57 @@ const Board = (() => {
     g.fillStyle = 'rgba(20,19,17,.88)'; g.fillRect(4, 4, w - 8, 104); g.strokeStyle = '#f0e7d2'; g.lineWidth = 4; g.strokeRect(12, 12, w - 24, 88);
     g.font = `bold 66px ${FONT}`; g.textBaseline = 'middle'; g.textAlign = 'center';
     g.fillStyle = '#ff7a5c'; g.fillText('血' + hp, w * 0.28, 60); g.fillStyle = '#f0a040'; g.fillText('攻' + ak, w * 0.72, 60); })); return atkTexC.get(k); };
-  function atkProto(d, p, max, kingF) {
+  // ---- 第 2 版（Ham 10-18 art-006 退回后）：5 棋面外缘锯齿 6 棋面内圈刺 7 右上单牌 8 脚前一排牌 9 侧边竖排牌 ----
+  const SIDE_INK = { r: 0xa8281c, b: 0x141311 };
+  const tagTex = (txt, bg, fg, line) => { const k = 'tg' + txt + bg + fg + line; if (!atkTexC.has(k)) { const n = [...txt].length, W = 96 + n * 92; atkTexC.set(k, canvasTex(W, 160, (g, w, h) => {
+    g.fillStyle = bg; g.fillRect(4, 4, w - 8, h - 8); g.strokeStyle = line; g.lineWidth = 6; g.strokeRect(18, 18, w - 36, h - 36);
+    g.font = `900 104px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = fg; g.fillText(txt, w / 2, h / 2 + 6); })); } return atkTexC.get(k); };
+  const tagSprite = (txt, bg, fg, line, hgt) => { const t = tagTex(txt, bg, fg, line), a = t.image.width / t.image.height;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false, toneMapped: false })); sp.scale.set(hgt * a, hgt, 1); sp.renderOrder = 16; return sp; };
+  // 原型里的技能牌只是演示：二级以上的兵 / 卒挂「拒」，id 单数的假装在冷却 3 回合
+  const demoSkill = p => (p.t === 'p' && p.lv >= 2) ? ('拒' + (p.id % 2 ? '3' : '')) : '';
+  function atkProto2(d, p, ak, AV, u) {
+    if (AV === 5 && ak >= 2) {
+      const geo = ringGet('spkA', () => { const sh = new THREE.Shape(), N = 16, r0 = 0.312, r1 = 0.398;
+        for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2, b = (i + 0.5) / N * Math.PI * 2, c = (i + 1) / N * Math.PI * 2;
+          if (!i) sh.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); sh.lineTo(Math.cos(b) * r1, Math.sin(b) * r1); sh.lineTo(Math.cos(c) * r0, Math.sin(c) * r0); }
+        sh.holes.push(new THREE.Path().absarc(0, 0, r0 - 0.03, 0, Math.PI * 2, true));
+        const q = new THREE.ExtrudeGeometry(sh, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.003, bevelSegments: 1, curveSegments: 48 }); q.rotateX(-Math.PI / 2); return q; });
+      const mat = ringGet('spkInk', () => new THREE.MeshPhysicalMaterial({ color: 0x1a1612, metalness: 0.2, roughness: 0.4, clearcoat: 0.8 }));
+      const m = new THREE.Mesh(geo, mat); m.position.y = PH + 0.002; d.add(m);
+    }
+    if (AV === 6 && ak >= 2) {
+      const geo = ringGet('spkB', () => { const N = 12, parts = [];
+        for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2, sh = new THREE.Shape(), r0 = 0.398, r1 = 0.27, w = 0.085;
+          const ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(a + Math.PI / 2), st = Math.sin(a + Math.PI / 2);
+          sh.moveTo(ca * r0 + ct * w / 2, sa * r0 + st * w / 2); sh.lineTo(ca * r1, sa * r1); sh.lineTo(ca * r0 - ct * w / 2, sa * r0 - st * w / 2); sh.closePath();
+          parts.push(sh); }
+        const q = new THREE.ExtrudeGeometry(parts, { depth: 0.02, bevelEnabled: false }); q.rotateX(-Math.PI / 2); return q; });
+      const mat = ringGet('spkInk', () => new THREE.MeshPhysicalMaterial({ color: 0x1a1612, metalness: 0.2, roughness: 0.4, clearcoat: 0.8 }));
+      const m = new THREE.Mesh(geo, mat); m.position.y = PH + 0.002; d.add(m);
+    }
+    const sk = demoSkill(p), inkBg = '#141311', paper = '#f0e7d2', zhu = '#a8281c';
+    if (AV === 7) {
+      let z = 0;
+      if (ak >= 2) { const sp = tagSprite('攻2', inkBg, paper, paper, 0.42); sp.position.set(0.52, PH + 0.4, z); u.add(sp); z -= 0.46; }
+      if (sk) { const sp = tagSprite(sk, inkBg, paper, paper, 0.42); sp.position.set(0.52, PH + 0.4, z); u.add(sp); }
+    }
+    if (AV === 8) {
+      const tags = []; if (ak >= 2) tags.push('攻2'); if (sk) tags.push(sk);
+      const sps = tags.map(t => tagSprite(t, paper, '#141311', '#141311', 0.36)); let tot = sps.reduce((a, s) => a + s.scale.x, 0) + 0.04 * (sps.length - 1), x = -tot / 2;
+      for (const sp of sps) { sp.position.set(x + sp.scale.x / 2, 0.2, 0.66); x += sp.scale.x + 0.04; u.add(sp); }
+    }
+    if (AV === 9) {
+      let z = 0.2;
+      const bg = p.s === 'r' ? zhu : inkBg;
+      if (ak >= 2) { const sp = tagSprite('攻2', bg, paper, paper, 0.38); sp.position.set(0.62, PH + 0.18, z); u.add(sp); z -= 0.42; }
+      if (sk) { const sp = tagSprite(sk, bg, paper, paper, 0.38); sp.position.set(0.62, PH + 0.18, z); u.add(sp); }
+    }
+  }
+  function atkProto(d, p, max, kingF, m) {
     const AV = window.ATKV | 0; if (!AV || kingF || p.t === 'k') return;
     const ak = BF.ai.atk(p);
+    if (AV >= 5) { const u = new THREE.Group(); u.rotation.y = -(m ? m.rotation.y : 0); d.add(u); return atkProto2(d, p, ak, AV, u); }
     if (AV === 1 && ak >= 2) {
       const mat = ringGet('atkM', () => new THREE.MeshPhysicalMaterial({ color: ATK_COL, emissive: ATK_COL, emissiveIntensity: 0.25, metalness: 0.5, roughness: 0.3, clearcoat: 0.6 }));
       const geo = ringGet('atkG', () => { const sh = new THREE.Shape(); sh.moveTo(-0.075, 0); sh.lineTo(0.075, 0); sh.lineTo(0, 0.26); sh.closePath(); const q = new THREE.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2 }); q.rotateX(-Math.PI / 2); return q; });
@@ -1454,7 +1502,7 @@ const Board = (() => {
       const ring = footRing(p.hp, max, p.s);
       ring.userData.hpBar = { hp: p.hp, max }; d.add(ring);
     }
-    atkProto(d, p, max, kingF);
+    atkProto(d, p, max, kingF, m);
     if (o.jm) {
       for (let i = 0; i < 10; i++) {
         const a = i / 10 * Math.PI * 2, sk = new THREE.Mesh(stakeGeo, stakeMat);
