@@ -1515,8 +1515,9 @@ const Board = (() => {
       const m = new THREE.Mesh(geo, mat); m.position.y = PH + 0.002; d.add(m);
     }
     if (p.lv < 2) return;
-    const tabs = [atkTab(p.s, ak)];
+    const tabs = ak >= 2 ? [atkTab(p.s, ak)] : [];   // Ham 10-18：只标攻 2，攻 1 不挂
     if (p.t === 'p') tabs.push(jmTab(p.s, (window.JMV | 0) || 1, p.id % 2 ? 3 : 0));   // 演示：id 单数的兵假装冷却 3 回合
+    if (!tabs.length) return;
     const H = 0.36, W = H * 1.4, gap = 0.02, tot = tabs.length * W + (tabs.length - 1) * gap; let x = -tot / 2 + W / 2;
     for (const t of tabs) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(W, H, 1); sp.renderOrder = 16; sp.position.set(x, PH + 0.2, -0.4); u.add(sp); x += W + gap; }
   }
