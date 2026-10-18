@@ -12,3 +12,7 @@
 本地独立目录balance-cap-review-20261015-01，脚本tools/income-opening-pairs.js，证据local-results-20261019-01/manifest.json、horses-r/b.jsonl、cannons-r/b.jsonl、results.jsonl或failure.txt。当前进程会话47598，逐局结果写入后才认完成。下一次接续先读取该目录，不重跑覆盖。
 
 既有探索4局为2胜2负，未证明收益；收入候选30万节点回归102/102对99/102，不等于棋力达标。A6未通过、A3正式门禁关闭、H70未完成600局。未改原V01或main/dev，未合并部署。本轮审批台无未回执意见。
+
+## 运行中检查点
+
+已完成3/4局：horses候选执红71次行动将死胜、执黑58次行动将死胜；cannons候选执红108次行动被黑方将死负。三局均无截断。cannons候选执黑局仍在运行，尚未计入结果。完整pair目前只新增horses的2胜；不把未完整的cannons pair拿来做统计判断。下一次接续先检查第四局和进程退出状态，再汇总本批及此前4局。
