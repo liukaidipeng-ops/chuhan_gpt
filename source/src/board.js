@@ -1526,8 +1526,8 @@ const Board = (() => {
   const badgeC = new Map();
   function badgeTex(key, f) {
     const k = key + '_' + Math.round(f * 100); if (badgeC.has(k)) return badgeC.get(k);
-    const c = document.createElement('canvas'); c.width = c.height = 192; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-    const img = new Image(); img.onload = () => { const g = c.getContext('2d'); g.drawImage(img, 0, 0, 192, 192);
+    const c = document.createElement('canvas'); c.width = key.startsWith('atk') ? 269 : 192; c.height = 192; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    const img = new Image(); img.onload = () => { const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, 192);
       if (f < 1) { g.save(); g.beginPath(); g.moveTo(96, 96); g.arc(96, 96, 160, -Math.PI / 2 + f * Math.PI * 2, Math.PI * 1.5); g.closePath(); g.clip();
         g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(10,9,8,0.66)'; g.fillRect(0, 0, 192, 192); g.restore(); }
       t.needsUpdate = true; };
@@ -1537,9 +1537,9 @@ const Board = (() => {
     const keys = []; if (ak >= 2) keys.push(['atk2', 1]);
     for (const sk of BF.levelInfo(p.t, p.s, p.lv).skills) keys.push([sk, sk === 'juma' && p.id % 2 ? 0.25 : 1]);   // 演示：id 单数的兵拒马冷却走了四分之一
     if (!keys.length) return;
-    const H = keys.length > 2 ? 0.3 : 0.36, gap = 0.03, tot = keys.length * H + (keys.length - 1) * gap; let x = -tot / 2 + H / 2;
-    for (const [k, f] of keys) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: badgeTex(k + '_' + p.s, f), transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false }));
-      sp.scale.set(H, H, 1); sp.renderOrder = 16; sp.position.set(x, PH + 0.2, -0.36); u.add(sp); x += H + gap; }
+    const H = keys.length > 2 ? 0.3 : 0.36, gap = 0.03, wOf = k => k.startsWith('atk') ? H * 1.4 : H, tot = keys.reduce((a, [k]) => a + wOf(k), 0) + (keys.length - 1) * gap; let x = -tot / 2;
+    for (const [k, f] of keys) { const W = wOf(k); x += W / 2; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: badgeTex(k + '_' + p.s, f), transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false }));
+      sp.scale.set(W, H, 1); sp.renderOrder = 16; sp.position.set(x, PH + 0.2, -0.36); u.add(sp); x += W / 2 + gap; }
   }
   function atkProto(d, p, max, kingF, m) {
     const AV = window.ATKV | 0; if (!AV || kingF || p.t === 'k') return;
