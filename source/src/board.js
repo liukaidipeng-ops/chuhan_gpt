@@ -1521,10 +1521,30 @@ const Board = (() => {
     const H = 0.36, W = H * 1.4, gap = 0.02, tot = tabs.length * W + (tabs.length - 1) * gap; let x = -tot / 2 + W / 2;
     for (const t of tabs) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(W, H, 1); sp.renderOrder = 16; sp.position.set(x, PH + 0.2, -0.4); u.add(sp); x += W + gap; }
   }
+  // ---- 第 5 版（Ham 10-18 art-007：实心剪影、倒角正方形；只标攻 2）：14 ----
+  //   图标是 art-wip/skill-icons 出的单张牌，原型截图时由 window.ART_BADGES 注入（数据地址），这里叠冷却的转圈
+  const badgeC = new Map();
+  function badgeTex(key, f) {
+    const k = key + '_' + Math.round(f * 100); if (badgeC.has(k)) return badgeC.get(k);
+    const c = document.createElement('canvas'); c.width = c.height = 192; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    const img = new Image(); img.onload = () => { const g = c.getContext('2d'); g.drawImage(img, 0, 0, 192, 192);
+      if (f < 1) { g.save(); g.beginPath(); g.moveTo(96, 96); g.arc(96, 96, 160, -Math.PI / 2 + f * Math.PI * 2, Math.PI * 1.5); g.closePath(); g.clip();
+        g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(10,9,8,0.66)'; g.fillRect(0, 0, 192, 192); g.restore(); }
+      t.needsUpdate = true; };
+    img.src = (window.ART_BADGES || {})[key] || ''; badgeC.set(k, t); return t;
+  }
+  function atkProto5(d, p, ak, u) {
+    const keys = []; if (ak >= 2) keys.push(['atk2', 1]);
+    for (const sk of BF.levelInfo(p.t, p.s, p.lv).skills) keys.push([sk, sk === 'juma' && p.id % 2 ? 0.25 : 1]);   // 演示：id 单数的兵拒马冷却走了四分之一
+    if (!keys.length) return;
+    const H = keys.length > 2 ? 0.3 : 0.36, gap = 0.03, tot = keys.length * H + (keys.length - 1) * gap; let x = -tot / 2 + H / 2;
+    for (const [k, f] of keys) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: badgeTex(k + '_' + p.s, f), transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false }));
+      sp.scale.set(H, H, 1); sp.renderOrder = 16; sp.position.set(x, PH + 0.2, -0.36); u.add(sp); x += H + gap; }
+  }
   function atkProto(d, p, max, kingF, m) {
     const AV = window.ATKV | 0; if (!AV || kingF || p.t === 'k') return;
     const ak = BF.ai.atk(p);
-    if (AV >= 5) { const u = new THREE.Group(); u.rotation.y = -(m ? m.rotation.y : 0); d.add(u); return AV >= 12 ? atkProto4(d, p, ak, u, m) : AV >= 10 ? atkProto3(d, p, ak, AV, u) : atkProto2(d, p, ak, AV, u); }
+    if (AV >= 5) { const u = new THREE.Group(); u.rotation.y = -(m ? m.rotation.y : 0); d.add(u); return AV >= 14 ? atkProto5(d, p, ak, u) : AV >= 12 ? atkProto4(d, p, ak, u, m) : AV >= 10 ? atkProto3(d, p, ak, AV, u) : atkProto2(d, p, ak, AV, u); }
     if (AV === 1 && ak >= 2) {
       const mat = ringGet('atkM', () => new THREE.MeshPhysicalMaterial({ color: ATK_COL, emissive: ATK_COL, emissiveIntensity: 0.25, metalness: 0.5, roughness: 0.3, clearcoat: 0.6 }));
       const geo = ringGet('atkG', () => { const sh = new THREE.Shape(); sh.moveTo(-0.075, 0); sh.lineTo(0.075, 0); sh.lineTo(0, 0.26); sh.closePath(); const q = new THREE.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2 }); q.rotateX(-Math.PI / 2); return q; });
