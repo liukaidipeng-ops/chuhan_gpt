@@ -68,8 +68,11 @@ A2['atk2'] = ('<path d="M34 6 L40 16 L40 62 L28 62 L28 16Z" stroke="none"/><rect
 SETS = [('A2', '甲 · 实心剪影 · 第 2 版（倒角正方形）', A2)]
 TAB = lambda bg, h: f'<svg viewBox="0 0 100 100" height="{h}"><rect x="2" y="2" width="96" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="82" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
 # 攻击字牌：横长的倒角长方形（Ham 10-18：和技能牌做出差别）
-def rtab(icon, bg, h): return (f'<svg viewBox="0 0 140 100" height="{h}"><rect x="2" y="2" width="136" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="122" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
-                               f'<g transform="translate(36 15) scale(.7)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>')
+def rtab(icon, bg, h): return (f'<svg viewBox="0 0 160 100" height="{h}"><rect x="2" y="2" width="156" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="142" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
+                               f'<g transform="translate(46 15) scale(.7)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>')
+# 激活状态牌（拒马架起来时）：反色——米白底、阵营色图标、阵营色粗框，比技能牌大
+def stab(icon, bg, h): return (f'<svg viewBox="0 0 100 100" height="{h}"><rect x="2" y="2" width="96" height="96" rx="16" fill="{bg}"/><rect x="8" y="8" width="84" height="84" rx="11" fill="#f0e7d2"/>'
+                               f'<g transform="translate(15 15) scale(.7)" fill="{bg}" stroke="{bg}">{icon}</g></svg>')
 def tab(icon, bg, h): return TAB(bg, h) + f'<g transform="translate(17 17) scale(.66)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>'
 CSS = '''body{margin:0;background:#efe6d2;font-family:"WenQuanYi Zen Hei",sans-serif;color:#141311}
 h1{margin:0;padding:20px 28px;background:#141311;color:#f0e7d2;font-size:34px}
@@ -94,10 +97,10 @@ with sync_playwright() as p:
   pg = br.new_page(viewport={'width': 200, 'height': 200})
   for k, icon in A2.items():
     for sd, bg in (('r', '#8e2418'), ('b', '#141311')):
-      svg = rtab(icon, bg, 192) if k == 'atk2' else tab(icon, bg, 192)
-      pg.set_content(f'<html><body style="margin:0;background:transparent">{svg}</body></html>')
-      fn = f'{OUT}/badges/{k}_{sd}.png'; pg.locator('svg').screenshot(path=fn, omit_background=True)
-      data[k + '_' + sd] = 'data:image/png;base64,' + base64.b64encode(open(fn, 'rb').read()).decode()
+      for kk, svg in ([(k, rtab(icon, bg, 192))] if k == 'atk2' else [(k, tab(icon, bg, 192))] + ([(k + 'on', stab(icon, bg, 192))] if k == 'juma' else [])):
+        pg.set_content(f'<html><body style="margin:0;background:transparent">{svg}</body></html>')
+        fn = f'{OUT}/badges/{kk}_{sd}.png'; pg.locator('svg').screenshot(path=fn, omit_background=True)
+        data[kk + '_' + sd] = 'data:image/png;base64,' + base64.b64encode(open(fn, 'rb').read()).decode()
   open(f'{OUT}/badges.js', 'w').write('window.ART_BADGES=' + json.dumps(data) + ';')
   br.close()
 print('ok')
