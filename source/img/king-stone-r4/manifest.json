@@ -1,0 +1,104 @@
+{
+  "design": "Approved S1 R4 only; skill-mode kings",
+  "version": "0fda31c5fde4",
+  "format": "lossless PNG; pixels identical to R4 approved textures",
+  "sourceMaterialSHA256": "c110349f2576406965ebc8c8281acf53ecf0c86f4b07bc8487437368ba2a389b",
+  "files": [
+    {
+      "file": "r-body-color.png",
+      "size": 297664,
+      "width": 2048,
+      "height": 384,
+      "sha256": "24255812b8555a73018284b55d9b18060063b9e83eb4b64bc3958a20d00ac238",
+      "rgbaSHA256": "0aaa5f0aae37e73dad6be3968384f8517db22cfa68fb075487c59a6408ee4430"
+    },
+    {
+      "file": "r-body-normal.png",
+      "size": 258851,
+      "width": 2048,
+      "height": 384,
+      "sha256": "71e347a4727bab8bee7fe892f0d8333064c62623b3052dcf5c69fc6dd7cd3016",
+      "rgbaSHA256": "9b572eef3061ff45219df8119a98b3b62712981975dae54ea7a5340588d71f94"
+    },
+    {
+      "file": "r-body-orm.png",
+      "size": 240967,
+      "width": 2048,
+      "height": 384,
+      "sha256": "da7b365fbfa5663f711a9e9d52bdcd8c7d82ca59f2d3f0e0172c56ad279ea33e",
+      "rgbaSHA256": "8a256672ee8a673db5905203a39f86211d5c14d27577d6ff6e5e8374392439a0"
+    },
+    {
+      "file": "r-face-color.png",
+      "size": 508707,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "519deaf7f7db750fa9d5f8d7a878800b199b6552a4973702023ac586eab9c70a",
+      "rgbaSHA256": "6954bb93cde1dc76c963a570365fb6a772b1f2e755035771e13bbe17b4302740"
+    },
+    {
+      "file": "r-face-normal.png",
+      "size": 542916,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "f38d6957c52c4468ce3cd673f85a757d9bdf933fea620133d325689defc5d422",
+      "rgbaSHA256": "c22720f480f40ee37d3387576c8a719464c4d73d1440e97343d03e55358b95d3"
+    },
+    {
+      "file": "r-face-orm.png",
+      "size": 408093,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "3f99d009a67de66dd76230b654bb42ff9ed24e7a5c44e118e91bbda9a5208c46",
+      "rgbaSHA256": "749ac90d77da1486cd67eeb3a48b4eb2205c7a3ef87afab5d2c49e588122ccbf"
+    },
+    {
+      "file": "b-body-color.png",
+      "size": 266234,
+      "width": 2048,
+      "height": 384,
+      "sha256": "26495d4404be312ae3c76879e3a6942e74450f4c336ad8ce9e2eb4b6a46e6a4c",
+      "rgbaSHA256": "bb856949aa911a037117c936b212204a8d1a3e2a01f8303e827b3c0111164fd6"
+    },
+    {
+      "file": "b-body-normal.png",
+      "size": 259067,
+      "width": 2048,
+      "height": 384,
+      "sha256": "552b2e9d6e91b11076d12fd1c59ea25ebd8c44e8a35bcd9bde8b80627cc02bac",
+      "rgbaSHA256": "10daf097b6e113bbbb98f66b28340ddbc9f5ef734ebaf52560575e271dfc9722"
+    },
+    {
+      "file": "b-body-orm.png",
+      "size": 238008,
+      "width": 2048,
+      "height": 384,
+      "sha256": "985eccc12f8f544ef67b591fb617d19f539f3bb8c38d9efd117fa7cf5bf8c8cd",
+      "rgbaSHA256": "7d50006c98e78234f6faeb4bb80e168a6ad82cbc3e25671c493a7a898d0f27f9"
+    },
+    {
+      "file": "b-face-color.png",
+      "size": 454861,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "9d5e0f65c88fd35958db862a97a20bfe30b35b24798fc91355cf2cc0a9435497",
+      "rgbaSHA256": "6a62203a4adcc26b7210fcc69529b186e332ae977c4048361860726727258b7e"
+    },
+    {
+      "file": "b-face-normal.png",
+      "size": 603226,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "8a25d2b07b8da583d42b80dfa7bbcf6809a436ee54b3732751e06a21c6916d5b",
+      "rgbaSHA256": "0dbbbad485d59ffe8e98ad66ff5e85050a585e765b14ce22ca6aa2f398692ce0"
+    },
+    {
+      "file": "b-face-orm.png",
+      "size": 469886,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "56542802add022c6988670db3a751fea33bdfc69243f6497bbef53563a7a73b5",
+      "rgbaSHA256": "b856d0d476930f4acd7f17ef1fb261bb1dc99091978082be73494f870ed58f15"
+    }
+  ]
+}
