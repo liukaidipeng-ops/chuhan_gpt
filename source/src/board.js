@@ -1382,6 +1382,45 @@ const Board = (() => {
       c.scale.setScalar(1.7 - 0.7 * e); c.position.y = 0.004 + (1 - e) * 0.5;
     }
   });
+  // ---- 原型，只为美术部门 art-006 截图，不上线：window.ATKV 1 锋芒 2 血攻同圈 3 攻字小印 4 看数值 ----
+  const ATK_COL = 0xe08a2a;
+  const atkTexC = new Map();
+  const atkSeal = (txt, big) => { const k = txt + big; if (!atkTexC.has(k)) atkTexC.set(k, canvasTex(160, 128, (g, w, h) => {
+    g.fillStyle = '#c96a12'; g.fillRect(6, 6, w - 12, 116); g.strokeStyle = '#f0e7d2'; g.lineWidth = 6; g.strokeRect(16, 16, w - 32, 96);
+    g.font = `bold ${big}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#f0e7d2'; g.fillText(txt, w / 2, 68); })); return atkTexC.get(k); };
+  const statTex = (hp, ak) => { const k = 'st' + hp + '_' + ak; if (!atkTexC.has(k)) atkTexC.set(k, canvasTex(256, 112, (g, w) => {
+    g.fillStyle = 'rgba(20,19,17,.88)'; g.fillRect(4, 4, w - 8, 104); g.strokeStyle = '#f0e7d2'; g.lineWidth = 4; g.strokeRect(12, 12, w - 24, 88);
+    g.font = `bold 66px ${FONT}`; g.textBaseline = 'middle'; g.textAlign = 'center';
+    g.fillStyle = '#ff7a5c'; g.fillText('血' + hp, w * 0.28, 60); g.fillStyle = '#f0a040'; g.fillText('攻' + ak, w * 0.72, 60); })); return atkTexC.get(k); };
+  function atkProto(d, p, max, kingF) {
+    const AV = window.ATKV | 0; if (!AV || kingF || p.t === 'k') return;
+    const ak = BF.ai.atk(p);
+    if (AV === 1 && ak >= 2) {
+      const mat = ringGet('atkM', () => new THREE.MeshPhysicalMaterial({ color: ATK_COL, emissive: ATK_COL, emissiveIntensity: 0.25, metalness: 0.5, roughness: 0.3, clearcoat: 0.6 }));
+      const geo = ringGet('atkG', () => { const sh = new THREE.Shape(); sh.moveTo(-0.075, 0); sh.lineTo(0.075, 0); sh.lineTo(0, 0.26); sh.closePath(); const q = new THREE.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2 }); q.rotateX(-Math.PI / 2); return q; });
+      for (const a of [-0.36, 0.36]) { const m = new THREE.Mesh(geo, mat); m.position.set(Math.sin(a) * 0.49, 0.004, Math.cos(a) * 0.5); m.rotation.y = a + Math.PI; m.castShadow = true; d.add(m); }
+    }
+    if (AV === 2 && (p.lv >= 2)) {
+      // 血圈改成两段：左半圈红段 = 血，右半圈橙段 = 攻（每点一段）
+      const old = d.children.find(c => c.userData.hpBar); if (old) d.remove(old);
+      const g = new THREE.Group(), R0 = 0.44, R1 = R0 + 0.085, GAP = 0.2, bs = 0.006;
+      const seg = (a0, a1, col, key) => { const geo = ringGet('ag' + key, () => { const q = new THREE.ExtrudeGeometry(hpSector(R0 + bs, R1 - bs, a0, a1), { depth: 0.039, bevelEnabled: true, bevelThickness: 0.016, bevelSize: bs, bevelSegments: 3, curveSegments: 24 }); q.rotateX(-Math.PI / 2); return q; });
+        const mat = ringGet('am' + col, () => new THREE.MeshPhysicalMaterial({ color: col, emissive: col, emissiveIntensity: 0.18, roughness: 0.38, clearcoat: 0.6 })); const m = new THREE.Mesh(geo, mat); m.position.y = 0.004; g.add(m); };
+      const lost = ringGet('mLost2', () => new THREE.MeshStandardMaterial({ color: 0x2a221c, roughness: 0.9, transparent: true, opacity: 0.3, depthWrite: false }));
+      const half = Math.PI - GAP, hs = (half - GAP * (max - 1)) / max, as = (half - GAP * (ak - 1)) / ak;
+      for (let i = 0; i < max; i++) { const a0 = Math.PI / 2 + GAP / 2 + i * (hs + GAP); if (i < p.hp) seg(a0, a0 + hs, HPC[p.s], `h${max}_${i}`); else { const geo = ringGet(`hl${max}_${i}`, () => { const q = new THREE.ShapeGeometry(hpSector(R0, R1, a0, a0 + hs), 16); q.rotateX(-Math.PI / 2); return q; }); const m = new THREE.Mesh(geo, lost); m.position.y = 0.006; g.add(m); } }
+      for (let i = 0; i < ak; i++) { const a0 = -Math.PI / 2 + GAP / 2 + i * (as + GAP); seg(a0, a0 + as, ATK_COL, `a${ak}_${i}`); }
+      g.userData.hpBar = { hp: p.hp, max }; d.add(g);
+    }
+    if (AV === 3 && ak >= 2) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: atkSeal('攻2', 66), transparent: true, depthWrite: false, toneMapped: false }));
+      sp.scale.set(0.56, 0.45, 1); sp.position.set(0.4, PH + 0.36, 0); sp.renderOrder = 5; d.add(sp);
+    }
+    if (AV === 4) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: statTex(p.hp, ak), transparent: true, depthWrite: false, depthTest: false, toneMapped: false }));
+      sp.scale.set(0.98, 0.43, 1); sp.position.set(0, PH + 0.62, 0); sp.renderOrder = 18; d.add(sp);
+    }
+  }
   function decorate(m, p, o = {}) {
     KingStone.restore(m);
     if (m.userData.deco) { m.remove(m.userData.deco); m.userData.deco = null; }
@@ -1415,6 +1454,7 @@ const Board = (() => {
       const ring = footRing(p.hp, max, p.s);
       ring.userData.hpBar = { hp: p.hp, max }; d.add(ring);
     }
+    atkProto(d, p, max, kingF);
     if (o.jm) {
       for (let i = 0; i < 10; i++) {
         const a = i / 10 * Math.PI * 2, sk = new THREE.Mesh(stakeGeo, stakeMat);
