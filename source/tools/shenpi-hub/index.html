@@ -241,7 +241,7 @@ dl.facts dd.warn { color: var(--zhu); }
   const CONFIG = {
     title: '楚汉审批台',                                       // 页面标题，也是通知的抬头
     owner: 'Ham',                                              // 拍板的人怎么称呼
-    deptOrder: ['象棋TD', '象棋Balance', '战术部门', '流程部门'], // 部门的排列顺序；没列的排在后面
+    deptOrder: ['象棋TD', '美术部门', '象棋Balance', '战术部门', '流程部门'], // 部门的排列顺序；没列的排在后面
   };
   const $ = id => document.getElementById(id);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -408,7 +408,35 @@ dl.facts dd.warn { color: var(--zhu); }
     return box;
   }
 
-  // ---------- 通知：页面替 Ham 发评论给 Claude（看着这个页面的部门会话都收得到） ----------
+  // ---------- 通知：按部门直发给各自的会话（Ham 10-18：只通知相关部门，省额度） ----------
+  // 部门会话写在 depts/<id>.session；直发不了的部门，退回页面替 Ham 发评论给 Claude（只有流程部门盯着页面，由它转交）
+  let mcpP = null;
+  const getMcp = () => mcpP || (mcpP = window.claude.use('mcp').catch(() => null));
+  async function direct(sessionId, text) {
+    const mcp = await getMcp();
+    if (!mcp) return { ok: false, code: 'no_mcp' };
+    try { await mcp.callTool('Claude Code Remote', 'send_message', { session_id: sessionId, message: text }, { cache: false }); return { ok: true, how: 'direct', code: '' }; }
+    catch (e) { return { ok: false, code: (e && e.code) || 'unknown' }; }
+  }
+  // parts: [{dept, text}]，每段只发给那个部门；返回 {depts: {部门: {ok, how, code}}, ok}
+  async function notify(head, parts, tail) {
+    const res = {}, fallback = [];
+    for (const p of parts) {
+      const sess = (deptDocs.get(p.dept) || {}).session;
+      const r = sess ? await direct(sess, head + '\n' + p.text + tail) : { ok: false, code: 'no_session' };
+      if (r.ok) res[p.dept] = r; else fallback.push(p);
+    }
+    if (fallback.length) {
+      const r = await send(head + '\n' + fallback.map(p => p.text).join('\n') + tail + '\n\n（这几个部门直发没成功，请流程部门转交。）');
+      for (const p of fallback) res[p.dept] = r.ok ? { ok: true, how: 'comment', code: '' } : { ok: false, code: r.code };
+    }
+    return { depts: res, ok: Object.values(res).every(r => r.ok) };
+  }
+  const noticeOk = (n, dept) => n && (n.depts && n.depts[dept] ? n.depts[dept].ok : n.ok);
+  const noticeCode = (n, dept) => n && (n.depts && n.depts[dept] ? n.depts[dept].code : n.code);
+  const noticeHow = (n, dept) => n && n.depts && n.depts[dept] && n.depts[dept].how === 'direct' ? '已直接通知' : '已发评论通知';
+
+  // ---------- 备用通知：页面替 Ham 发评论给 Claude ----------
   let comments = null, canSend = 'wait';
   async function checkSend() {
     try { comments = comments || await window.claude.use('comments'); } catch (e) { comments = null; }
@@ -417,7 +445,7 @@ dl.facts dd.warn { color: var(--zhu); }
     showNotify(); return canSend;
   }
   const SEND_WHY = {
-    available: '提交后页面会替你发一条评论给 Claude，各部门的会话都看得到（第一次会问能不能替你发评论，点允许）。',
+    available: '提交后只通知出题的部门（第一次会问能不能用 Claude Code Remote 替你发消息，点允许）；直发不了的，替你发评论给流程部门转交。',
     no_session: '现在没有 Claude 会话在看这个页面，提交后通知不到，提交完请在聊天里说一声。',
     writers_only: '这个账号只能评论，不能替你通知 Claude，提交完请在聊天里说一声。',
     off: '这个打开方式发不了通知（试试在电脑上用 claude.ai 网页打开），提交完请在聊天里说一声。',
@@ -454,12 +482,10 @@ dl.facts dd.warn { color: var(--zhu); }
   const same = (a, b) => !!a && !!b && a.status === b.status && String(a.choice || '') === String(b.choice || '');
   function choose(d, p) { const st = S(d.id); st.pick = same(st.pick, p) ? null : p; st.rev = rev(d.it); st.err = ''; render(); }
 
-  function summaryText(batch, lines, left) {
+  function deptParts(lines) {
     const byDept = new Map();
     for (const l of lines) { if (!byDept.has(l.dept)) byDept.set(l.dept, []); byDept.get(l.dept).push(l.text); }
-    let t = '【' + CONFIG.title + '】' + CONFIG.owner + ' 一次提交了 ' + lines.length + ' 件（批次 ' + batch + '）' + (left ? '，还剩 ' + left + ' 件没批' : '，全部批完') + '：';
-    for (const [dept, ls] of byDept) t += '\n▸ ' + dept + '（' + ls.length + '）\n' + ls.join('\n');
-    return t;
+    return [...byDept].map(([dept, ls]) => ({ dept, text: '▸ ' + dept + '（' + ls.length + '）\n' + ls.join('\n') }));
   }
 
   async function submitAll() {
@@ -502,10 +528,12 @@ dl.facts dd.warn { color: var(--zhu); }
     let msg = '存好了 ' + saved.length + ' 件' + (saved.length < picked.length ? '，' + (picked.length - saved.length) + ' 件没存上（看红字）' : '') + '。';
     if (saved.length) {
       const left = items.filter(d => phase(d) === 'pending' && !saved.includes(d.id)).length;
-      const text = summaryText(batch, lines, left) + '\n\n请出题部门：读 decisions/<卡片id>，照 ' + CONFIG.owner + ' 原话记进拍板记录，在 receipts/<卡片id> 写 ack 回执。别的部门的件不用管。';
-      const r = await send(text);
-      try { await db.doc('notices/' + batch).set({ at: now, items: saved, ok: r.ok, code: r.code, text }); } catch (e) { /* 通知记录没存上不影响决定本身 */ }
-      msg += r.ok ? '已经发评论通知各部门，等它们写回执。' : '没能通知到（' + r.code + '），请在聊天里说一声「审批台批好了」，或点已批里的「复制摘要」发过去。';
+      const head = '【' + CONFIG.title + '】' + CONFIG.owner + ' 提交了（批次 ' + batch + '）：';
+      const tail = '\n\n请读 decisions/<卡片id>，照 ' + CONFIG.owner + ' 原话记进拍板记录，在 receipts/<卡片id> 写 ack 回执。';
+      const parts = deptParts(lines), r = await notify(head, parts, tail), text = head + '\n' + parts.map(p => p.text).join('\n') + tail;
+      try { await db.doc('notices/' + batch).set(JSON.parse(JSON.stringify({ at: now, items: saved, ok: r.ok, depts: r.depts, text }))); } catch (e) { /* 通知记录没存上不影响决定本身 */ }
+      const bad = Object.keys(r.depts).filter(k => !r.depts[k].ok);
+      msg += !bad.length ? '已通知 ' + Object.keys(r.depts).join('、') + '，等它们写回执。' : bad.join('、') + ' 没通知到，请在聊天里说一声，或点已批里的「复制摘要」发过去。';
     }
     allBusy = false; render(); setBar(msg);
   }
@@ -523,8 +551,8 @@ dl.facts dd.warn { color: var(--zhu); }
     st.wConfirm = false; st.wNote = '';
     const text = '【' + CONFIG.title + '】' + CONFIG.owner + ' 撤回了 1 件（批次 ' + batch + '）：\n▸ ' + (it.dept || '未分部门') + '（1）\n· ' + (it.code || id) + '「' + (it.title || '') + '」：撤回 ' + when(cur.at) + ' 批的「' + (cur.label || cur.status) + '」' + (cur.pass ? '（' + cur.pass + '）' : '') + (why ? '。原因：' + why : '') +
       '\n\n原来的决定作废，这件回到待批。已经照它开工的请先停下，在 receipts/<卡片id> 写 ack 回执，说明做到哪一步、改了的东西怎么处理（撤回不等于自动回滚）。';
-    const r = await send(text);
-    try { await db.doc('notices/' + batch).set({ at: now, items: [id], ok: r.ok, code: r.code, text, kind: 'withdraw' }); } catch (e) { /* 通知记录没存上不影响撤回本身 */ }
+    const dept = it.dept || '未分部门', i = text.indexOf('\n'), nr = await notify(text.slice(0, i), [{ dept, text: text.slice(i + 1) }], ''), r = nr.depts[dept];
+    try { await db.doc('notices/' + batch).set(JSON.parse(JSON.stringify({ at: now, items: [id], ok: nr.ok, depts: nr.depts, text, kind: 'withdraw' }))); } catch (e) { /* 通知记录没存上不影响撤回本身 */ }
     allBusy = false; render();
     setBar('撤回了「' + (it.title || id) + '」，' + (r.ok ? '已通知' + (it.dept || '部门') + '。' : '但没通知到（' + r.code + '），请在聊天里跟' + (it.dept || '部门') + '说一声。'));
   }
@@ -598,7 +626,7 @@ dl.facts dd.warn { color: var(--zhu); }
     if (dec && dec.withdrawnAt && !dec.status) {   // 刚撤回的：写明撤回了什么、通知到没有、部门回执没有
       const w = dec.withdrew || {}, n = notices.get(dec.withdrawBatch), rc = rcpts.get(d.id), box = el('div', 'prev');
       box.append(el('div', null, when(dec.withdrawnAt) + ' 你撤回了「' + (w.label || '之前的决定') + '」' + (dec.withdrawNote ? '，原因：' + dec.withdrawNote : '') + '。'));
-      box.append(el('div', null, rc && rc.ack && rc.ack.at >= dec.withdrawnAt ? '✓ ' + (it.dept || '部门') + '已收到撤回：' + (rc.ack.text || '') : n && n.ok ? '已通知' + (it.dept || '部门') + '，等它确认收到…' : n ? '没通知到（' + (n.code || '原因不明') + '），请在聊天里说一声。' : '没有通知记录，请在聊天里说一声。'));
+      box.append(el('div', null, rc && rc.ack && rc.ack.at >= dec.withdrawnAt ? '✓ ' + (it.dept || '部门') + '已收到撤回：' + (rc.ack.text || '') : noticeOk(n, it.dept) ? '已通知' + (it.dept || '部门') + '，等它确认收到…' : n ? '没通知到（' + (noticeCode(n, it.dept) || '原因不明') + '），请在聊天里说一声。' : '没有通知记录，请在聊天里说一声。'));
       c.append(box);
     } else if (last && last.status && rev(it) > 1) c.append(el('p', 'prev', '上一版（第 ' + (last.rev || 1) + ' 版）你' + (last.withdrawnAt ? '选过又撤回了：' : '选了：') + (last.label || last.status) + (last.note ? '。备注：' + last.note : '')));
     if (it.ask) c.append(el('p', 'ask', it.ask));
@@ -669,9 +697,9 @@ dl.facts dd.warn { color: var(--zhu); }
       // 回执：部门写 ack 之后才算收到；通知只说明「发出去了」，不等于部门看到了
       const n = notices.get(dec.batch);
       if (ackOk(dec, rc)) body.append(el('p', 'st ok', '✓ ' + (it.dept || '部门') + '已收到 · ' + when(rc.ack.at) + (rc.ack.text ? '：' + rc.ack.text : '')));
-      else if (n && n.ok) body.append(el('p', 'st wait', '已发评论通知，等' + (it.dept || '部门') + '确认收到…'));
+      else if (noticeOk(n, it.dept)) body.append(el('p', 'st wait', noticeHow(n, it.dept) + '，等' + (it.dept || '部门') + '确认收到…'));
       else {
-        const p = el('p', 'st bad', n ? '没通知到（' + (n.code || '原因不明') + '），请在聊天里说一声。' : '没有通知记录，请在聊天里说一声。');
+        const p = el('p', 'st bad', n ? '没通知到（' + (noticeCode(n, it.dept) || '原因不明') + '），请在聊天里说一声。' : '没有通知记录，请在聊天里说一声。');
         if (n && n.text) { const cb = el('button', 'mini', '复制摘要'); cb.type = 'button'; cb.addEventListener('click', () => copySummary(n, cb)); p.append(' ', cb); }
         body.append(p);
       }
