@@ -63,13 +63,13 @@ A2['jianta'] = ('<defs><mask id="lg"><rect width="100" height="100" fill="#fff"/
                 '<g stroke="none"><ellipse cx="30" cy="91" rx="8" ry="5"/><ellipse cx="50" cy="92" rx="8" ry="5"/><ellipse cx="70" cy="91" rx="8" ry="5"/></g>'
                 '<g stroke-width="5" fill="none" opacity=".7"><path d="M4 98 L12 88"/><path d="M96 98 L88 88"/></g>')
 A2['qishe'] = ''.join(f'<line x1="{x}" y1="{y}" x2="{x + 46}" y2="{y - 46}" stroke-width="6"/><path transform="translate({x + 50} {y - 50}) rotate(-45)" d="M0 0 L-16 -9 L-16 9Z" stroke="none"/>' for x, y in ((6, 66), (22, 82), (38, 98)))
-A2['atk2'] = ('<path d="M34 6 L40 16 L40 62 L28 62 L28 16Z" stroke="none"/><rect x="18" y="62" width="32" height="7" stroke="none"/><rect x="30" y="69" width="8" height="16" stroke="none"/><circle cx="34" cy="90" r="6" stroke="none"/>'
-              '<text x="74" y="78" font-size="62" font-weight="900" text-anchor="middle" font-family="serif" stroke="none">2</text>')
+A2['atk2'] = ('<path d="M24 6 L30 16 L30 62 L18 62 L18 16Z" stroke="none"/><rect x="8" y="62" width="32" height="7" stroke="none"/><rect x="20" y="69" width="8" height="16" stroke="none"/><circle cx="24" cy="90" r="6" stroke="none"/>'
+              '<text x="100" y="86" font-size="92" font-weight="900" text-anchor="middle" font-family="serif" stroke="none">2</text>')
 SETS = [('A2', '甲 · 实心剪影 · 第 2 版（倒角正方形）', A2)]
 TAB = lambda bg, h: f'<svg viewBox="0 0 100 100" height="{h}"><rect x="2" y="2" width="96" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="82" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
 # 攻击字牌：横长的倒角长方形（Ham 10-18：和技能牌做出差别）
-def rtab(icon, bg, h): return (f'<svg viewBox="0 0 160 100" height="{h}"><rect x="2" y="2" width="156" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="142" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
-                               f'<g transform="translate(46 15) scale(.7)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>')
+def rtab(icon, bg, h): return (f'<svg viewBox="0 0 145 100" height="{h}"><rect x="2" y="2" width="141" height="96" rx="16" fill="{bg}"/><rect x="9" y="9" width="127" height="82" rx="10" fill="none" stroke="#f0e7d2" stroke-width="3"/>'
+                               f'<g transform="translate(22 15) scale(.7)" fill="#f0e7d2" stroke="#f0e7d2">{icon}</g></svg>')
 # 激活状态牌（拒马架起来时）：反色——米白底、阵营色图标、阵营色粗框，比技能牌大
 def stab(icon, bg, h): return (f'<svg viewBox="0 0 100 100" height="{h}"><rect x="2" y="2" width="96" height="96" rx="16" fill="{bg}"/><rect x="8" y="8" width="84" height="84" rx="11" fill="#f0e7d2"/>'
                                f'<g transform="translate(15 15) scale(.7)" fill="{bg}" stroke="{bg}">{icon}</g></svg>')
