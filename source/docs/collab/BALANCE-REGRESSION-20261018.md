@@ -19,3 +19,11 @@ seed61001，bs=true/r6=true，hard参数、nodes=30000、noise=0.05、top=1，�
 独立本地目录 balance-cap-review-20261015-01 下：tools/income-regression-300k.js；local-results-20261015-05/records.jsonl与failure.txt；续跑local-results-20261018-01/records.jsonl及summary.json。对打tools/income-paired-smoke.js；local-results-20261015-06/manifest.json、r.jsonl、b.jsonl、results.jsonl。原始文件仍在本地，本文不声称已上传原始日志。
 
 兵仙输霸王尚未修复。下一步增加不同开局的成对对打及原谱早期失误分析，先验证收益再准备接入。A6未通过、A3正式门禁仍关闭；H70尚未完成600局；历史文本93/122状态不变。未合并、发布、改规则或改原V01。
+
+## 第二对种子61002（2026-10-18补充）
+
+同一初始棋盘、相同规则和3万节点参数，仅随机种子改为61002；这不是新增独立开局。候选执红106次行动被黑方将死，执黑102次行动将死红方；均自然结束、无截断、脚本exit=0。第二对仍1胜1负，累计两对4局候选2胜2负，两个种子分别均由同一颜色胜出。样本太小，未证明收益或退步，不计算显著性或发布准入。
+
+证据：tools/income-paired-smoke-61002.js，local-results-20261018-02/manifest.json、r.jsonl、b.jsonl、results.jsonl。与上一对使用相同两个AI文件哈希；未改AI源码。
+
+本轮还重读历史Fable审查任务文档，确认已在第3批复核，故历史阅读计数保持93/122，不重复计数。下一步须加入固定的不同合法开局并成对保存，或做原谱失败局面复核；继续保留A6/A3门禁及兵仙输霸王未修复状态。
