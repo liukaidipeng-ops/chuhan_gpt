@@ -1,0 +1,29 @@
+--- main_live.js	2026-10-18 10:55:24.627777664 +0000
++++ main_slim.js	2026-10-18 10:55:46.498945086 +0000
+@@ -4407,6 +4407,8 @@
+   };
+   $('bNewsClose').onclick = () => $('mNews').classList.add('hidden');
+   // ---------- 导出本局：整局行动 + 模式、双方、电脑档位、结果，导成一段文本（贴给别人复盘，或贴给 Claude 分析哪一步走错了） ----------
++  // 复制出去的文字不带悔棋分支和电脑思考记录（Ham 10-18：“自动擦除悔棋，不然token爆炸了”）；存档（「我的棋局」）里照旧全留
++  const slimExport = o => { const t = { ...o }; delete t.branches; delete t.think; return t; };
+   function exportGame(raw) {
+     const G = RP ? RP.real : game;
+     if (!G) return raw ? null : '';
+@@ -4441,7 +4443,7 @@
+     const lines = [`技能新象棋 · 对局导出（版本 ${APPV}）`, `玩法：${KIND[kind]} · ${who} · 共 ${notes.length} 步 · ${res}`, '棋谱：'];
+     for (let i = 0; i < notes.length; i += 2) lines.push(`${i / 2 + 1}. ${noteText(notes[i])}${notes[i + 1] ? '  ' + noteText(notes[i + 1]) : ''}`);
+     if (raw) return o;
+-    lines.push('---DATA---', JSON.stringify(o));
++    lines.push('---DATA---', JSON.stringify(slimExport(o)));
+     return lines.join('\n');
+   }
+   function noteText(n) { const d = document.createElement('div'); d.innerHTML = noteHtml(n); return d.textContent.replace(/\s+/g, ' ').trim(); }
+@@ -4507,7 +4509,7 @@
+   // 「复制」用的文字：和「导出本局」同一个样子（---DATA--- 下面一行 JSON），数值部的工具都能读
+   function mgText(rec) {
+     const o = rec.data;
+-    return [`技能新象棋 · 对局导出（版本 ${o.ver || '?'}）`, `${rec.head} · ${reasonOf(o.result)} · ${stampOf(rec.t)}`, o.note ? 'Ham 的话：' + o.note : '', '---DATA---', JSON.stringify(o)].filter(Boolean).join('\n');
++    return [`技能新象棋 · 对局导出（版本 ${o.ver || '?'}）`, `${rec.head} · ${reasonOf(o.result)} · ${stampOf(rec.t)}`, o.note ? 'Ham 的话：' + o.note : '', '---DATA---', JSON.stringify(slimExport(o))].filter(Boolean).join('\n');
+   }
+   function flagsHtml(fl) {
+     if (!fl || !fl.length) return '想标出电脑哪步笨：点「复盘」或打开棋谱（譜），点那一步。';
