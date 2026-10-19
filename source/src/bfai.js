@@ -15,7 +15,7 @@
   //   士、相 / 象是守家的子，多一点血用处不大（平时出不了九宫、过不了河）；到决战解禁之后才和进攻子一样算
   //   例外：对方有两点血以上的进攻子时，士的第二点血很要紧——二级士攻击 2，是唯一砍得死“贴脸将军的两血子”的守子
   const KD = (typeof process !== 'undefined' && process.env && process.env.BFAI_KD ? process.env.BFAI_KD.split(',').map(Number) : [2.0, 1.0, 0.4, 0.9, 1.2, 0.6]);   // 砍不死的子贴近对方主帅的加分：车贴身 / 隔一格 / 同线，马，兵贴身 / 隔一格
-  const ENV = (typeof process !== 'undefined' && process.env) || {};
+  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1' };   // 候选：开关写死（网页里没有环境变量）
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
@@ -26,6 +26,11 @@
   const bsOn = () => (CFG.beishui && CFG.beishui.on ? CFG.beishui : null);
   const BSMIN = ENV.BFAI_BSMIN != null ? +ENV.BFAI_BSMIN : 1;
   const BSV = ENV.BFAI_BSV != null ? +ENV.BFAI_BSV : 3;   // 背水一战还没用时在估值里值几分（和破釜沉舟一样先记 3）
+  // 候选开关只给霸王、兵仙（搜索深度 ≥ 5 的档）；中档以下照线上原样（策略测试 H1：中档开了反而不升级保炮）。BFAI_ALLLV=1 时各档都开
+  let candLv = true;
+  const UPX0 = ENV.BFAI_UPX === '1'; let UPX = UPX0;
+  const DEFUP0 = ENV.BFAI_DEFUP === '1' || ENV.BFAI_DEFUP === '2'; let DEFUP = DEFUP0;
+  const CHKUP0 = ENV.BFAI_CHKUP === '1'; let CHKUP = CHKUP0;   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
   const PFC = +(ENV.BFAI_PFC || 0), PFA = +(ENV.BFAI_PFA || 0), PFD = +(ENV.BFAI_PFD || 0);
   const HPF = [0, 1, 1.5, 1.9, 2.2], HPF_DEF = [0, 1, 1.15, 1.28, 1.36], HPF_ADV = [0, 1, 1.55, 1.75, 1.85];
   // 两点血以上的进攻子逼到了对方家门口：过了河，或者是占着九宫那三条竖线的车（它来贴脸将军，一级的士、帅砍不死它）
@@ -248,7 +253,11 @@
   let kdMe = null;   // 危险延伸只管“这一步是谁在想”的那一方（见 kdDanger）
   let upPly = -1;   // 在第几层考虑“对方先升级再走”（-1 = 不考虑）
   let upAll = false;   // 裁判开关 LEVELS.<档>.upAll（只给复盘工具用，默认关）：对方“先升级再走”所有升法都看，第 1、第 3 层都看
-  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0)) && !S.upgraded;
+  // 自己下一回合也可能先升级（第 38 题：下回合进账就够升车绝杀，原来只在对方那一层考虑升级，这笔账看不到）
+  const UP20 = ENV.BFAI_UP2 === '1'; let UP2 = UP20; const UP2N = +(ENV.BFAI_UP2N || 9), UP2R = +(ENV.BFAI_UP2R || 0);   // BFAI_UP3：对方第 3 层也考虑先升级，和 UP2 对称（只给己方第 2 层会太乐观：g22 第 44 条以为马被吃了能升级吃回车，K11-1）
+  let pfEval = false, pfNoUp2 = false;   // BFAI_PFNOUP2：评估破釜沉舟时不加 UP2 那层（和线上一样估破釜；UP2 会把杀车之后的局面估得太好，策略测试 P4）
+    // BFAI_PFUP3：只在根上评估破釜沉舟的那几次搜索里，对方第 3 层也可以先升级（UP2 只给己方第 2 层会把破釜估得太好：P4、K11-1；全局开 UP3 太贵）
+  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval) && ply === 3)) && upPly >= 0)) && !S.upgraded;
   let pfPly = -1;   // 在第几层考虑“对方（楚）用破釜沉舟连走两步”（-1 = 不考虑）
   const pfCache = new Map();   // 每个局面的破釜沉舟组合只算一次（逐层加深时重复用）
   const upCache = new Map();   // “对方先升级再走”的那几个局面，同样每个局面只生成一次
@@ -265,7 +274,15 @@
       const p = S.board[r][f]; if (!p || p.s !== side || p.t === 'k') continue;
       const T = A.upgradeState(S, [f, r]); if (T) ups.push({ S: T, g: score(T, side) - base, id: p.id });
     }
-    ups.sort((x, y) => y.g - x.g); if (!upAll) ups = ups.slice(0, 3);
+    ups.sort((x, y) => y.g - x.g);
+    // 升级盲区（战术部门 K1，#14）：静态收益进不了前三、但升完解锁新技能的（比如兵升四级解锁神速营贴脸），也留名额
+    if (!upAll) { const top = ups.slice(0, 3); if (UPX) for (const u of ups.slice(3)) { const p = u.S.board.flat().find(q => q && q.id === u.id); if (p && potInfo(side, p.t, p.lv - 1).sk) top.push(u); }
+      // 被将军时：升了能吃掉将军子的也留名额，最多两个（战术部门 K7-3b，g19 第 41 条：升车将军，楚升相再相吃车）
+      if (CHKUP) { const ck = new Set(XQ.checkers(S.board, side === 'r' ? 'b' : 'r')); let n = 0;
+        if (ck.size) for (const u of ups.slice(3)) { if (n >= 2) break; if (top.includes(u)) continue;
+          let at = null; for (let r = 0; r < 10 && !at; r++) for (let f = 0; f < 9; f++) { const q = u.S.board[r][f]; if (q && q.id === u.id) { at = [f, r]; break; } }
+          if (at && A.moveTargets(u.S, at[0], at[1]).some(m => { const q = u.S.board[m.to[1]][m.to[0]]; return q && ck.has(q.id); })) { top.push(u); n++; } } }
+      ups = top; }
     if (side === 'b' && PFX) for (const u of ups) { pfAlias.set(u.S, S); pfUp.set(u.S, u.id); }
     upCache.set(S, ups);
     return ups;
@@ -386,9 +403,11 @@
     let best = -INF, legal = 0, bm = null;
     // 对方应这一步时，也可能先花军功给某枚子升一级再走（多一点血：我方本来能吃掉的子就吃不掉了，打上去还会被弹回）
     if (upAt(S, ply)) {
-      const ups = upsOf(S, side);
+      let ups = upsOf(S, side), dr = 0;
+      // BFAI_UP2N / UP2R：UP2 加出来的那层（不是对方应着的那层）只留前几个升级、少算几层——每个升级都是整棵子树，全留会少算两层（K11-1，g22 第 44 条）
+      if (UP2 && ply !== upPly && !upAll) { ups = ups.slice(0, UP2N); dr = UP2R; }
       for (const u of ups) {
-        const v = ab(u.S, depth - extd, alpha, beta, ply, ext - extd);
+        const v = ab(u.S, Math.max(0, depth - extd - dr), alpha, beta, ply, ext - extd);
         if (v > best) { best = v; bm = null; }
         if (v > alpha) alpha = v;
         if (alpha >= beta) { if (TTB.size < 300000) TTB.set(tkey, { v: toTT(best, ply), f: 1, m: null }); return best; }
@@ -516,6 +535,21 @@
     // 前三个照旧；“守子升级解锁技能”的静态分低、排不进前三，另给一个名额（最多一个）
     const top = cand.filter(c => !c.unlock).slice(0, 3), ex = cand.find(c => c.unlock);
     if (ex) top.push(ex);
+    // 防守升级盲区（#14 第 50–64 条，裁判每回合都要先升士）：被“守子没被捉不升”筛掉的士 / 相里，静态分最高的一个也给名额，值不值让搜索定
+    // 被将军时：能吃掉将军子的那几枚子，升了再吃可能才吃得下、吃了才站得住（战术部门 K6-2，g17 第 32 条：升马再马吃将军的炮）；名额外补上，最多两个
+    if (CHKUP && chk) { const ck = new Set(XQ.checkers(S.board, me === 'r' ? 'b' : 'r')); let n = 0;
+      for (const c of skipped.concat(cand).filter(c => !top.includes(c)).sort((x, y) => y.gain - x.gain)) { if (n >= 2) break;
+        if (A.moveTargets(c.S, c.at[0], c.at[1]).some(m => { const q = c.S.board[m.to[1]][m.to[0]]; return q && ck.has(q.id); })) { top.push(c); n++; } } }
+    // BFAI_DEFUP=2：只在九宫受压时给名额（对方至少两个车马炮兵压到我方九宫前后：离底线 4 行以内、2～6 路）。
+    //   不受压也给的话，电脑没事就升士相（K8 第 71 条计划题：连将收钱的汉方把钱花在升士上，局面分 6.3 → 2.8）
+    const press = () => { let n = 0; for (let r = 0; r < 10; r++) for (let f = 2; f <= 6; f++) { const p = S.board[r][f];
+      if (p && p.s !== me && 'rncp'.includes(p.t) && (me === 'r' ? r <= 3 : r >= 6)) n++; } return n >= 2; };
+    if (DEFUP && (ENV.BFAI_DEFUP !== '2' || press())) { const d = skipped.filter(c => { const p = S.board[c.at[1]][c.at[0]]; return p && (p.t === 'a' || p.t === 'e') && !c.must; }).sort((x, y) => y.gain - x.gain)[0]; if (d) top.push(d); }
+    // BFAI_RUPX：根上“升完解锁技能”的升级也留名额，最多两个（Ham 试玩 g21 第 78 条：升三级兵到四级再兵 3,3→3,2，汉 270 种应着全被一步杀；静态分排不进前三被筛掉）
+    if (ENV.BFAI_RUPX === '1') { let n = 0;
+      const lvOf = c => { const q = c.S.board[c.at[1]][c.at[0]]; return q && potInfo(me, q.t, q.lv - 1).sk ? q.lv : 0; };   // 升到的级别越高、解锁的技能越狠，先给
+      for (const c of skipped.concat(cand).filter(c => !top.includes(c) && lvOf(c)).sort((x, y) => lvOf(y) - lvOf(x) || y.gain - x.gain)) { if (n >= 2) break; top.push(c); n++; } }
+    if (rec) for (const c of skipped) { const p = S.board[c.at[1]][c.at[0]]; if (!top.includes(c)) rec.push({ at: c.at, t: p.t, lv: p.lv, gain: +c.gain.toFixed(2), why: '筛子：守子没被捉 / 攒钱' }); }
     if (rec) for (const c of cand) if (!top.includes(c)) { const p = S.board[c.at[1]][c.at[0]]; rec.push({ at: c.at, t: p.t, lv: p.lv, gain: +c.gain.toFixed(2), why: '名额满了（只留前三种）' }); }
     // 根上补一个“升了攻击变大、能打死原来打不死的子”的升级（筛子挡掉的也算）：象 / 士二级、兵三级、车马炮按 r6 表升级都会加攻击。
     //   Ham 10-09 霸王局第 29 回合最好是“升象 + 象吃炮”，“守子没被捉不升”把它挡了（C64，对线上霸王 595 局 52.2%）
@@ -596,6 +630,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; UP2 = UP20 && candLv;
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
@@ -662,6 +697,20 @@
       think.last = { nodes, ms: now() - t0, v: 0, n: 0, depth: 0, top: [] };   // 没有着可走（将死 / 困毙）时也换一份，别留着上一步的
       if (TR) { TR.why = pofu.length ? 'only-art' : 'no-move'; TR.seq = JSON.parse(JSON.stringify(seq)); think.last.trace = TR; }
       return seq;
+    }
+    // 根上一步杀（可先给任一子升一级）：根上的升级只看前三种，“升了才杀得死”的一步杀会漏掉（战术部门 K1-1，#14 第 71 条）。找到就直接走
+    if (L.depth >= 2 && !S.upgraded && !S.freeUsed) {
+      const st = [{ S, at: null }];
+      for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.s === me && p.t !== 'k') { const U = A.upgradeState(S, [f, r]); if (U) st.push({ S: U, at: [f, r] }); } }
+      for (const X of st) for (const e of A.gen(X.S, false)) {
+        const R = BF.attempt(X.S, e.a); if (!R || R.free) continue;
+        const ev = BF.evaluate(R.S); if (!(ev && ev.result && ev.result.winner === me)) continue;
+        if (X.at) seq.push({ k: 'up', at: X.at });
+        seq.push(e.a);
+        think.last = { nodes, ms: now() - t0, v: WIN, n: kids.length, depth: 0, top: [], mate1: true };
+        if (TR) { TR.why = 'mate1-root'; TR.seq = JSON.parse(JSON.stringify(seq)); think.last.trace = TR; }
+        return seq;
+      }
     }
     for (const k of kids) { const w = decided(k.S, k.ev); k.done = !!w; k.q = w ? (w === me ? WIN : -WIN) : score(k.S, me); k.v = k.q; }
     kids.sort((x, y) => y.q - x.q);
@@ -755,10 +804,11 @@
     // 破釜沉舟每局只有一次：留着杀车这样的大子——同样的深度下，比最好的普通走法多赚不到一个大子的量就先不用
     //   （对方的召回良将还在手里时，杀了车也会被救回来，搜索里算得到，自然就不急着用）
     if (pofu.length && bestV < WIN / 2) {
-      const PF_MIN = bsOn() ? BSMIN : 5, need = bestV + PF_MIN, d1 = Math.max(1, depthDone) - 1;
+      const PF_MIN = bsOn() ? BSMIN : 5, need = bestV + PF_MIN, d1 = Math.max(1, depthDone) - (ENV.BFAI_PFFULL === '1' ? 0 : 1);
       let bp = null;
       if (byNodes) nodeCap = nodes + Math.round(L.nodes * 0.4); else deadline = Math.min(hardEnd2, now() + Math.max(400, L.budget * 0.4));
       try {
+        pfEval = ENV.BFAI_PFUP3 === '1'; pfNoUp2 = ENV.BFAI_PFNOUP2 === '1';
         for (const k of pofu) {
           const w = decided(k.S, k.ev);
           k.v = w ? (w === me ? WIN : -WIN) : -ab(k.S, d1, -INF, -need + 0.01, 1);
@@ -766,8 +816,43 @@
           await breathe();
         }
       } catch (e) { if (e !== TIMEOUT) throw e; }
+      pfEval = false; pfNoUp2 = false;
       deadline = Infinity; nodeCap = Infinity;
       if (bp) { pick = bp; kids = kids.concat([bp]); if (TR) TR.art = { a: actOf(bp), v: +bp.v.toFixed(3), need: +need.toFixed(3) }; }
+    }
+    // BFAI_MATE2：两步杀（静着之后对方怎么应——含先升级——我都有一步杀）。搜索浅时（手机上 2～3 层）看不出这是杀，
+    //   只当普通好棋，随机噪声还会把它换掉（Ham 试玩 g21 第 78 条：兵 3,3→3,2 排第一、只比第二名多 0.01，被换掉后汉翻盘）。
+    //   根上前 4 名各查一遍，查到就走；不是杀的通常第一种应着就查完
+    if (ENV.BFAI_MATE2 === '1' && candLv && !fin0 && pick && !pick.done) {
+      let work = 0; const WORK = +(ENV.BFAI_MATE2W || 8000);   // 这一段最多试走多少次（对方被逼得很紧的局面里，不设上限会一直算下去）
+      let hint = null;   // 上一种应着之后找到的那步杀（先升哪枚子、走哪步），下一种应着先试它，多数一次就中
+      const win1 = (X, a) => { if (++work > WORK) throw TIMEOUT; const R = BF.attempt(X, a); if (!R || R.free) return false; const ev = BF.evaluate(R.S); return !!(ev && ev.result && ev.result.winner === me); };
+      const myMate1 = T => {
+        if (hint) { const X = hint.at ? (!T.upgraded && A.upgradeState(T, hint.at)) : T; if (X && win1(X, hint.a)) return true; }
+        const st = [{ X: T, at: null }];
+        if (!T.upgraded) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = T.board[r][f]; if (p && p.s === me && p.t !== 'k') { const U = A.upgradeState(T, [f, r]); if (U) st.push({ X: U, at: [f, r] }); } }
+        for (const { X, at } of st) for (const e of A.gen(X, false)) if (win1(X, e.a)) { hint = { at, a: e.a }; return true; }
+        return false;
+      };
+      const forced = T => {
+        if (!T || T.final || T.turn === me) return false;
+        const opp = T.turn, st = [T]; let n = 0;
+        if (!T.upgraded) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = T.board[r][f]; if (p && p.s === opp && p.t !== 'k') { const U = A.upgradeState(T, [f, r]); if (U) st.push(U); } }
+        for (const X of st) for (const e of A.gen(X, false)) {
+          if (now() > hardEnd2) return false;
+          const R = BF.attempt(X, e.a); if (!R || R.free) continue; n++;
+          const ev = BF.evaluate(R.S); if (ev && ev.result) { if (ev.result.winner !== me) return false; continue; }
+          if (R.S.turn !== me || !myMate1(R.S)) return false;
+        }
+        return n > 0;
+      };
+      try {
+        let kf = null, kr = null; for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.s !== me && p.t === 'k') { kf = f; kr = r; } }
+        const near = k => { const a = k.a; return a && a.to && kf != null && Math.max(Math.abs(a.to[0] - kf), Math.abs(a.to[1] - kr)) <= 2; };
+        const threat = T => { const N = BF.cloneState(T); N.turn = me; N.upgraded = false; N.freeUsed = false; N.jmLock = null; return myMate1(N); };   // 对方停一手我就能一步杀
+        const pool2 = kids.filter(k => k.S && !k.done).slice(0, 4).concat(kids.filter(k => k.S && !k.done && near(k)).slice(0, 12));
+        for (const k of [...new Set(pool2)]) if (threat(k.S) && forced(k.S)) { if (k !== pick) { if (TR) TR.mate2 = { from: actOf(pick), to: actOf(k) }; pick = k; } else if (TR) TR.mate2 = { kept: actOf(k) }; break; }
+      } catch (e) { }
     }
     // 一步杀保险：走完这一步以后，对方能不能一步将死我（可以先给一枚子升一级再走）；能就按排名往下换一个不送杀的
     //   （送一步杀等于必输，最多往下找 80 个；都送杀时再试平时不肯用的召回良将）。只在选中的这步送杀时才多花时间
