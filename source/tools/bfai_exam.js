@@ -418,7 +418,9 @@ Q.push({
       name: `实${i + 1} ${it.name}`, cat: '实战', desc: it.desc, rules,   // rules：这局当时的规则（破釜时代的对局要关背水；见 game_load.js 的 detectRules）
       build: () => load(it.data, it.at, rules).game,
       // same：主行动要和答案一样（答案里有升级的，升级也要一样）；avoid：别再走电脑原来那一步；survive：走完之后对方深搜找不到必胜；nomate：走完之后对方没有一步杀（含先升级）；judge：复盘裁判按固定层数算，不比最好那步差过 tol
-      check: it.mode === 'judge' ? async (seq, g0) => { const g = play(g0, seq); return !!g && (await judgeVal(g, it)) >= it.judge.best - (it.judge.tol != null ? it.judge.tol : 0.5); }
+      // accept：judge_all2（深 4、双方升级全看）复核出的可接受走法表（与最好差 ≤ 0.5），走法写成 {up?, ...主行动}（10-19 起，替代旧裁判的 judge 判法）
+      check: it.mode === 'accept' ? seq => { const u = seq.find(a => a.k === 'up'), k = JSON.stringify(u ? { up: u.at, ...main(seq) } : main(seq)); return it.accept.some(a => JSON.stringify(a) === k); }
+        : it.mode === 'judge' ? async (seq, g0) => { const g = play(g0, seq); return !!g && (await judgeVal(g, it)) >= it.judge.best - (it.judge.tol != null ? it.judge.tol : 0.5); }
         : it.mode === 'nomate' ? (seq, g0) => { const g = play(g0, seq); return !!g && (g.result ? g.result.winner === it.side : !mate1(g.S, it.side)); }
         : (it.mode || (it.answer ? 'same' : 'avoid')) === 'survive'
         ? async (seq, g0) => { const g = play(g0, seq); return !!g && survives(g, it.side, it.judgeNodes); }
