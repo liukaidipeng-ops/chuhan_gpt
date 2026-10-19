@@ -30,7 +30,8 @@
   let candLv = true;
   const UPX0 = ENV.BFAI_UPX === '1'; let UPX = UPX0;
   const DEFUP0 = ENV.BFAI_DEFUP === '1' || ENV.BFAI_DEFUP === '2'; let DEFUP = DEFUP0;
-  const CHKUP0 = ENV.BFAI_CHKUP === '1'; let CHKUP = CHKUP0;   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
+  const CHKUP0 = ENV.BFAI_CHKUP === '1'; let CHKUP = CHKUP0;
+  const ATKUP0 = ENV.BFAI_ATKUP === '1'; let ATKUP = ATKUP0;   // 升级后攻击力够一下吃掉原来打不死的子：留名额   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
   const PFC = +(ENV.BFAI_PFC || 0), PFA = +(ENV.BFAI_PFA || 0), PFD = +(ENV.BFAI_PFD || 0);
   const HPF = [0, 1, 1.5, 1.9, 2.2], HPF_DEF = [0, 1, 1.15, 1.28, 1.36], HPF_ADV = [0, 1, 1.55, 1.75, 1.85];
   // 两点血以上的进攻子逼到了对方家门口：过了河，或者是占着九宫那三条竖线的车（它来贴脸将军，一级的士、帅砍不死它）
@@ -282,6 +283,12 @@
         if (ck.size) for (const u of ups.slice(3)) { if (n >= 2) break; if (top.includes(u)) continue;
           let at = null; for (let r = 0; r < 10 && !at; r++) for (let f = 0; f < 9; f++) { const q = u.S.board[r][f]; if (q && q.id === u.id) { at = [f, r]; break; } }
           if (at && A.moveTargets(u.S, at[0], at[1]).some(m => { const q = u.S.board[m.to[1]][m.to[0]]; return q && ck.has(q.id); })) { top.push(u); n++; } } }
+      // 升了级攻击力变大、原来打不死的子现在能一下吃掉的，也留名额，最多两个（Ham 标 g25 第 13 条：楚升炮吃炮，以为两血炮挨相一下会弹回，没看到汉先升相、相攻击 2 一下吃掉）
+      if (ATKUP) { let n = 0;
+        for (const u of ups.slice(3)) { if (n >= 2) break; if (top.includes(u)) continue;
+          let at = null; for (let r = 0; r < 10 && !at; r++) for (let f = 0; f < 9; f++) { const q = u.S.board[r][f]; if (q && q.id === u.id) { at = [f, r]; break; } }
+          if (!at) continue; const q1 = u.S.board[at[1]][at[0]], q0 = S.board[at[1]][at[0]], a1 = A.atk(q1), a0 = A.atk(q0);
+          if (a1 > a0 && A.moveTargets(u.S, at[0], at[1]).some(m => { const t = u.S.board[m.to[1]][m.to[0]]; return t && t.s !== side && t.hp <= a1 && t.hp > a0; })) { top.push(u); n++; } } }
       ups = top; }
     if (side === 'b' && PFX) for (const u of ups) { pfAlias.set(u.S, S); pfUp.set(u.S, u.id); }
     upCache.set(S, ups);
@@ -630,7 +637,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
-    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; UP2 = UP20 && candLv;
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; UP2 = UP20 && candLv;
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
