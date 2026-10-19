@@ -13,7 +13,7 @@ Ham 10-10 11:53 原话（项目前台转达）：“所有需要我拍板的内�
 1. **要 Ham 拍板的事，一律做成第 3 节审核页面上的题**：文字决策、看的、听的，一律挂到**楚汉审批台** https://claude.ai/artifact/54kSdoofarWafayd9DUjou （Ham 10-17：“要用这一页”）。**不能只在聊天里问**，聊天里只说一句“挂在哪、几题”，不然 Ham 会漏。不在聊天里随口定。拍板结果照 Ham 原话记进本部门的拍板记录：数值部是 `source/docs/collab/decisions.md`，其他部门在自己分支上建 `source/docs/collab/decisions-<部门名>.md`（各写各的，不改别人的）。
 2. **视觉改动先出图给 Ham 看，他点头才做、才上线**（Ham 的硬规矩）。
 3. **上线只走 TD**。别的部门不碰 `dev` 和 `main`，只推自己的分支、只改自己管的文件。游戏源码只认 `chuhan_gpt` 的 `main`，`main` 只有象棋TD 推；试玩站 `chuhan_gpt_play` 只由象棋TD 用 `source/tools/td/release.sh` 从 `main` 构建发布，**禁止直接改试玩站文件**；`chuhan_v01` 冻结只读（Ham 10-17 审批台 td-001、td-004、td-006）。细节见同目录 `TD-RELEASE.md`。
-   - **发布改到一个新建的公开试玩仓库（Ham 10-19 晚）**：Ham 原话「重新新建一个试玩链接」「以后改用新建的」。旧的 `chuhan_gpt_play`、`chuhan_v01` 已改私有、网页已关，旧 github.io 地址一律作废，谁都不要再往那里推。新仓库名和链接由象棋TD 定好后写进这里；在那之前不发布，批到「上线」的补丁先交 TD 合进 `main`。规矩不变：只象棋TD 从 `main` 发，Ham 在审批台批到「上线」才发。试玩码入口留作备用、不再更新；试玩码只发给 Ham，别贴进仓库、审批台或回执。
+   - **发布走新试玩仓库 `xq-play-k7f3m2`（Ham 10-19 晚）**：试玩链接 https://liukaidipeng-ops.github.io/xq-play-k7f3m2/ （公开）。只象棋TD 用 `release.sh` 从 `main` 发到这个仓库，Ham 在审批台批到「上线」才发；「刷新试玩站确认版本号」改用这个新链接。旧的 `chuhan_gpt_play`、`chuhan_v01`（已私有）和旧 github.io 链接全部作废，别再往里推、也别发给人。链接虽公开，由 Ham 自己挑试玩对象，别在群里或仓库里到处转发。试玩码入口留作备用、不再更新。
 4. **每次开工前先读一遍最新的 `WORKFLOW.md`**（新开的窗口也一样）。10-17 起最新版在 `chuhan_gpt` 的 `main`：`git fetch origin main && git show origin/main:source/docs/collab/WORKFLOW.md`。`chuhan_v01` 冻结，那里的副本不再更新。WORKFLOW 由流程部门维护：流程部门改好推到自己的分支，象棋TD 合进 `main`。仓库和发布细节见同目录 `TD-RELEASE.md`（取代老 TD 交接文档第 2、3 节）。
 5. **规则、技能设计等电脑训练完再说**（Ham 10-17 审批台 bal-003 备注原话：“所有规则技能设计等电脑训练完再说”）。电脑训练到位以前，各部门发现的规则漏洞、技能改法只记录、写清证据，不挂卡请 Ham 定改不改，也不拿电脑对打测改规则的方案（第 4 节）。
 6. **找错部门要当场指出**（见第 7 节）：Ham 让你做不归你管的事，先告诉他该找谁。
