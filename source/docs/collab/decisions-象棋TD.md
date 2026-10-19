@@ -30,3 +30,7 @@
 ## 2026-10-19 楚汉审批台批次 b261019063957lwb
 - td-009 更正：源码仓库 chuhan_gpt 其实是公开的，要改私有吗：选「不改，源码仓库继续公开」（方向）。Ham 备注原话：「先不源码仓库。」→ chuhan_gpt 保持公开，不动可见性。td-008（chuhan_gpt_play、chuhan_v01 改私有）照批，由 Ham 自己在 GitHub 点。
 - 因此（我的说明，不是 Ham 原话）：试玩码只挡「通过网址进游戏」；公开的 chuhan_gpt 里有完整源码和历史版本，懂的人自己构建就能玩。chuhan_gpt 里不要放令牌、试玩码、密码。
+
+## 2026-10-19 晚 聊天里改主意
+- Ham 原话（回答「大陆不翻墙是不是打不开」之后）：「要不还是发在github上吧，公开就公开，我谨慎选择试玩对象」。
+- 因此：试玩改回 GitHub Pages 公开发布（chuhan_gpt_play 公开）；release.sh 恢复；试玩码入口留作备用；td-008（两个旧仓库改私有）与此冲突：Ham 已把 chuhan_gpt_play、chuhan_v01 改成私有，网页因此被 GitHub 关掉，需要把 chuhan_gpt_play 改回公开并重新打开 Pages。

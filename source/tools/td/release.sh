@@ -3,9 +3,6 @@
 # 用法：bash source/tools/td/release.sh <chuhan_gpt_play 克隆目录> "这次上线了什么" [--push]
 # 不带 --push 只做到本地提交，方便先看比对结果。
 set -euo pipefail
-# 2026-10-19 起停用（Ham：旧试玩站下线，改为试玩码访问）。不要再往 chuhan_gpt_play 推：新入口见 source/tools/gate/。
-echo "release.sh 已停用：chuhan_gpt_play 已下线（Ham 10-19），新的试玩码入口还没上线。" >&2
-exit 1
 PLAY=${1:?要给 chuhan_gpt_play 克隆目录}
 MSG=${2:?要写上线说明}
 PUSH=${3:-}

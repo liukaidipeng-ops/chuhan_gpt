@@ -1,5 +1,7 @@
 # 试玩码入口（Ham 10-19）
 
+> **备用，不再更新**：10-19 晚 Ham 改主意，试玩改回 GitHub Pages 公开发布（原因：workers.dev 在大陆不翻墙可能打不开）。这里是 2026.10.19-3e0b09 的旧副本，试玩码 c001～c003 仍有效。要重新启用，按下面「发布新版本」传一遍即可。
+
 线上地址：https://xiangqi-trial.liukaidip.workers.dev （Cloudflare Worker `xiangqi-trial`，账号 Liukaidip）。玩家第一次输入试玩码，同一浏览器记住 180 天。验码在服务端，有效码不在前端。
 
 ## 怎么挡的
