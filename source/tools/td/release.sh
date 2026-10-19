@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# 发布到试玩站 chuhan_gpt_play（Ham 审批台 td-004：只 TD 发；只从 main 构建，禁止手补）
-# 用法：bash source/tools/td/release.sh <chuhan_gpt_play 克隆目录> "这次上线了什么" [--push]
+# 发布到试玩站 xq-play-k7f3m2（Ham 审批台 td-004：只 TD 发；只从 main 构建，禁止手补）
+# 用法：bash source/tools/td/release.sh <xq-play-k7f3m2 克隆目录> "这次上线了什么" [--push]
 # 不带 --push 只做到本地提交，方便先看比对结果。
 set -euo pipefail
-PLAY=${1:?要给 chuhan_gpt_play 克隆目录}
+PLAY=${1:?要给 xq-play-k7f3m2 克隆目录}
 MSG=${2:?要写上线说明}
 PUSH=${3:-}
 ROOT=$(git rev-parse --show-toplevel)
@@ -49,7 +49,7 @@ git log --oneline -1
 # 5. 推送并核对（上线前要 Ham 在审批台批到「上线」）
 if [ "$PUSH" = "--push" ]; then
   git push origin main
-  echo "已推。一两分钟后核对：gh api repos/liukaidipeng-ops/chuhan_gpt_play/pages/builds/latest --jq .status"
+  echo "已推。一两分钟后核对：gh api repos/liukaidipeng-ops/xq-play-k7f3m2/pages/builds/latest --jq .status"
   echo "线上 version.json 要是 $VER"
 else
   echo "没推（加 --push 才推）"

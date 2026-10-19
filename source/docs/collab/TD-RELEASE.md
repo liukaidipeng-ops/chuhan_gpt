@@ -2,14 +2,15 @@
 
 > 依据：Ham 10-17 楚汉审批台 td-001、td-004、td-005 都选甲（只认方向）。本文取代 `TD-HANDOFF.md` 第 2、3 节里的老路线（chuhan_v01、`deploy.sh`）。
 
-> **2026-10-19 晚更新**：Ham 先要求旧试玩站下线、改试玩码入口，随后改主意（大陆不翻墙可能打不开 workers.dev）：「发在 github 上，公开就公开，我谨慎选试玩对象」。所以**发布改回 chuhan_gpt_play（GitHub Pages，公开）**，`release.sh` 恢复可用，规矩不变：只 TD 发、只从 main 构建、Ham 在审批台批到「上线」。试玩码入口（https://xiangqi-trial.liukaidip.workers.dev ，做法见 `source/tools/gate/README.md`）保留为**备用，不再更新**，里面是 2026.10.19-3e0b09 的旧副本。注意：chuhan_gpt_play 必须保持**公开**，GitHub 免费账号下改私有会连带关掉它的网页。
+> **2026-10-19 晚更新（最终）**：Ham 先要求旧试玩站下线，后来又说「发在 github 上，公开就公开，我谨慎选试玩对象」，并要求「重新新建一个试玩链接」「以后改用新建的」。所以**以后发布到新的公开仓库 `xq-play-k7f3m2`（GitHub Pages）**：https://liukaidipeng-ops.github.io/xq-play-k7f3m2/ 。旧的 `chuhan_gpt_play`、`chuhan_v01` 保持**私有**，旧链接作废，不要再往里推，也不要改回公开。`release.sh` 已改成新仓库，规矩不变：只 TD 发、只从 main 构建、Ham 在审批台批到「上线」。链接公开，Ham 自己挑选试玩对象，别到处发。Cloudflare 试玩码入口（`source/tools/gate/README.md`）保留为**备用，不再更新**。
 
 ## 1. 仓库（td-001）
 
 | 仓库 | 用途 | 谁能推 |
 |---|---|---|
 | `chuhan_gpt` | **唯一的游戏源码**。`main` 是准 | `main` 只有 TD 推，只做快进，不强推；各部门推自己的分支 |
-| `chuhan_gpt_play` | 试玩站（GitHub Pages，根目录 7 个产物） | 只有 TD，只用 `release.sh` |
+| `xq-play-k7f3m2` | **试玩站**（公开，GitHub Pages，根目录是构建产物） | 只有 TD，只用 `release.sh` |
+| `chuhan_gpt_play` | 旧试玩站，**私有，已作废** | 不再推 |
 | `chuhan_v01` | **冻结只读**。首页是跳转页（td-002），去试玩站 | 不再推；WORKFLOW 等协作文档暂留它的 `dev`，由流程部门维护 |
 | `chuhan_ai_bench` | Balance、战术部门的 AI 实验和对打 | 各自分支，不进游戏 |
 

@@ -34,3 +34,6 @@
 ## 2026-10-19 晚 聊天里改主意
 - Ham 原话（回答「大陆不翻墙是不是打不开」之后）：「要不还是发在github上吧，公开就公开，我谨慎选择试玩对象」。
 - 因此：试玩改回 GitHub Pages 公开发布（chuhan_gpt_play 公开）；release.sh 恢复；试玩码入口留作备用；td-008（两个旧仓库改私有）与此冲突：Ham 已把 chuhan_gpt_play、chuhan_v01 改成私有，网页因此被 GitHub 关掉，需要把 chuhan_gpt_play 改回公开并重新打开 Pages。
+
+## 2026-10-19 晚 新试玩仓库
+- Ham 原话：「重新新建一个试玩链接」「以后改用新建的」。Ham 新建公开仓库 xq-play-k7f3m2，开了 Pages；07:02Z 部署成功，内容是 2026.10.19-3e0b09。旧 chuhan_gpt_play、chuhan_v01 已由 Ham 改成私有（td-008 完成）。
