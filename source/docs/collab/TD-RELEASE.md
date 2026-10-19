@@ -2,7 +2,7 @@
 
 > 依据：Ham 10-17 楚汉审批台 td-001、td-004、td-005 都选甲（只认方向）。本文取代 `TD-HANDOFF.md` 第 2、3 节里的老路线（chuhan_v01、`deploy.sh`）。
 
-> **2026-10-19 起第 2 节「发布」暂停**：Ham 要求旧试玩站 chuhan_gpt_play 下线、关闭自动重新发布，改成凭试玩码进入的新入口（方案见 `source/tools/gate/README.md`）。新入口上线前不发布；`release.sh` 已加了停用保护。第 1 节仓库规矩不变，但 chuhan_gpt_play、chuhan_v01 现在只放「已关闭」说明页，旧内容在各自的 `archive/pre-gate-20261019` 分支。
+> **2026-10-19 起发布改走试玩码入口**（Ham 要求）：旧试玩站 chuhan_gpt_play、chuhan_v01 已下线，只放「已关闭」说明页，旧内容在各自的 `archive/pre-gate-20261019` 分支；`release.sh` 已停用。新入口 https://xiangqi-trial.liukaidip.workers.dev ，做法、管码、发布步骤见 `source/tools/gate/README.md`。下面第 2 节里 release.sh、chuhan_gpt_play 的部分作废，规矩不变：只 TD 发、只从 main 构建、Ham 在审批台批到「上线」再发。
 
 ## 1. 仓库（td-001）
 

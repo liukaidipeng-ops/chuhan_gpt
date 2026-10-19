@@ -1,5 +1,5 @@
 // 试玩码入口（Cloudflare Worker）。所有请求先过这里：没有有效的试玩码会话，只给输入页；
-// 游戏文件只能通过 ASSETS 绑定读取，没有别的公开地址。有效码存在 KV 里（只存哈希），不在前端。
+// 游戏文件只在 KV 里，只有这个 Worker 读得到，没有别的公开地址。有效码存在 KV 里（只存哈希），不在前端。
 const COOKIE = 'xq_trial';
 const MAX_AGE = 180 * 24 * 3600;   // 同一浏览器记住 180 天
 const te = new TextEncoder();
@@ -57,15 +57,34 @@ button{width:100%;padding:12px;font-size:17px;background:#e0b060;color:#1b1a19;b
 <body><form id="f"><h1>技能新象棋</h1><p>试玩需要试玩码</p><input id="c" autocomplete="off" autocapitalize="characters" placeholder="XXXXX-XXXXX" maxlength="14"><button>进入</button><p id="m"></p></form>
 <script>f.onsubmit=async e=>{e.preventDefault();m.textContent='';try{const r=await fetch('/_gate/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:c.value})});if(r.ok)location.reload();else m.textContent='试玩码无效或已停用'}catch(x){m.textContent='网络不通，请重试'}}</script></body></html>`;
 
+// 游戏文件存在 KV（GAME 空间，键是路径），只有通过会话检查才读得到
+const TYPES = { html: 'text/html; charset=utf-8', json: 'application/json', js: 'text/javascript', css: 'text/css', png: 'image/png', mp3: 'audio/mpeg', bin: 'application/octet-stream', svg: 'image/svg+xml', woff2: 'font/woff2', ico: 'image/x-icon', txt: 'text/plain; charset=utf-8' };
+const missing = () => new Response('Not found', { status: 404, headers: { 'cache-control': 'no-store' } });
+async function file(req, env) {
+  let p; try { p = decodeURIComponent(new URL(req.url).pathname); } catch (e) { return missing(); }
+  if (p.endsWith('/')) p += 'index.html';
+  if (p.includes('..') || p.includes('//') || p.includes('\\')) return missing();
+  const key = p.slice(1);
+  const rg = /^bytes=(\d*)-(\d*)$/.exec(req.headers.get('range') || '');
+  const { value, metadata } = await env.GAME.getWithMetadata(key, rg ? 'arrayBuffer' : 'stream');
+  if (value === null || !metadata) return missing();
+  const big = /\.(bin|mp3|png|woff2)$/.test(key);
+  const h = { 'content-type': metadata.ct || 'application/octet-stream', 'cache-control': big ? 'private, max-age=3600' : 'private, no-cache', 'accept-ranges': 'bytes', 'x-content-type-options': 'nosniff' };
+  const head = req.method === 'HEAD';
+  if (rg) {   // 音频等需要 Range：整个文件读出来再切
+    const n = value.byteLength;
+    let a = rg[1] === '' ? n - Math.min(+rg[2], n) : +rg[1], b = rg[1] === '' || rg[2] === '' ? n - 1 : Math.min(+rg[2], n - 1);
+    if (!(a <= b) || a >= n) return new Response(null, { status: 416, headers: { 'content-range': 'bytes */' + n } });
+    return new Response(head ? null : value.slice(a, b + 1), { status: 206, headers: { ...h, 'content-range': `bytes ${a}-${b}/${n}`, 'content-length': String(b - a + 1) } });
+  }
+  return new Response(head ? null : value, { status: 200, headers: { ...h, 'content-length': String(metadata.size) } });
+}
+
 export default {
   async fetch(req, env) {
     const u = new URL(req.url);
     if (u.pathname === '/_gate/verify') return req.method === 'POST' ? verify(req, env) : json({ ok: false }, 405);
-    if (await session(req, env)) {
-      const r = await env.ASSETS.fetch(req);
-      const h = new Headers(r.headers); h.set('cache-control', 'private, no-cache');
-      return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });
-    }
+    if (await session(req, env)) return file(req, env);
     const html = (req.headers.get('accept') || '').includes('text/html');
     return new Response(html ? PAGE : '需要试玩码', { status: 401, headers: { 'content-type': html ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
   },

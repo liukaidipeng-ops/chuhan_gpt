@@ -1,13 +1,16 @@
-# 试玩码入口。部署：先 node ../../build.js 出 dist/site，再 npx wrangler deploy（见 README.md）
+# 试玩码入口。部署：node upload.mjs 把 dist/site 传进 GAME，再 npx wrangler deploy（见 README.md）
 name = "xiangqi-trial"
 main = "worker.js"
 compatibility_date = "2025-09-01"
+workers_dev = true
+preview_urls = false   # 不留预览地址，只有一个入口
 
-[assets]
-directory = "../../dist/site"
-binding = "ASSETS"
-run_worker_first = true   # 关键：连 index.html、语音包也先过 Worker，没有会话拿不到
-
+# 试玩码（哈希）和状态
 [[kv_namespaces]]
 binding = "CODES"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "8b02ca7e638849fda2048a7183a96d5d"
+
+# 游戏文件（键是路径）。不用 Workers 静态资源：它的上传凭证会被本环境的代理换掉，上传不了
+[[kv_namespaces]]
+binding = "GAME"
+id = "a94a59d3ce974a08b3ba22e6b79148c8"

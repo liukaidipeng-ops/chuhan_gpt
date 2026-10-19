@@ -5,9 +5,12 @@ import { genCode, newRecords, hashCode } from './codes-lib.mjs';
 
 const kvMap = new Map();
 const CODES = { get: async (k, t) => { const v = kvMap.get(k); return v === undefined ? null : t === 'json' ? JSON.parse(v) : v; } };
-const GAME = { '/': '<html>GAME-INDEX</html>', '/index.html': '<html>GAME-INDEX</html>', '/voice-real.bin': 'VOICE-BYTES', '/version.json': '{"v":"x"}', '/king-stone-r4/a.png': 'PNG' };
-const ASSETS = { fetch: async r => { const p = new URL(r.url).pathname; return p in GAME ? new Response(GAME[p], { headers: { etag: '"1"' } }) : new Response('nf', { status: 404 }); } };
-const env = { CODES, ASSETS, SESSION_KEY: 'test-key', REVOKE_CACHE_SEC: '0' };
+const files = new Map(Object.entries({ 'index.html': '<html>GAME-INDEX</html>', 'voice-real.bin': 'VOICE-BYTES', 'version.json': '{"v":"x"}', 'king-stone-r4/a.png': 'PNG' }));
+const GAME = Object.fromEntries([...files].map(([k, v]) => ['/' + k, v])); GAME['/'] = files.get('index.html');
+const te = new TextEncoder();
+const GAME_KV = { get: async (k, t) => { const v = files.get(k); return v === undefined ? null : v; },
+  getWithMetadata: async (k, t) => { const v = files.get(k); if (v === undefined) return { value: null, metadata: null }; const bytes = te.encode(v); return { value: t === 'stream' ? new Blob([bytes]).stream() : bytes.buffer.slice(0), metadata: { ct: k.endsWith('.json') ? 'application/json' : 'text/html; charset=utf-8', size: bytes.length } }; } };
+const env = { CODES, GAME: GAME_KV, SESSION_KEY: 'test-key', REVOKE_CACHE_SEC: '0' };
 const call = (path, o = {}) => worker.fetch(new Request('https://t.example' + path, o), env);
 const html = { accept: 'text/html' };
 const noGame = async r => { const t = await r.text(); for (const v of Object.values(GAME)) assert.ok(!t.includes(v), '泄露了游戏内容'); };
@@ -30,8 +33,14 @@ const ok = await post(code.toLowerCase().replace('-', ' ')); assert.equal(ok.sta
 const sc = ok.headers.get('set-cookie'); assert.match(sc, /HttpOnly/); assert.match(sc, /Secure/); assert.match(sc, /Max-Age=15552000/);
 const cookie = sc.split(';')[0];
 let r = await call('/', { headers: { ...html, cookie } }); assert.equal(r.status, 200); assert.ok((await r.text()).includes('GAME-INDEX'));
-r = await call('/voice-real.bin', { headers: { cookie } }); assert.equal(r.status, 200); assert.equal(r.headers.get('cache-control'), 'private, no-cache');
+r = await call('/voice-real.bin', { headers: { cookie } }); assert.equal(r.status, 200); assert.equal(r.headers.get('cache-control'), 'private, max-age=3600'); assert.equal(await r.text(), 'VOICE-BYTES');
 assert.equal((await call('/nope', { headers: { cookie } })).status, 404);
+// 有会话时：「..」会被 URL 解析器化简成普通路径（读到的还是同一个有权读的文件），双斜杠和反斜杠直接拒绝
+for (const p of ['//voice-real.bin', '/a%5C..%5Cb', '/%2e%2e%2fvoice-real.bin']) assert.equal((await call(p, { headers: { cookie } })).status, 404, p);
+r = await call('/voice-real.bin', { headers: { cookie, range: 'bytes=2-5' } }); assert.equal(r.status, 206); assert.equal(await r.text(), 'ICE-'); assert.equal(r.headers.get('content-range'), 'bytes 2-5/11');
+r = await call('/voice-real.bin', { headers: { cookie, range: 'bytes=-3' } }); assert.equal(await r.text(), 'TES');
+assert.equal((await call('/voice-real.bin', { headers: { cookie, range: 'bytes=50-60' } })).status, 416);
+r = await call('/voice-real.bin', { method: 'HEAD', headers: { cookie } }); assert.equal(r.status, 200); assert.equal(r.headers.get('content-length'), '11'); assert.equal((await r.text()), '');
 
 // 4. 伪造、过期、改过的 cookie 都不行
 const [id, exp, sig] = cookie.split('=')[1].split('.');
