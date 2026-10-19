@@ -257,9 +257,9 @@
   let upAll = false;   // 裁判开关 LEVELS.<档>.upAll（只给复盘工具用，默认关）：对方“先升级再走”所有升法都看，第 1、第 3 层都看
   // 自己下一回合也可能先升级（第 38 题：下回合进账就够升车绝杀，原来只在对方那一层考虑升级，这笔账看不到）
   const UP20 = ENV.BFAI_UP2 === '1'; let UP2 = UP20; const UP2N = +(ENV.BFAI_UP2N || 9), UP2R = +(ENV.BFAI_UP2R || 0);   // BFAI_UP3：对方第 3 层也考虑先升级，和 UP2 对称（只给己方第 2 层会太乐观：g22 第 44 条以为马被吃了能升级吃回车，K11-1）
-  let pfEval = false, pfNoUp2 = false;   // BFAI_PFNOUP2：评估破釜沉舟时不加 UP2 那层（和线上一样估破釜；UP2 会把杀车之后的局面估得太好，策略测试 P4）
+  let pfEval = false, pfNoUp2 = false, up2Line = false; const UP3L = ENV.BFAI_UP3L === '1';   // BFAI_PFNOUP2：评估破釜沉舟时不加 UP2 那层（和线上一样估破釜；UP2 会把杀车之后的局面估得太好，策略测试 P4）
     // BFAI_PFUP3：只在根上评估破釜沉舟的那几次搜索里，对方第 3 层也可以先升级（UP2 只给己方第 2 层会把破釜估得太好：P4、K11-1；全局开 UP3 太贵）
-  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval) && ply === 3)) && upPly >= 0)) && !S.upgraded;
+  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval || (UP3L && up2Line)) && ply === 3)) && upPly >= 0)) && !S.upgraded;
   let pfPly = -1;   // 在第几层考虑“对方（楚）用破釜沉舟连走两步”（-1 = 不考虑）
   const pfCache = new Map();   // 每个局面的破釜沉舟组合只算一次（逐层加深时重复用）
   const upCache = new Map();   // “对方先升级再走”的那几个局面，同样每个局面只生成一次
@@ -415,7 +415,9 @@
       // BFAI_UP2N / UP2R：UP2 加出来的那层（不是对方应着的那层）只留前几个升级、少算几层——每个升级都是整棵子树，全留会少算两层（K11-1，g22 第 44 条）
       if (UP2 && ply !== upPly && !upAll) { ups = ups.slice(0, UP2N); dr = UP2R; }
       for (const u of ups) {
-        const v = ab(u.S, Math.max(0, depth - extd - dr), alpha, beta, ply, ext - extd);
+        const isU2 = UP2 && ply === 2 && ply !== upPly && !upAll, was = up2Line;   // BFAI_UP3L：己方第 2 层先升了级的那条线，对方第 3 层也可以先升级（只在这条线上，比全局 UP3 便宜）
+        if (isU2) up2Line = true;
+        let v; try { v = ab(u.S, Math.max(0, depth - extd - dr), alpha, beta, ply, ext - extd); } finally { up2Line = was; }
         if (v > best) { best = v; bm = null; }
         if (v > alpha) alpha = v;
         if (alpha >= beta) { if (TTB.size < 300000) TTB.set(tkey, { v: toTT(best, ply), f: 1, m: null }); return best; }
