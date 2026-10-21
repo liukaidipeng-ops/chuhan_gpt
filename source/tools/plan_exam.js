@@ -26,6 +26,9 @@ async function playOut(me, opp, seed) {
     for (const a of seq) { const m0 = { ...g.S.merit }; if (!g.apply(a)) throw new Error('非法行动 ' + JSON.stringify(a)); for (const s of ['r', 'b']) if (g.S.merit[s] > m0[s]) inc[s] += g.S.merit[s] - m0[s]; }
   }
   if (Q.metric === 'win') return g.result ? (g.result.winner === Q.side ? 1 : 0) : 0.5;
+  // 窗口内分出胜负：赢了算最高分、输了算最低分（10-21：K8-75 候选第 34 回合将死对方，对局提前结束，军功差和局面分反被记低）
+  const WIN = 99, wl = g.result && g.result.winner ? (g.result.winner === Q.side ? WIN : -WIN) : 0;
+  if (wl) return Q.metric === 'both' ? [wl, wl] : wl;
   if (Q.metric === 'merit') return sg * (g.S.merit.r - g.S.merit.b);
   if (Q.metric === 'both') return [sg * (inc.r - inc.b), sg * neutral(g.S)];   // 战术部门 B12 回复：挣到的军功差 + 局面分，两项分开报
   return sg * neutral(g.S);   // material
