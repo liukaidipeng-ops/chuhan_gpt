@@ -1659,6 +1659,21 @@ const Squads = (() => {
         if (on) reconcile();
         else { for (const m of [...map.keys()]) { showDisc(m, true); drop(m); } for (const m of Board.pieces.values()) showDisc(m, true); }
       },
+      // 这一队（连背着的旗）最高点的世界高度：技能牌挂在它上面（美术部门，Ham 10-21「模型显示下技能牌要在头顶」）。
+      //   站定显出来以后量一次包围盒记下（相对整队的抬升），之后只加上被选中悬起的那段；没站定、结算让位时给 null，牌子照挂棋面上
+      top(m) {
+        const st = on && map.get(m); if (!st || st.k < 0.99 || (typeof Ending !== 'undefined' && Ending.running)) return null;
+        const sq = st.sq;
+        if (st.top == null) {
+          const b = new THREE.Box3().setFromObject(sq.group);
+          if (sq.guard) b.expandByObject(sq.guard.group);
+          if (st.flag) b.expandByObject(st.flag.group);
+          if (sq.flags) for (const f of sq.flags) b.expandByObject(f.group);
+          if (b.isEmpty()) return null;
+          st.top = b.max.y - sq.group.position.y;
+        }
+        return st.top + sq.group.position.y;
+      },
       reconcile, get count() { return map.size; },
     };
   })();

@@ -1394,7 +1394,10 @@ const Board = (() => {
     bG.set(0, 1, 0).applyQuaternion(cam.quaternion).setY(0);   // 屏幕「上」投到棋盘上的方向
     if (bG.lengthSq() > 1e-6) bG.normalize();
     const d = u.parent;
-    d.getWorldPosition(bV); bV.y += PH; bV.addScaledVector(bG, 0.47);   // 棋面顶上、屏幕上沿那一点
+    d.getWorldPosition(bV);
+    const top = typeof Squads !== 'undefined' && Squads.Stand && Squads.Stand.on ? Squads.Stand.top(d.parent) : null;
+    if (top != null) bV.y = top + 0.05;   // 兵种模型显示：挂在这一队（连旗）最高点上方
+    else { bV.y += PH; bV.addScaledVector(bG, 0.47); }   // 棋子显示：棋面顶上、屏幕上沿那一点
     d.worldToLocal(u.position.copy(bV));
     d.getWorldQuaternion(bQ); u.quaternion.copy(bQ.invert().multiply(cam.quaternion));
     u.updateMatrixWorld(true);
