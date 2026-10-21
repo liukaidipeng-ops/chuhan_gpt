@@ -376,30 +376,20 @@
     }
     return false;
   }
+  // 局面指纹（两个 32 位散列拼成 53 位的数）
   const TTB = new Map(), wasNull = [];
-  // 局面指纹（两个 32 位散列拼成 53 位的数）：逐个值直接混进散列，不拼字符串（属性名换成首次见到时编的小整数）
-  const fpKey = new Map();
   function fp(S) {
     let h1 = 2166136261, h2 = 5381;
     const mix = x => { h1 = Math.imul(h1 ^ x, 16777619); h2 = (Math.imul(h2, 33) ^ x) | 0; };
-    const kid = k => { let v = fpKey.get(k); if (v === undefined) { v = 0x40000000 + fpKey.size * 7919; fpKey.set(k, v); } return v; };
-    const val = v => {
-      if (typeof v === 'number') { mix(v | 0); mix(Math.round(v * 4096) | 0); }
-      else if (typeof v === 'string') { mix(7); for (let i = 0; i < v.length; i++) mix(v.charCodeAt(i)); mix(8); }
-      else if (typeof v === 'boolean') mix(v ? 3 : 5);
-      else if (v == null) mix(9);
-      else if (Array.isArray(v)) { mix(11); for (let i = 0; i < v.length; i++) val(v[i]); mix(12); }
-      else { mix(13); for (const k in v) { mix(kid(k)); val(v[k]); } mix(14); }
-    };
+    const mixS = t => { for (let i = 0; i < t.length; i++) mix(t.charCodeAt(i)); };
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
       const p = S.board[r][f]; if (!p) continue;
       mix(1000 + r * 9 + f);
-      for (const k in p) { mix(kid(k)); val(p[k]); }
+      for (const k in p) { mixS(k); const v = p[k]; if (typeof v === 'number') { mix(v | 0); mix(Math.round(v * 4096) | 0); } else if (typeof v === 'string') { mix(7); mixS(v); } else if (typeof v === 'boolean') mix(v ? 3 : 5); else if (v == null) mix(9); else mixS(JSON.stringify(v)); }
     }
-    mix(15); val(S.turn); val(S.cnt); val(S.merit); val(S.used); val(S.fx); val(S.crossed); val(S.dead); val(S.upgraded); val(S.ckHist); val(S.freeUsed); val(S.jmLock); val(S.final); val(S.occ); val(S.named);
+    mixS(JSON.stringify([S.turn, S.cnt, S.merit, S.used, S.fx, S.crossed, S.dead, S.upgraded, S.ckHist, S.freeUsed, S.jmLock, S.final, S.occ, S.named]));
     return (h1 >>> 0) * 2097152 + ((h2 >>> 0) & 2097151);
   }
-
   const toTT = (v, ply) => (v > WIN / 2 ? v + ply : v < -WIN / 2 ? v - ply : v), fromTT = (v, ply) => (v > WIN / 2 ? v - ply : v < -WIN / 2 ? v + ply : v);
   const mkey = a => (a.k === 'mv' ? hk(a) : JSON.stringify(a));
   function ab(S, depth, alpha, beta, ply, ext = 0) {
