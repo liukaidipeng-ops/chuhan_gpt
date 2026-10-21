@@ -660,7 +660,8 @@
   // 根节点：返回一串要依次执行的行动（升级 → 拒马 → 主行动）
   async function think(S0, level, tick, opt) {
     const L0 = LEVELS[level] || LEVELS.mid, t0 = now(), me = S0.turn, seq = [];
-    let L = tick ? { ...L0, budget: Math.min(L0.budget, 1400) } : L0;   // 在主线程里算（开不了 Worker）时少想一会儿，免得卡画面
+    const ctl = opt && opt.ctl;   // 预想（ponderStart）：不按预算收手，算到 ctl.end（外面可以随时改）为止
+    let L = tick && !ctl ? { ...L0, budget: Math.min(L0.budget, 1400) } : L0;   // 在主线程里算（开不了 Worker）时少想一会儿，免得卡画面
     // 看钟（C71）：opt.maxMs = 这一步最多能用多少毫秒（房间计时剩下的，由界面算好传进来）。最坏情况约是预算的 3.5 倍
     //   （难走时放宽 dyn 倍、第 3 层兜底两倍、最后补算破釜 / 一步杀），所以预算按 1/3.5 缩；不传就和原来一样
     if (opt && opt.maxMs > 0 && !L.nodes && !L.fixedDepth) { const b = Math.max(150, Math.min(L.budget, opt.maxMs / 3.5)); if (b < L.budget) L = { ...L, budget: b, minNodes: Math.round((L.minNodes || 0) * b / L.budget) }; }
@@ -766,7 +767,8 @@
     for (let d = 1; d <= L.depth; d++) {
       if (d > 1 && now() > hardEnd) { why = 'time'; break; }
       let soft = t0 + dynB;
-      if (L.fixedDepth) { deadline = Infinity; nodeCap = Infinity; }
+      if (ctl) { if (d > 1 && now() > ctl.end) { why = 'time'; break; } deadline = d < 2 ? Infinity : ctl.end; nodeCap = Infinity; }
+      else if (L.fixedDepth) { deadline = Infinity; nodeCap = Infinity; }
       else if (byNodes) {
         // 前两层一定算完（保证有着可走）；再往下每一层开始前看剩下的搜索量够不够，算到上限就停
         if (dynX && !dynOn && d > 2 && nodes - n0 > L.nodes * 0.5 && (crit || depthDone <= 3)) { dynOn = true; dynN = Math.round(L.nodes * dynX); if (TR) TR.dyn = d; }
@@ -802,7 +804,7 @@
           if (k.nv > alpha) alpha = k.nv;
           n++;
           await breathe();
-          if (!L.fixedDepth && !byNodes && d > 3 && now() > soft && (!(L.minNodes > 0 && nodes - n0 < L.minNodes) || now() > t0 + L.budget * 1.5)) { cut = true; break; }
+          if (ctl ? d > 1 && now() > ctl.end : !L.fixedDepth && !byNodes && d > 3 && now() > soft && (!(L.minNodes > 0 && nodes - n0 < L.minNodes) || now() > t0 + L.budget * 1.5)) { cut = true; break; }
         }
       } catch (e) { if (e !== TIMEOUT) throw e; cut = true; }
       deadline = Infinity; nodeCap = Infinity;
@@ -952,6 +954,52 @@
   }
   // apiVersion：这份电脑用到的 BF.ai 接口版本（BF.ai.version）；工具拉历史版本对打时拿它核对
   // obsVersion：观察接口（trace 思考记录、scoreParts、裁判开关 upAll / rootUpAll / fixedDepth）的版本，复盘工具按它判断能不能用（C62 B4）
-  const BFAI = { think, score, scoreParts, LEVELS, apiVersion: 1, obsVersion: 1, trace: false };
+  // ---------- 预想（tac-008 ②，和象棋TD 对齐的接口）：人想棋的时候电脑接着算 ----------
+  //   ponderStart(S, level, tick)：电脑刚走完、轮到人。先用 3 万节点猜人这一步，再对“猜的那步走完”的局面往深里算（最多 PONDER_MAX 毫秒）。
+  //     tick 必须给（Worker 里 () => new Promise(r => setTimeout(r, 0))），算的时候让出线程，才收得到 move / stop。只在霸王、兵仙（depth ≥ 5）起作用。
+  //   ponderMove(S2, level, tick, opt)：人走完了，代替 think。猜中：再算一个正常预算就交；没猜中：停掉预想、照常 think。think.last.ponder = { hit, ms }
+  //   ponderStop()：悔棋、认输、退出、切后台、换局时停掉并丢弃预想
+  const PONDER_MAX = 60000;
+  let pond = null;
+  const applySeq = (S, seq) => { try { const G = new BF.Game(); G.reset(BF.cloneState(S)); for (const a of seq) if (!G.apply(a)) return null; return G.result ? null : G.S; } catch (e) { return null; } };
+  function ponderStart(S, level, tick) {
+    const prev = ponderStop();
+    const L = LEVELS[level]; if (!L || !(L.depth >= 5) || !tick) return false;
+    const ctl = { end: Infinity, stop: false }, p = { ctl, key: null, t0: now(), level };
+    pond = p;
+    p.promise = (async () => {
+      if (prev) await prev;   // 上一次预想先收完（think 用的是同一套模块级状态，不能两个一起算）
+      if (ctl.stop) return null;
+      LEVELS.__pq = { ...L, nodes: 30000, budget: 1e9, noise: 0, dyn: 0 };
+      let pred; try { pred = await think(BF.cloneState(S), '__pq', tick); } finally { delete LEVELS.__pq; }
+      if (ctl.stop || !pred || !pred.length) return null;
+      const S1 = applySeq(S, pred); if (!S1) return null;
+      p.key = fp(S1); p.pred = pred; p.t1 = now(); ctl.end = Math.min(ctl.end, p.t0 + PONDER_MAX);
+      const seq = await think(BF.cloneState(S1), level, tick, { ctl });
+      return ctl.stop ? null : { seq, last: think.last };
+    })().catch(() => null);
+    return true;
+  }
+  function ponderStop() {
+    const p = pond; pond = null; if (!p) return null;
+    p.ctl.stop = true; p.ctl.end = -Infinity; deadline = -Infinity;   // 正在算的那一层马上收手
+    return p.promise;
+  }
+  async function ponderMove(S2, level, tick, opt) {
+    const p = pond; pond = null;
+    if (p) {
+      const hit = p.key != null && !p.ctl.stop && p.level === level && fp(S2) === p.key;
+      if (hit) {
+        const L = LEVELS[level] || LEVELS.mid, extra = Math.max(150, Math.min(L.budget, opt && opt.maxMs > 0 ? opt.maxMs / 3.5 : Infinity));
+        p.ctl.end = Math.min(p.ctl.end, now() + extra); deadline = Math.min(deadline, p.ctl.end);
+        const r = await p.promise;
+        if (r && r.seq && r.seq.length) { think.last = { ...r.last, ponder: { hit: true, ms: Math.round(now() - p.t1) } }; return r.seq; }
+      } else { p.ctl.stop = true; p.ctl.end = -Infinity; deadline = -Infinity; await p.promise; }
+    }
+    const seq = await think(S2, level, undefined, opt);
+    if (think.last) think.last.ponder = { hit: false };
+    return seq;
+  }
+  const BFAI = { think, score, scoreParts, LEVELS, ponderStart, ponderMove, ponderStop, ponderInfo: () => pond && { pred: pond.pred || null, ready: pond.key != null }, apiVersion: 1, obsVersion: 1, trace: false };
   if (typeof module !== 'undefined' && module.exports) module.exports = BFAI; else global.BFAI = BFAI;
 })(typeof window !== 'undefined' ? window : globalThis);
