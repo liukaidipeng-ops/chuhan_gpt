@@ -212,7 +212,7 @@
   const fewPieces = S => { let n = 0; for (const row of S.board) for (const p of row) if (p && p.s === S.turn) n++; return n <= 4; };
 
   // ---------- 搜索 ----------
-  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false;
+  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false;
   let nodeCap = Infinity;   // 测试用的“按搜索量收手”：搜过这么多节点就停（LEVELS.<档>.nodes），不看时间，结果可复现
   const TIMEOUT = { timeout: true };
   const hist = new Map();                     // 历史启发：哪些安静着法以前造成过剪枝
@@ -404,8 +404,10 @@
     }
     if (fewPieces(S) && stuck(S)) return -WIN + ply;
     // 查表——同一局面、同样剩余层数、同样的延伸次数和“这层要不要考虑对方升级 / 破釜”
-    const fpS = fp(S), tkey = fpS + ':' + depth + ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), tte = TTB.get(tkey), a0 = alpha;
+    const tsuf = ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), fpS = fp(S), tkey = fpS + ':' + depth + tsuf, tte = TTB.get(tkey), a0 = alpha;
     if (tte) { const v = fromTT(tte.v, ply); if (tte.f === 0 || (tte.f === 1 && v >= beta) || (tte.f === 2 && v <= alpha)) return v; }
+    if (TTD) for (let dd = depth + 1; dd <= depth + 2; dd++) { const e = TTB.get(fpS + ':' + dd + tsuf); if (!e) continue;   // BFAI_TTD：算得更深的表项也能直接用
+      const v = fromTT(e.v, ply); if (e.f === 0 || (e.f === 1 && v >= beta) || (e.f === 2 && v <= alpha)) return v; }
     // 让一步试试（只在霸王，C65）：没被将军、还剩至少 3 层、自己还有车马炮时，先假装停一手让对方连走，少算 3 层；这样对方都翻不过来，这条线就不细算了。
     //   本回合升过级、决战里不试（升级不换手、决战规则不同）；连着两手都“停”也不试
     if (lmrOn && ply >= 1 && depth >= 3 && !inChk && !wasNull[ply] && beta < WIN / 2 && !S.upgraded && !S.final) {
@@ -653,7 +655,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
-    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv;
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv; TTD = ENV.BFAI_TTD === '1' && candLv;
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); BMT.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
