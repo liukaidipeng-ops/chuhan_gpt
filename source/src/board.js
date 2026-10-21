@@ -1387,24 +1387,30 @@ const Board = (() => {
   //   拒马架起来时别的牌都收起，只挂一块大的反色激活牌（也照样显示冷却）。设置里「棋子头上的牌」可以关
   let badgesOn = true;
   const badgeGroups = new Set();
-  Core.onFrame(() => {   // 牌子永远摆正朝屏幕上方：棋子转向（执黑、转镜头）时跟着纠正
-    if (!badgeGroups.size) return;
-    const view = Board.viewSide === 'b' ? Math.PI : 0;
-    for (const u of badgeGroups) {
-      const m = u.userData.piece;
-      if (!u.parent || !u.parent.parent) { for (const c of u.children) c.material.dispose(); badgeGroups.delete(u); continue; }
-      u.rotation.y = view - m.rotation.y;
-    }
+  const bQ = new THREE.Quaternion(), bV = new THREE.Vector3(), bG = new THREE.Vector3();
+  // 牌子永远在棋子的屏幕正上方、正对屏幕，不跟着棋子或镜头打转（Ham 10-21）。
+  //   在画这块牌之前现摆（镜头这一帧已经转好），不在 onFrame 里摆，免得转镜头时慢一帧、牌子晃
+  function placeBadges(u, cam) {
+    bG.set(0, 1, 0).applyQuaternion(cam.quaternion).setY(0);   // 屏幕「上」投到棋盘上的方向
+    if (bG.lengthSq() > 1e-6) bG.normalize();
+    const d = u.parent;
+    d.getWorldPosition(bV); bV.y += PH; bV.addScaledVector(bG, 0.47);   // 棋面顶上、屏幕上沿那一点
+    d.worldToLocal(u.position.copy(bV));
+    d.getWorldQuaternion(bQ); u.quaternion.copy(bQ.invert().multiply(cam.quaternion));
+    u.updateMatrixWorld(true);
+  }
+  Core.onFrame(() => {   // 删掉的牌释放材质
+    for (const u of badgeGroups) if (!u.parent || !u.parent.parent) { for (const c of u.children) c.material.dispose(); badgeGroups.delete(u); }
   });
   function addBadges(d, m, p, b) {
-    const u = new THREE.Group(); u.userData.piece = m; d.add(u); badgeGroups.add(u);
-    const put = (tex, w, h, x, y, z) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(w, h, 1); sp.renderOrder = 16; sp.position.set(x, y, z); u.add(sp); };
-    if (b.jm) { put(Badges.texture('jumaOn', p.s, 0, b.jmLeft), 0.52, 0.52, 0, PH + 0.26, -0.4); return; }   // 激活牌显示拒马还剩多久：刚架起来全实，随回合从十二点顺时针变半透明（Ham 10-18）
+    const u = new THREE.Group(); d.add(u); badgeGroups.add(u);
+    const put = (tex, w, h, x) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false })); sp.scale.set(w, h, 1); sp.renderOrder = 16; sp.position.set(x, h / 2 + 0.04, 0); sp.onBeforeRender = (r, sc, cam) => placeBadges(u, cam); u.add(sp); };
+    if (b.jm) { put(Badges.texture('jumaOn', p.s, 0, b.jmLeft), 0.52, 0.52, 0); return; }   // 激活牌显示拒马还剩多久：刚架起来全实，随回合从十二点顺时针变半透明（Ham 10-18）
     const keys = (b.ak >= 2 ? [{ sk: 'atk', f: 1 }] : []).concat(b.skills);   // 攻 1 不标（Ham 10-18）
     if (!keys.length) return;
     const H = keys.length > 2 ? 0.3 : 0.36, gap = 0.03, wOf = k => H * Badges.aspect(k.sk);
     let x = -(keys.reduce((a, k) => a + wOf(k), 0) + gap * (keys.length - 1)) / 2;
-    for (const k of keys) { const w = wOf(k); put(Badges.texture(k.sk, p.s, b.ak, k.f), w, H, x + w / 2, PH + 0.2, -0.36); x += w + gap; }
+    for (const k of keys) { const w = wOf(k); put(Badges.texture(k.sk, p.s, b.ak, k.f), w, H, x + w / 2); x += w + gap; }
   }
   function badgeInfo(game, p) {
     const cfg = game.cfg || BF.CFG;
