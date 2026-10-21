@@ -212,7 +212,7 @@
   const fewPieces = S => { let n = 0; for (const row of S.board) for (const p of row) if (p && p.s === S.turn) n++; return n <= 4; };
 
   // ---------- 搜索 ----------
-  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false;
+  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false;
   let nodeCap = Infinity;   // 测试用的“按搜索量收手”：搜过这么多节点就停（LEVELS.<档>.nodes），不看时间，结果可复现
   const TIMEOUT = { timeout: true };
   const hist = new Map();                     // 历史启发：哪些安静着法以前造成过剪枝
@@ -377,7 +377,7 @@
     return false;
   }
   // 局面指纹（两个 32 位散列拼成 53 位的数）
-  const TTB = new Map(), wasNull = [];
+  const TTB = new Map(), wasNull = [], BMT = new Map();
   function fp(S) {
     let h1 = 2166136261, h2 = 5381;
     const mix = x => { h1 = Math.imul(h1 ^ x, 16777619); h2 = (Math.imul(h2, 33) ^ x) | 0; };
@@ -404,7 +404,7 @@
     }
     if (fewPieces(S) && stuck(S)) return -WIN + ply;
     // 查表——同一局面、同样剩余层数、同样的延伸次数和“这层要不要考虑对方升级 / 破釜”
-    const tkey = fp(S) + ':' + depth + ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), tte = TTB.get(tkey), a0 = alpha;
+    const fpS = fp(S), tkey = fpS + ':' + depth + ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), tte = TTB.get(tkey), a0 = alpha;
     if (tte) { const v = fromTT(tte.v, ply); if (tte.f === 0 || (tte.f === 1 && v >= beta) || (tte.f === 2 && v <= alpha)) return v; }
     // 让一步试试（只在霸王，C65）：没被将军、还剩至少 3 层、自己还有车马炮时，先假装停一手让对方连走，少算 3 层；这样对方都翻不过来，这条线就不细算了。
     //   本回合升过级、决战里不试（升级不换手、决战规则不同）；连着两手都“停”也不试
@@ -430,7 +430,8 @@
       }
     }
     const list = order(A.gen(S, false), killers[ply]); let mi = 0;
-    if (tte && tte.m != null) { const i = list.findIndex(it => mkey(it.a) === tte.m); if (i > 0) { const x = list[i]; list.splice(i, 1); list.unshift(x); } }   // 上次最好的一步先算
+    const hm = tte && tte.m != null ? tte.m : BMH ? BMT.get(fpS) : null;   // BFAI_BMH：同样剩余层数的表项没有时，用上一轮（浅一层）记下的最好一步排序
+    if (hm != null) { const i = list.findIndex(it => mkey(it.a) === hm); if (i > 0) { const x = list[i]; list.splice(i, 1); list.unshift(x); } }   // 上次最好的一步先算
     for (const it of list) {
       const r = BF.attempt(S, it.a); if (!r || r.free) continue;
       legal++; mi++;
@@ -439,6 +440,7 @@
       if (w) v = w === side ? WIN - ply : -WIN + ply;
       // 排第 7 个以后、还剩至少 4 层的安静着法少算两层（C65；原来从第 3 个起少算一层）
       else if (lmrOn && ply >= 1 && depth >= 2 && mi > 2 && !inChk && it.a.k === 'mv' && !it.q && !A.inCheck(r.S, r.S.turn)) { v = -ab(r.S, depth - 2 - (mi > 6 && depth >= 4 ? 1 : 0), -alpha - 0.01, -alpha, ply + 1, ext); if (v > alpha) v = -ab(r.S, depth - 1, -beta, -alpha, ply + 1, ext); }
+      else if (PVS && mi > 1 && beta - alpha > 0.011) { v = -ab(r.S, depth - 1, -alpha - 0.01, -alpha, ply + 1, ext); if (v > alpha && v < beta) v = -ab(r.S, depth - 1, -beta, -alpha, ply + 1, ext); }   // BFAI_PVS：第一步之后先用窄窗口试，比 alpha 好再细算
       else v = -ab(r.S, depth - 1, -beta, -alpha, ply + 1, ext);
       if (v > best) { best = v; bm = it.a; }
       if (v > alpha) alpha = v;
@@ -479,6 +481,7 @@
       return -ab(r.S, depth - 1, -beta, -alpha, ply + 1, ext);
     }
     if (TTB.size < 300000) TTB.set(tkey, { v: toTT(best, ply), f: best <= a0 ? 2 : best >= beta ? 1 : 0, m: bm ? mkey(bm) : null });   // 记下来
+    if (BMH && bm && BMT.size < 300000) BMT.set(fpS, mkey(bm));
     return best;
   }
 
@@ -650,8 +653,8 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
-    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv;
-    lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv;
+    lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); BMT.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
     const byNodes = L.nodes > 0;   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
