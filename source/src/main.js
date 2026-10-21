@@ -198,6 +198,7 @@
     models: store.get('models', 0), eco: store.get('eco', Core.isMobile ? 1 : 0), debris: store.get('debris', 3), confirm: store.get('confirm', 1), turnfx: store.get('turnfx', 'wave'),   // confirm：落子要点两下（Ham 10-09 要的，防误触；默认开）
     vis: store.get('vis', store.get('fx', 1) === 0 ? 'low' : 'cine'), gore: store.get('gore', 3), server: store.get('server', ''),
     environment: store.get('environment', 'day'),
+    ponder: store.get('ponder', 1),   // 电脑在你想棋时接着算（tac-008）：省电模式、后台、电量低时自己不算
     tilt: store.get('tilt', 0),   // 移轴虚化：默认关，卡或发热的人不会被动开着
     turnReminder: store.get('turnReminder', 1),
     badges: store.get('badges', 1),   // 棋子头上的攻击字牌、技能牌（美术部门 art-007；Ham 10-18：设置里能关）
@@ -221,7 +222,7 @@
     Sfx.setVol('music', S.vMusic / 100 * 0.9); Sfx.setVol('sfx', S.vSfx / 100); Sfx.setVol('voice', S.vVoice / 100);
     Net.custom = S.server || '';
     Board.setBadges(!!+S.badges);
-    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment', 'turnReminder', 'tilt', 'badges']) store.set(k, S[k]);
+    for (const k of ['music', 'vMusic', 'vSfx', 'vVoice', 'voice', 'vis', 'gore', 'server', 'speed', 'models', 'debris', 'confirm', 'turnfx', 'eco', 'environment', 'turnReminder', 'tilt', 'badges', 'ponder']) store.set(k, S[k]);
   }
   Net.custom = S.server || '';
   Core.Time.boost = +S.speed || 1.5;
@@ -1056,14 +1057,16 @@
     if (vo) Voice.play(vid);
   }
   // 技能模式的电脑放进 Web Worker 里算（和动画互不耽误）；开不了 Worker 就等动画放完在主线程分片算
-  let bfW = null, bfWSeq = 0;
+  let bfW = null, bfWSeq = 0, ponderUsed = false;   // ponderUsed：线程里正在预想，下一次 bfThink 要走 ponder:'move'
+  const bfCfg = () => ({ beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack });
   const bfWait = new Map();
   // trace：要不要电脑的思考记录（C62 A：对局里的电脑都记，导出时带上；分析不记）
   function bfThink(S, level, waitIdle, trace, opt) {
     const local = async () => { await waitIdle(); BFAI.trace = !!trace; try { const seq = await BFAI.think(S, level, () => new Promise(r => setTimeout(r, 0)), opt); bfThink.last = BFAI.think.last; return seq; } finally { BFAI.trace = false; } };
     if (bfW === null) {
       try {
-        const src = document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;try{BFAI.trace=!!d.trace;if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}const seq=await BFAI.think(d.S,d.level,undefined,d.opt);postMessage({id:d.id,seq:seq,stat:BFAI.think.last});}catch(err){postMessage({id:d.id,err:String(err&&err.stack||err)});}};';
+        // 消息：{ponder:'start'|'move'|'stop'} 对应 BFAI.ponderStart / ponderMove / ponderStop（数值部提供；没有就当空操作）；没有 ponder 字段就是原来的 think
+        const src = document.getElementById('eng').textContent + '\nself.onmessage=async e=>{const d=e.data;try{if(d.ponder==="stop"){if(BFAI.ponderStop)BFAI.ponderStop();return;}BFAI.trace=!!d.trace;if(d.cfg){Object.assign(BF.CFG.beishui,d.cfg.beishui);if(d.cfg.r6)Object.assign(BF.CFG.r6,d.cfg.r6);BF.CFG.generalArts.fromRound=d.cfg.fromRound;BF.CFG.attack=d.cfg.attack;}const tk=()=>new Promise(r=>setTimeout(r,0));if(d.ponder==="start"){if(BFAI.ponderStart)Promise.resolve(BFAI.ponderStart(d.S,d.level,tk)).catch(()=>{});return;}const seq=d.ponder==="move"&&BFAI.ponderMove?await BFAI.ponderMove(d.S,d.level,tk,d.opt):await BFAI.think(d.S,d.level,undefined,d.opt);postMessage({id:d.id,seq:seq,stat:BFAI.think.last});}catch(err){postMessage({id:d.id,err:String(err&&err.stack||err)});}};';
         const workerUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
         try { bfW = new Worker(workerUrl); }
         finally { try { URL.revokeObjectURL(workerUrl); } catch (e) { } }
@@ -1076,14 +1079,34 @@
     return new Promise((res, rej) => { const id = ++bfWSeq; bfWait.set(id, { res, rej });
       // 看门狗（数值部 C72）：电脑线程超过时限 + 3 秒（没开计时就 45 秒）还没回话，多半被手机悄悄掐了：关掉线程，这一步交给兜底（aiRescue）
       setTimeout(() => { if (bfWait.has(id)) { console.warn('电脑线程没回话，关掉重来'); killBfWorker(); } }, opt && opt.maxMs ? opt.maxMs + 3000 : 45000);
-      bfW.postMessage({ id, S, level, trace: !!trace, opt: opt || null, cfg: { beishui: BF.CFG.beishui, r6: BF.CFG.r6, fromRound: BF.CFG.generalArts.fromRound, attack: BF.CFG.attack } }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
+      const pm = ponderUsed; ponderUsed = false; bfW.postMessage({ id, S, level, trace: !!trace, opt: opt || null, ponder: pm ? 'move' : undefined, cfg: bfCfg() }); }).catch(e => { console.warn('电脑线程出错，改在主线程算', e); return local(); });
   }
   // 技能模式的电脑线程：作废正在算的那一步（悔棋、认输、退出、切到后台时用）。按时间收手的思考不能暂停续算，回来对同一局面重新算（数值部 C70 提醒）
-  function killBfWorker() { if (!bfW) return; try { bfW.terminate(); } catch (e) { } bfW = null; for (const w of bfWait.values()) w.res(null); bfWait.clear(); }
-  function cancelAI() { aiSeq++; if (aiThinking) { try { AI.cancel(); } catch (e) { } if (game && game.bf) killBfWorker(); } aiThinking = false; }
+  // 后台预想（tac-008）：电脑走完、轮到人时让电脑线程接着算；人走完后 bfThink 用 ponder:'move' 取结果。
+  //   不开：设置关了、省电、页面在后台、电量低于 20% 且没充电、线程不可用、不是人机/不是霸王以上、没开过线程
+  let ponderTimer = 0, lowBat = false;
+  try { navigator.getBattery && navigator.getBattery().then(b => { const f = () => { lowBat = !b.charging && b.level < 0.2; }; f(); b.onlevelchange = b.onchargingchange = f; }).catch(() => { }); } catch (e) { }
+  function ponderStop() {
+    clearTimeout(ponderTimer); ponderTimer = 0;
+    if (!ponderUsed) return;
+    ponderUsed = false;
+    if (bfW) { try { bfW.postMessage({ ponder: 'stop' }); } catch (e) { } }
+  }
+  function ponderStart() {
+    ponderStop();
+    if (!+S.ponder || Core.ECO || document.hidden || lowBat || !bfW) return;
+    if (!game || !game.bf || !vsAI() || aiBoth() || ended || game.result || !started || isAI(game.turn) || pendingUndo) return;
+    const lvl = aiLevel(game.turn === 'r' ? 'b' : 'r');
+    if (lvl !== 'hard' && lvl !== 'xhard') return;
+    ponderUsed = true;
+    try { bfW.postMessage({ ponder: 'start', S: BF.cloneState(game.S), level: lvl, cfg: bfCfg() }); } catch (e) { ponderUsed = false; return; }
+    ponderTimer = setTimeout(ponderStop, 20000);   // 单次最多 20 秒；数值部那边另有 60 秒上限
+  }
+  function killBfWorker() { ponderUsed = false; clearTimeout(ponderTimer); if (!bfW) return; try { bfW.terminate(); } catch (e) { } bfW = null; for (const w of bfWait.values()) w.res(null); bfWait.clear(); }
+  function cancelAI() { aiSeq++; ponderStop(); if (aiThinking) { try { AI.cancel(); } catch (e) { } if (game && game.bf) killBfWorker(); } aiThinking = false; }
   // 页面切到后台 / 锁屏：电脑别在后台烧电（优化部建议）；回来接着想
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { if (aiThinking && game && game.bf) { cancelAI(); updateHud(); } }
+    if (document.hidden) { ponderStop(); if (aiThinking && game && game.bf) { cancelAI(); updateHud(); } }
     else setTimeout(() => { try { maybeAI(); } catch (e) { } }, 300);
   });
   // 电脑给不出行动、或给的行动走不了时，原来就停在那里一直不走、直到超时判负（Ham 10-11：“兵仙不走棋、还是会超时”）。
@@ -1127,6 +1150,7 @@
           if (!doBF(a)) { console.warn('电脑行动非法', a); await aiRescue(id, side, waitIdle, '电脑行动非法'); break; }
         }
         updateHud();
+        if (id === aiSeq) ponderStart();
       }).catch(e => { console.error(e); aiThinking = false; updateHud(); });
       return;
     }
