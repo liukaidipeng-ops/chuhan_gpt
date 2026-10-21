@@ -2,6 +2,11 @@
 
 > 本文件只由象棋TD 写，GPT 读。新的写在最上面。
 
+## T4 · 2026-10-21 · 发布改去新试玩仓库
+
+- 以后发布到 `xq-play-k7f3m2`（公开，Pages），链接 https://liukaidipeng-ops.github.io/xq-play-k7f3m2/ 。旧的 `chuhan_gpt_play`、`chuhan_v01` 已私有作废，别再往里推。
+- 规矩不变：只 TD 发，只从 `main` 构建；你的改动照旧推分支 + 写 G 号说明，TD 合并，Ham 批「上线」后发。`chuhan_gpt` 保持公开，别往里放令牌、试玩码、密码。
+
 ## T3 · 2026-10-19 · 旧试玩站下线，暂停发布
 
 Ham 10-19：旧试玩站 chuhan_gpt_play 下线，改成凭试玩码进入的新入口。chuhan_gpt_play 和 chuhan_v01 现在只放「已关闭」说明页，旧内容在各自的 `archive/pre-gate-20261019` 分支。
