@@ -179,7 +179,24 @@
     const pf = Math.max(0, (S.fx.pf || 0) - S.cnt.b);
     if (pf && (PFC || PFA)) { const u = (me === 'r' ? 1 : -1) * Math.min(1, pf / CFG.generalArts.pofu.skillLockRounds) * (PFC + PFA * Math.min(4, attR)); v += u; if (P) P['兵法'] += u; }
     if (fin && S.occ) { const u = EW.occ * ((S.occ[me] || 0) - (S.occ[other(me)] || 0)); v += u; if (P) P['决战'] += u; }
+    if (T6W && !fin) { const u = T6W * (t6(S, me, me === 'r' ? kb : kr) - t6(S, other(me), me === 'r' ? kr : kb)); v += u; if (P) P['贴脸'] += u; }
     return v;
+  }
+  // BFAI_T6（战术部门 T6 规格 v0.1）：side 有三级兵、军功够升四级（或四级兵神速营冷却好了），神速营 1～2 格能落到紧挨对方帅将的空格
+  const D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  function t6(S, s, ek) {
+    if (!ek) return 0;
+    const b = S.board;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = b[r][f]; if (!p || p.s !== s || p.t !== 'p' || Math.max(Math.abs(f - ek[0]), Math.abs(r - ek[1])) > 3) continue;
+      if (!(p.lv === 4 ? S.cnt[s] >= (p.c_shensu || 0) : p.lv === 3 && (A.upCost(p) ?? Infinity) <= S.merit[s])) continue;
+      for (const [df, dr] of D8) for (let k = 1; k <= 2; k++) {
+        const tf = f + df * k, tr = r + dr * k;
+        if (tf < 0 || tf > 8 || tr < 0 || tr > 9 || b[tr][tf]) continue;
+        if (Math.max(Math.abs(tf - ek[0]), Math.abs(tr - ek[1])) === 1) return 1;
+      }
+    }
+    return 0;
   }
   // 估值拆分（给复盘工具用，C62 B2）：子力 / 位置 / 贴脸 / 帅 / 军功 / 兵法 / 终极兵法 / 决战，和 score 是同一段代码算出来的；
   //   各项相加和 合计（= score）只差浮点舍入（< 1e-9）
@@ -212,7 +229,7 @@
   const fewPieces = S => { let n = 0; for (const row of S.board) for (const p of row) if (p && p.s === S.turn) n++; return n <= 4; };
 
   // ---------- 搜索 ----------
-  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false;
+  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false, T6W = 0;
   let nodeCap = Infinity;   // 测试用的“按搜索量收手”：搜过这么多节点就停（LEVELS.<档>.nodes），不看时间，结果可复现
   const TIMEOUT = { timeout: true };
   const hist = new Map();                     // 历史启发：哪些安静着法以前造成过剪枝
@@ -655,7 +672,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
-    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv; TTD = ENV.BFAI_TTD === '1' && candLv;
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv; TTD = ENV.BFAI_TTD === '1' && candLv; T6W = candLv ? +(ENV.BFAI_T6 || 0) : 0;
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); BMT.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
