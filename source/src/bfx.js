@@ -340,7 +340,11 @@ const BFX = (() => {
     // 升级变身：跳起来翻个身，翻到侧面那一刻换新装（美术 M22，Ham 审批台 076 选「翻面」）
     const pa = game && game.board[info.at[1]] && game.board[info.at[1]][info.at[0]], ok = !!(pa && pa.id === info.id);
     if (ok && info.pre) Board.decorate(m, { ...pa, lv: info.lv - 1, hp: Math.min(pa.hp, BF.hpOf(pa.t, info.lv - 1)) }, Board.decoOpts(game, pa));
-    await UpFx.play(m, { lv: info.lv, swap: () => { if (ok) Board.decorate(m, pa, Board.decoOpts(game, pa)); } });
+    await UpFx.play(m, { lv: info.lv, swap: () => {
+      if (ok) Board.decorate(m, pa, Board.decoOpts(game, pa));
+      // 兵种模型开着时，看到的是那一队小人，不是棋子盘：旧的一队要当场换成新等级的，不能等省电模式下的下一帧（Ham 10-21：升级完没第一时间变银）
+      try { if (ok && Squads.Stand.on) { Squads.Stand.snap(m); Core.poke(300); } } catch (e) { }
+    } });
     m.position.y = TOP; m.rotation.set(0, Board.viewSide === 'b' ? Math.PI : 0, 0);
     // 升级词说完再往下走（紧接着走子的话，兵种那一路会把它截掉）
     if (said > 0) await sleep(Math.min(said + 0.3, 3.2) - 0.3);
