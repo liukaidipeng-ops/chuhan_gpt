@@ -32,7 +32,7 @@
   const DEFUP0 = ENV.BFAI_DEFUP === '1' || ENV.BFAI_DEFUP === '2'; let DEFUP = DEFUP0;
   const CHKUP0 = ENV.BFAI_CHKUP === '1'; let CHKUP = CHKUP0;
   const ATKUP0 = ENV.BFAI_ATKUP === '1'; let ATKUP = ATKUP0;
-  const CAPUP0 = ENV.BFAI_CAPUP === '1'; let CAPUP = CAPUP0;
+  const CAPUP0 = ENV.BFAI_CAPUP === '1' || ENV.BFAI_CAPUP === '2'; let CAPUP = CAPUP0;
   const CAPUP20 = ENV.BFAI_CAPUP2 === '1'; let CAPUP2 = CAPUP20;   // 对方：升了多血、能打到大子的升级留名额   // 根上：能吃子、升了多血的子留名额   // 升级后攻击力够一下吃掉原来打不死的子：留名额   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
   const PFC = +(ENV.BFAI_PFC || 0), PFA = +(ENV.BFAI_PFA || 0), PFD = +(ENV.BFAI_PFD || 0);
   const HPF = [0, 1, 1.5, 1.9, 2.2], HPF_DEF = [0, 1, 1.15, 1.28, 1.36], HPF_ADV = [0, 1, 1.55, 1.75, 1.85];
@@ -583,7 +583,7 @@
     // BFAI_CAPUP：根上“能打到对方大子、升了多一点血”的那枚子也留一个名额：吃完站在那儿，多一点血就不会被吃回去（实25，g7 第 39 回合：先升相再相吃马，守子筛子把它挡了）
     if (CAPUP) { const rest = skipped.concat(cand).filter(c => !top.includes(c)).sort((x, y) => y.gain - x.gain);
       for (const c of rest) { const f = c.at[0], r = c.at[1], p0 = S.board[r][f], p1 = c.S.board[r][f]; if (!p0 || !p1 || p1.hp <= p0.hp) continue;
-        if (A.moveTargets(c.S, f, r).some(mv => { const q = c.S.board[mv.to[1]][mv.to[0]]; return q && q.s !== me && q.t !== 'p' && q.t !== 'k'; })) { top.push(c); break; } } }   // 打得死打不死都算：打完站得住才是要点
+        if (A.moveTargets(c.S, f, r).some(mv => { const q = c.S.board[mv.to[1]][mv.to[0]]; return q && q.s !== me && q.t !== 'p' && q.t !== 'k' && (ENV.BFAI_CAPUP !== '2' || q.hp <= A.atk(p1)); })) { top.push(c); break; } } }   // 打得死打不死都算：打完站得住才是要点；BFAI_CAPUP=2 只算升完真打得死的（K8-75：升底线炮去打三血士打不动，白花 5 军功、断了连将）
     return top;
   }
   // 裁判开关 rootUpAll：根上自己的每一种升法都进搜索，不筛
