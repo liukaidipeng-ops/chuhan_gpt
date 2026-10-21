@@ -1054,6 +1054,10 @@
       fx: { hm: Math.max(0, S.fx.hm - S.cnt.r), sm: Math.max(0, S.fx.sm - S.cnt.b), pf: Math.max(0, S.fx.pf - S.cnt.b) },
       jmActive: p => jmActive(S, p),
       frozen: p => frozen(S, p),
+      // 棋子头上的牌子（board.js badgeInfo）要读这几样：没有的话升级换装、动画结束的对齐会在 lv≥2 的子上抛错，要等整局的下一次对齐才换好装
+      S, cfg: CFG_CUR,
+      atkOf: p => p ? atk(p) : 1,
+      cdLeft: (p, sk) => { if (!p) return 0; const k = sk ? cdKey(p, sk) : 'cd'; return Math.max(0, (p[k] || 0) - S.cnt[p.s]); },
     };
   }
   // 破釜沉舟第一步走完后的局面（界面预览用）
