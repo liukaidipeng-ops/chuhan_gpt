@@ -167,6 +167,8 @@
     if (EW.heavy && hvR !== hvB) { const u = (me === 'r' ? 1 : -1) * EW.heavy * (hvR ? 1 : -1); v += u; if (P) P['贴脸'] += u; }
     const mt = EW.merit * (S.merit[me] - S.merit[other(me)]);   // 军功能换成血量和等级
     v += mt; if (P) P['军功'] += mt;
+    // BFAI_MCAP：军功顶在上限（差 1 以内）再挣就白挣了，扣分逼它花掉（升级或终极兵法）。g29：楚 30 个回合顶在 30、终极兵法憋到第 234 条才放
+    if (MCAPW) { const cap = CFG.merit.cap, at = s => (S.merit[s] >= cap - 1 ? MCAPW : 0), u = at(other(me)) - at(me); v += u; if (P) P['军功'] += u; }
     if (EPOT) { const u = (me === 'r' ? 1 : -1) * potW(S); v += u; if (P) P['军功'] += u; }
     // 还没用的主帅兵法留着有价值（免得为了一个兵就把「召回良将」用掉）
     const art = s => (S.used.art[s] ? 0 : (s === 'r' ? EW.art_r : EW.art_b) + (EART && artOpenW(S, s) ? (s === 'r' ? EW.art_r_open : EW.art_b_open) : 0));
@@ -229,7 +231,7 @@
   const fewPieces = S => { let n = 0; for (const row of S.board) for (const p of row) if (p && p.s === S.turn) n++; return n <= 4; };
 
   // ---------- 搜索 ----------
-  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false, T6W = 0;
+  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false, T6W = 0, MCAPW = 0;
   let nodeCap = Infinity;   // 测试用的“按搜索量收手”：搜过这么多节点就停（LEVELS.<档>.nodes），不看时间，结果可复现
   const TIMEOUT = { timeout: true };
   const hist = new Map();                     // 历史启发：哪些安静着法以前造成过剪枝
@@ -673,7 +675,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
-    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv; TTD = ENV.BFAI_TTD === '1' && candLv; T6W = candLv ? +(ENV.BFAI_T6 || 0) : 0;
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv; TTD = ENV.BFAI_TTD === '1' && candLv; T6W = candLv ? +(ENV.BFAI_T6 || 0) : 0; MCAPW = candLv ? +(ENV.BFAI_MCAP || 0) : 0;
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); BMT.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
