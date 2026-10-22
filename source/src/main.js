@@ -469,7 +469,12 @@
   let watchWaiting = false;
   // 揭棋：同屏对战时本地随机布子；联机/观战时暗子身份未知，靠双方密钥逐个揭开（见 jq.js）
   // layout：续局时沿用原来的随机布局（本地揭棋）
-  const mkGame = (o, layout) => (o && +o.bf ? new BF.Game() : o && +o.jq ? new XQ.Game({ jq: true, layout: layout || (mode === 'local' ? XQ.randomLayout() : null) }) : new XQ.Game());
+  // 终极兵法（鸿门宴、四面楚歌）已关（Ham 10-22）。老棋谱、联机里已有大招记录的局要能照常重放：载入的行动里有 ult，就把开关临时打开；新开一局一律关
+  const ultAllow = list => { BF.CFG.ultimates.on = (list || []).some(e => e && e.k === 'ult'); };
+  const mkGame = (o, layout) => {
+    if (o && +o.bf) BF.CFG.ultimates.on = false;
+    return o && +o.bf ? new BF.Game() : o && +o.jq ? new XQ.Game({ jq: true, layout: layout || (mode === 'local' ? XQ.randomLayout() : null) }) : new XQ.Game();
+  };
   // 兵法：技能选择状态、升级记法、调试
   const BS_NEW = /[?&]beishui=0/.test(location.search) ? 0 : 1;
   // 规则 r6（见 bingfa.js 的 CFG.r6）：2026-10-05 起是正式规则，新开的技能模式对局默认用它（记在这一局的选项 opts.r6 里，联机双方、观众、接着下的局都看这个记号；没有记号的局照旧规则）。
@@ -1355,7 +1360,7 @@
     resetTurnReview();
     game = mkGame(opts, st.layout || (game && game.opts && game.opts.layout));
     if (game.bf && st.bfbase) game.reset(st.bfbase);
-    if (game.bf) for (const e of st.bfe || []) { if (!game.apply(e)) break; }
+    if (game.bf) { ultAllow(st.bfe); for (const e of st.bfe || []) { if (!game.apply(e)) break; } }
     else for (const m of st.moves || []) game.play({ from: m.from, to: m.to, rv: m.rv, cj: m.cj });
     if (st.result) game.result = st.result;
     undoUsed = { r: 0, b: 0, ...(st.undo || {}) }; applyPz(st);
@@ -3260,6 +3265,7 @@
     const kt0 = { side: game.turn, chk: game.inCheck(), heroes: [] };
     for (const row of game.board) for (const q of row) if (q && q.nm != null) kt0.heroes.push({ id: q.id, s: q.s, t: q.t, nm: q.nm });
     if (e.k === 'mv' && e.from && e.to) { kt0.pc = game.at(e.from[0], e.from[1]); kt0.cap = game.at(e.to[0], e.to[1]); }
+    if (remote && e && e.k === 'ult') BF.CFG.ultimates.on = true;   // 老版本的对手发来大招：照开着的规则接
     const info = game.apply(e);
     if (info && rvLanded != null && e.k === 'art' && e.id === rvLanded) info.landed = true;   // 界面已经先演过落位
     rvLanded = null;
@@ -3965,6 +3971,7 @@
   // 兵法：按行动序列对齐（快照里是完整的行动序列，重放即可还原全部状态）
   function bfSync(st, watch) {
     const E = game.entries, T = st.bfe || [];
+    if (T.some(e => e && e.k === 'ult')) BF.CFG.ultimates.on = true;   // 对方发来的棋谱里有大招：照开着的规则重放
     if (st.result || JSON.stringify(E) !== JSON.stringify(T)) resetTurnReview();
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     const prefix = (a, b) => a.length <= b.length && a.every((x, i) => same(x, b[i]));
