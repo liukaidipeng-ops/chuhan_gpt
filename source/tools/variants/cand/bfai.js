@@ -18,6 +18,8 @@
   const ENV = (typeof process !== 'undefined' && process.env) || {};
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
+  // BFAI_KDX=0：危险延伸不叠加（这条线上还没延伸过才延伸）。g30 第 39 条（汉四级兵在楚九宫边）：将军延伸 2 万多次加危险延伸 6720 次，名义 3 层实际算到 7～8 层，只完成 2 层；改了以后算到 4 层（战术部门 10-22 报）
+  const KDX0 = ENV.BFAI_KDX === '0';
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
   const PFK = ENV.BFAI_PFK != null ? +ENV.BFAI_PFK : 1;   // 破釜组合枚举前先筛掉只碰到一个兵的（1 开 0 关）
   const PFG = ENV.BFAI_PFG != null ? +ENV.BFAI_PFG : 0;   // 提防破釜沉舟：每一层只细算排在前几位的走法（0 = 全都细算）
@@ -415,7 +417,7 @@
     if (++nodes > nodeCap || ((nodes & 63) === 0 && now() > deadline)) throw TIMEOUT;
     const side = S.turn, inChk = A.inCheck(S, side);
     // 将军延伸：正被将军的一方应这一步不算层数（一条线上最多延伸 CX 次）——“贴脸将军、逃、再贴”这种连杀，三层的校尉也能算到底
-    const extd = ply >= 1 && ((inChk && ext < CX) || (!inChk && ext < CX + 1 && side === kdMe && kdDanger(S, side))) ? 1 : 0;   // 危险延伸：自己的帅被堵死、对方砍不死的子下一步就能贴脸将军时也延伸一层（见 kdDanger）
+    const extd = ply >= 1 && ((inChk && ext < CX) || (!inChk && (KDX0 ? ext < 1 : ext < CX + 1) && side === kdMe && kdDanger(S, side))) ? 1 : 0;   // 危险延伸：自己的帅被堵死、对方砍不死的子下一步就能贴脸将军时也延伸一层（见 kdDanger）
     depth += extd; ext += extd;
     if (depth <= 0) {
       if (inChk && ply < 8) depth = 1;          // 被将军时不能“站着不动”估值：再往下应一步
