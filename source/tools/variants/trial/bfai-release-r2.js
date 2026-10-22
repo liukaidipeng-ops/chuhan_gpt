@@ -112,7 +112,7 @@
     if (gapR >= 1 && gapR <= 3) v += EW.r_gap3;
     if (gapB >= 1 && gapB <= 3) v -= EW.r_gap3;
     for (const s of ['r', 'b']) {
-      const m = S.merit[s], left = (S.used.ult[s] || 0) < U[s === 'r' ? 'simian' : 'hongmen'].usesPerGame, sg = s === 'r' ? 1 : -1;
+      const m = S.merit[s], left = U.on !== false && (S.used.ult[s] || 0) < U[s === 'r' ? 'simian' : 'hongmen'].usesPerGame, sg = s === 'r' ? 1 : -1;
       if (left && m >= U.cost) v += sg * EW.ult_ready; else if (left && m >= U.cost - 5) v += sg * EW.ult_near;
     }
     return v;
@@ -555,7 +555,7 @@
     for (const row of S.board) for (const p of row) if (p && p.s === me && p.t === 'r' && p.lv < BF.maxLvOf('r')) { const c = A.upCost(p); if (c > S.merit[me] && (!rookNeed || c < rookNeed)) rookNeed = c; }
     const saving = rookNeed && rookNeed - S.merit[me] <= 3;
     // 攒终极兵法：已经有两枚以上进攻子压到对方主帅跟前、军功也快够了，就先攒着
-    const ultLeft = S.used.ult[me] < U[me === 'r' ? 'simian' : 'hongmen'].usesPerGame;
+    const ultLeft = U.on !== false && S.used.ult[me] < U[me === 'r' ? 'simian' : 'hongmen'].usesPerGame;   // 终极兵法关了（Ham 10-22）：不再攒钱
     const hoard = L.depth >= 3 && ultLeft && S.merit[me] >= U.cost - 6 && S.merit[me] < U.cost && pressure(S, me) >= 2;
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
       const p = S.board[r][f]; if (!p || p.s !== me || p.t === 'k') continue;
