@@ -825,6 +825,19 @@
   function plainMoves(S) {
     return legalMoves(S, S.turn).filter(a => { const q = at(S, a.to[0], a.to[1]); return !q || q.hp <= atk(at(S, a.from[0], a.from[1])); });
   }
+  // 有没有至少一步 plainMoves：找到一步就停（evaluate 每走一步都要判一次困毙，全列出来再数太慢；结果和 plainMoves(S).length > 0 一样）
+  function hasPlainMove(S) {
+    const side = S.turn;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f]; if (!p || p.s !== side) continue;
+      const A = atk(p);
+      for (const m of moveTargets(S, f, r)) {
+        const q = at(S, m.to[0], m.to[1]); if (q && q.hp > A) continue;
+        if (attempt(S, { k: 'mv', from: m.from, to: m.to })) return true;
+      }
+    }
+    return false;
+  }
   // 轮到 S.turn 时：将死 / 困毙 / 只能停着
   function evaluate(S) {
     const side = S.turn, opp = other(side);
@@ -837,7 +850,7 @@
     }
     // 四面楚歌：楚军没被将军时可以走将，也可以直接停着
     if (side === 'b' && smActive(S)) return { mayPass: true, mustPass: !legalMoves(S, side).length };
-    if (!plainMoves(S).length) {
+    if (!hasPlainMove(S)) {
       if (restricted(S, side)) return { mustPass: !legalMoves(S, side).length, mayPass: !legalMoves(S, side).length };
       return { result: { winner: opp, loser: side, reason: 'stalemate' } };
     }
