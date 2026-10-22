@@ -231,7 +231,7 @@
   const fewPieces = S => { let n = 0; for (const row of S.board) for (const p of row) if (p && p.s === S.turn) n++; return n <= 4; };
 
   // ---------- 搜索 ----------
-  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false, T6W = 0, MCAPW = 0;
+  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false, T6W = 0, MCAPW = 0, SPEND = false;
   let nodeCap = Infinity;   // 测试用的“按搜索量收手”：搜过这么多节点就停（LEVELS.<档>.nodes），不看时间，结果可复现
   const TIMEOUT = { timeout: true };
   const hist = new Map();                     // 历史启发：哪些安静着法以前造成过剪枝
@@ -675,7 +675,7 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
-    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv; TTD = ENV.BFAI_TTD === '1' && candLv; T6W = candLv ? +(ENV.BFAI_T6 || 0) : 0; MCAPW = candLv ? +(ENV.BFAI_MCAP || 0) : 0;
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv; TTD = ENV.BFAI_TTD === '1' && candLv; T6W = candLv ? +(ENV.BFAI_T6 || 0) : 0; MCAPW = candLv ? +(ENV.BFAI_MCAP || 0) : 0; SPEND = ENV.BFAI_SPEND === '1' && candLv;
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); BMT.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
@@ -847,6 +847,17 @@
     let pick = pool[0];
     if (L.top > 1 && pool.length > 1 && Math.random() < 0.3) { const c = pool.slice(0, L.top).filter(k => k.w > -50), i = Math.floor(Math.random() * c.length); if (c.length) pick = c[i]; }   // 前几名全是输棋（一个都不剩）时就用第一名，别挑出个空的
     const pick0 = pick;
+    // BFAI_SPEND（战术部门，g29：楚军功顶在 30 憋了 30 个回合、终极兵法到第 234 条才放）：军功离上限 2 以内、
+    //   有花钱的走法（终极兵法 / 先升级）分数不比选中的差 0.3 以上，就花掉。上界在 0.3 内的先补算一次准分（限时）再比
+    if (SPEND && !fin0 && pick && S0.merit[me] >= CFG.merit.cap - 2 && !(pick.a.k === 'ult' || pick.up)) {
+      const sp = kids.filter(k => k !== pick && (k.a.k === 'ult' || k.up) && !k.off && k.v != null && k.v >= pick.v - 0.3).sort((x, y) => y.v - x.v)[0];
+      if (sp) {
+        let v = sp.done ? sp.q : null;
+        if (v == null) { deadline = Math.min(hardEnd2, now() + Math.max(400, L.budget * 0.3)); try { v = -ab(sp.S, Math.max(1, depthDone - 1), -INF, INF, 1); } catch (e) { if (e !== TIMEOUT) throw e; } finally { deadline = Infinity; nodeCap = Infinity; } }
+        if (TR) TR.spendTry = { a: actOf(sp), bound: +sp.v.toFixed(3), v: v == null ? null : +v.toFixed(3), pick: +pick.v.toFixed(3) };
+        if (v != null && v >= pick.v - 0.3) { if (TR) TR.spend = { from: actOf(pick), to: actOf(sp), v: +v.toFixed(3) }; pick = sp; }
+      }
+    }
     // 破釜沉舟每局只有一次：留着杀车这样的大子——同样的深度下，比最好的普通走法多赚不到一个大子的量就先不用
     //   （对方的召回良将还在手里时，杀了车也会被救回来，搜索里算得到，自然就不急着用）
     if (pofu.length && bestV < WIN / 2) {
