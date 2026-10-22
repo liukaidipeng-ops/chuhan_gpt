@@ -35,6 +35,7 @@ function applyRules(r) {
   const x = { ...DEFAULT_RULES, ...(r || {}) };
   if (BF.CFG.beishui) BF.CFG.beishui.on = !!x.bs;
   if (BF.CFG.r6) BF.CFG.r6.on = !!x.r6;
+  if (BF.CFG.ultimates) BF.CFG.ultimates.on = !!x.ult;   // 终极兵法（Ham 10-22 去掉）：老棋谱里放过的照样能重放
   if (J0) { const J = BF.CFG.skills.juma; for (const k of Object.keys(J)) delete J[k]; Object.assign(J, JSON.parse(JSON.stringify(J0))); }
   if (BF.CFG.attack) { if (AE0) BF.CFG.attack.e = AE0.slice(); else delete BF.CFG.attack.e; }
   if (M0) { BF.CFG.merit.autoIncomeFromRound = M0.from; BF.CFG.merit.phase3FromRound = M0.p3; }
@@ -51,7 +52,8 @@ function replayBF(data, n) {
 function detectRules(data) {
   const o = data.opts || {};
   const base = ('bs' in o || 'r6' in o) ? [{ bs: !!o.bs, r6: !!o.r6 }] : [{}, { bs: false }].concat(BF.CFG.r6 ? [{ r6: true }] : []);
-  const tries = []; for (const era of Object.keys(ERAS)) for (const b of base) tries.push({ ...b, era });
+  const ult = (data.entries || []).some(e => e && e.k === 'ult');   // 棋谱里放过终极兵法：按当时开着的规则重放
+  const tries = []; for (const era of Object.keys(ERAS)) for (const b of base) tries.push({ ...b, era, ult });
   let err = null, loose = null;
   for (const r of tries) {
     applyRules(r);
