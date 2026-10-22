@@ -1,5 +1,5 @@
 // 用法：node run.js <bingfa.js> <bfai.js> <out.json>：一批局面、固定节点数、固定随机种子，记下每个局面电脑的走法和节点数
-const fs=require('fs'),path=require('path');const SRC='/home/user/chuhan_gpt/source/';
+const fs=require('fs'),path=require('path');const SRC=require('path').resolve(__dirname,'../..')+'/';
 global.XQ=require(SRC+'src/rules.js');const BF=global.BF=require(path.resolve(process.argv[2]));BF.CFG.beishui.on=true;BF.CFG.r6.on=true;
 const AI=require(path.resolve(process.argv[3]));AI.LEVELS.hard.nodes=40000;AI.LEVELS.hard.budget=1e9;
 const pos=[];for(const f of fs.readdirSync(SRC+'tools/exam_tactics'))if(f.endsWith('.json')){const q=JSON.parse(fs.readFileSync(SRC+'tools/exam_tactics/'+f));if(q.S)pos.push(q.S);}
