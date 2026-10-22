@@ -387,6 +387,18 @@ for (const bsOn of [false, true]) {
   assert(positions >= 20 && pairs > 1000, `组合核对的局面太少：${positions} 个局面 ${pairs} 个组合`);
   console.log(bsOn ? '背水组合 OK' : '破釜组合 OK', positions, '个局面', pairs, '个组合');
 }
+// 终极兵法开关（Ham 10-22：先去掉鸿门宴、四面楚歌，代码留给以后 PVE）：默认关，关着时不列、不让放；打开时照旧
+{
+  assert.strictEqual(BF.CFG.ultimates.on, false, '默认应关掉终极兵法');
+  for (const side of ['r', 'b']) {
+    const g = setup([[4, 0, K('r')], [3, 9, K('b')], [0, 3, P('r', 'p')], [8, 6, P('b', 'p')]], { turn: side, merit: { r: 25, b: 25 } });   // 帅将不同列（照面不合法）
+    const hasUlt = () => BF.ai.expand(g.S).some(k => k.a.k === 'ult');
+    ok(!hasUlt(), side + ' 关着时不该列出终极兵法');
+    ok(!BF.attempt(g.S, { k: 'ult' }), side + ' 关着时不该能放');
+    if (side === 'b') { BF.CFG.ultimates.on = true; try { ok(hasUlt(), '楚打开后够钱应能列出鸿门宴'); } finally { BF.CFG.ultimates.on = false; } }   // 汉的四面楚歌还要楚将周围有足够汉子，这里不摆
+  }
+  console.log('终极兵法开关 OK');
+}
 BF.CFG.beishui.on = true;
 require('./turn-review.test.js');
 console.log('BINGFA ALL OK');

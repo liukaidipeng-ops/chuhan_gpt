@@ -8,6 +8,7 @@
   // 更新说明（设置里、大厅底部点「更新」查看；最新的放最前）
   const NEWS = [
     ['第六版', '2026 年 10 月', [
+      '去掉了「鸿门宴」和「四面楚歌」两招终极兵法：技能模式里不再出现，规则代码保留，留给以后的单人闯关（Ham 10-22）',
       '技能模式里开着「回合结束提醒」时，落子不用再点两下；将帅的石材皮肤提前下载，开局不再先是木头（象棋TD）',
       '修了升级后棋子没有马上换成银/金装的毛病：升级时棋子头上的牌子读不到数据导致换装晚了一秒多（象棋TD）',
       '电脑边等边想：你想棋的时候，「霸王」「兵仙」在后台接着算，猜对了回应更有分量；设置里「电脑边等边想」可关，省电模式、切到后台、电量低时自己不算（象棋Balance）',
@@ -692,7 +693,7 @@
         const need = U.simian.minPiecesInRadius, near = s === 'r' ? game.simianCount() : need;
         const ultOk = game.merit[s] >= U.cost && near >= need;
         const ultTxt = used.ult[s] ? '' : game.merit[s] >= U.cost && near < need ? `·将旁${near}/${need}` : '·' + U.cost;
-        chips.push(`<span data-k="ult" class="${used.ult[s] ? 'used' : tap ? (uw ? 'ok' : 'go') : ultOk ? 'red' : 'ok'}${tap ? ' tap' : ''}${tap && uw ? ' off' : ''}" data-tip="${escTip(ultTip(s) + (uw ? '<br><em>' + uw[1] + '</em>' : ''))}"${tapAttr('ult', uw)}>${BF.ULT_CN[s]}${ultTxt}</span>`);
+        if (U.on !== false) chips.push(`<span data-k="ult" class="${used.ult[s] ? 'used' : tap ? (uw ? 'ok' : 'go') : ultOk ? 'red' : 'ok'}${tap ? ' tap' : ''}${tap && uw ? ' off' : ''}" data-tip="${escTip(ultTip(s) + (uw ? '<br><em>' + uw[1] + '</em>' : ''))}"${tapAttr('ult', uw)}>${BF.ULT_CN[s]}${ultTxt}</span>`);
         if (s === 'r' && fx.hm) chips.push(`<span class="red" data-tip="${escTip(ultTip('b'))}">鸿门宴 ${fx.hm}</span>`);
         if (s === 'b' && fx.sm) chips.push(`<span class="red" data-tip="${escTip(ultTip('r'))}">涣散 ${fx.sm}</span>`);
         if (s === 'b' && fx.pf) chips.push(`<span data-tip="破釜沉舟之后楚军暂时不能用兵种技能">封技 ${fx.pf}</span>`);
@@ -3044,7 +3045,7 @@
       if (!isCompact()) {
         const aw = artWhy(side, a), uw = ultWhy(side, a);
         B.push(btn('art', 'art', !aw, BF.ART_CN[side], aw ? aw[0] : '每局一次', aw ? aw[1] : '', '', artTip(side) + (aw ? '<br><em>' + aw[1] + '</em>' : '')));
-        B.push(btn('ult', 'ult', !uw, BF.ULT_CN[side], uw ? uw[0] : BF.CFG.ultimates.cost + ' 功', uw ? uw[1] : '', '', ultTip(side) + (uw ? '<br><em>' + uw[1] + '</em>' : '')));
+        if (BF.CFG.ultimates.on !== false) B.push(btn('ult', 'ult', !uw, BF.ULT_CN[side], uw ? uw[0] : BF.CFG.ultimates.cost + ' 功', uw ? uw[1] : '', '', ultTip(side) + (uw ? '<br><em>' + uw[1] + '</em>' : '')));
       }
       if (a.pass) B.push(`<button class="sk${a.mustPass ? ' ready' : ''}" data-a="pass" data-tip="${escTip(a.mustPass ? '无子可走，只能停着（这一回合不行动）' : '四面楚歌期间楚军没被将军时可以停着：这一回合不行动')}">停 着<small>${a.mustPass ? '无子可走' : '按兵不动'}</small></button>`);
       if (!a.p) hint = game.freeUsed ? '已架拒马 · 请再走一步棋' : `${SIDE_ARMY[side]}行动 · 军功 ${game.merit[side]}`;
