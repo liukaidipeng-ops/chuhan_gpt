@@ -101,5 +101,7 @@ const KingStone = (() => {
     mesh.userData.kingStone = '01-R4';
     return true;
   }
-  return { apply, restore, setEnvironment, get state() { return state; } };
+  // 提前下载（Ham 10-22：开局时将帅还是木头，过一会儿才变）：选了技能模式、开局、或老玩家进页面空闲时就叫一声；重复调用无害
+  const warm = () => { try { load(); } catch (e) { } };
+  return { apply, restore, setEnvironment, warm, get state() { return state; } };
 })();

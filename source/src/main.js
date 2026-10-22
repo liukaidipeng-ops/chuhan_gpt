@@ -1261,6 +1261,7 @@
     // 技能模式的楚方主帅兵法用哪一套，记在这一局的选项里（bs = 1 背水一战）：新开的局用背水一战；
     //   没有这个记号的（改规则之前开的局接着下、房主还是旧版本、旧的复盘）照旧用破釜沉舟——联机双方、观众、接着下的局都看同一个记号，不会一边一套
     if (+opts.bf) { if (opts.bs == null && !state && (m === 'local' || m === 'ai' || m === 'host')) opts.bs = BS_NEW; BF.CFG.beishui.on = !!+opts.bs; }
+    if (+opts.bf) { KingStone.warm(); store.set('bfSeen', 1); }   // 将帅石材贴图提前下载；记一笔：以后进页面空闲时就预热
     if (+opts.bf) try { Voice.loadBF(); } catch (e) { }   // 技能模式专用的配音包（升级、名将、技能的台词）
     // 试行规则同样记在这一局的选项里（r6 = 1）：只有网址带 ?r6=1 的机器新开的局才有；没有这个记号的一律照现行规则
     //   自己新开的局（本地、人机、房主）每次都按这台设备现在的选择定；跟着别人的（客人、观众）和接着下的局看带来的记号
@@ -2431,8 +2432,10 @@
   const BAD_SAY = ['怎么？你想害老子？', '莫要害老子！', '你想作甚！']; let badSay = -1;
   // 落子确认（设置里可以关）：第一下只把落点框住，再点同一个落点才走；点别的落点改框那个，点别处取消
   let pendTo = null;
+  // 技能模式里开着「回合结束提醒」时不再要点两下（Ham 10-22：提醒框已经是一道确认，两道太繁琐）
+  const tapTwice = () => +S.confirm && !(game && game.bf && +S.turnReminder);
   function confirmMove(to) {   // 返回 true：这一下只是选中落点，先不走
-    if (!+S.confirm) return false;
+    if (!tapTwice()) return false;
     if (pendTo && pendTo[0] === to[0] && pendTo[1] === to[1]) { pendTo = null; return false; }
     pendTo = to.slice();
     const L = withBad(bfDmg(selMoves), sel[0], sel[1]); L.ghost = pendTo;
@@ -2576,7 +2579,7 @@
     // 点了目标的技能一律先“瞄准”：目标被瞄准圈框住，下方出现「确定」，点了才发动（会伤到谁照旧先标出来）
     const aimed = a.k === 'sk' && !!a.to;
     const h = bfNeedConfirm(a) || (aimed ? (bfHarm(a) || { list: [], ev: [] }) : null);
-    if (!h && a.k === 'mv' && +S.confirm) {   // 落子确认：普通走子 / 攻击也先框住落点，再点一次（或点「确定」）才走
+    if (!h && a.k === 'mv' && tapTwice()) {   // 落子确认：普通走子 / 攻击也先框住落点，再点一次（或点「确定」）才走
       const L = withBad(bfDmg(selMoves), from[0], from[1]); L.ghost = a.to;
       bfMode = { kind: 'confirm', a, hint: '再次点击或点「确定」落子' };   // Ham 审批台 art-042 选 A
       Board.showMoves(from, L, !!+opts.hints); Sfx.select(); renderBar(); return;
@@ -4093,9 +4096,9 @@
   try { if (sessionStorage.getItem('xq3d-back')) { sessionStorage.removeItem('xq3d-back'); $('lobby').classList.remove('intro'); } } catch (e) { }
   const VAR_NOTE = { std: '标准中国象棋', jq: '揭棋：十五子反扣，走动方知真身', bf: '技能模式：升级、生命值、兵种技能与主帅兵法' };
   const paintVar = () => { $('varNote').textContent = VAR_NOTE[ropts.v] || ''; $('optSkin').classList.toggle('hidden', ropts.v === 'bf'); };
-  bindSeg($('pCreate'), 'data-k', k => ropts[k], (k, v) => { ropts[k] = k === 'side' || k === 'v' ? v : +v; store.set('ropts', ropts); if (k === 'v') paintVar(); });
+  bindSeg($('pCreate'), 'data-k', k => ropts[k], (k, v) => { ropts[k] = k === 'side' || k === 'v' ? v : +v; store.set('ropts', ropts); if (k === 'v') { paintVar(); if (v === 'bf') KingStone.warm(); } });
   paintVar();
-  bindSeg($('pAI'), 'data-a', k => aopts[k], (k, v) => { aopts[k] = k === 'side' ? v : +v; store.set('aopts', aopts); if (k === 'bf') paintLv(); });
+  bindSeg($('pAI'), 'data-a', k => aopts[k], (k, v) => { aopts[k] = k === 'side' ? v : +v; store.set('aopts', aopts); if (k === 'bf') { paintLv(); if (+v) KingStone.warm(); } });
   // 兵仙只有技能模式有：选普通象棋时灰掉；已选兵仙又切回象棋，就退到霸王
   const paintLv = () => { if (!aopts.bf && aopts.level === 'xhard') aopts.level = 'hard'; $('aiLv').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.v === aopts.level); if (b.dataset.v === 'xhard') b.disabled = !aopts.bf; }); };
   $('aiLv').querySelectorAll('button').forEach(b => b.onclick = () => { aopts.level = b.dataset.v; store.set('aopts', aopts); paintLv(); Sfx.select && Sfx.select(); });
@@ -4919,6 +4922,7 @@
     doBF, bfButton, bfClick, get bfMode() { return bfMode; }, BF, BFX, specGo, specFlick, exportGame, hostRoom, roomSit, get room() { return room; }, get specNames() { return specNames; }, anaOpen, anaPick, anaExplain, anaDemo, get anaDet() { return anaDet; }, get RP() { return RP; },
     get badN() { return badN; }, get JK() { return JK; }, get JC() { return JC; }, get pendingJ() { return pendingJ; }, get jqBad() { return jqBad; }, jqReady, capChip, XQ,
   };
+  try { if (+store.get('bfSeen', 0)) setTimeout(() => KingStone.warm(), 3000); } catch (e) { }   // 玩过技能模式的人：进页面几秒后就把将帅石材贴图备好，开局不再先看到木头将帅
   if (location.hash === '#local') { startGame('local', 'r', { undo: 3, total: 15, step: 60, hints: 1 }, { intro: false }); return; }
   if (location.hash === '#jq') { startGame('local', 'r', { undo: 99, total: 0, step: 0, hints: 1, jq: 1 }, { intro: false }); return; }
   if (location.hash === '#bf' || location.hash === '#bfdebug') {
