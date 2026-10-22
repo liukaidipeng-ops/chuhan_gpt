@@ -15,7 +15,7 @@
   //   士、相 / 象是守家的子，多一点血用处不大（平时出不了九宫、过不了河）；到决战解禁之后才和进攻子一样算
   //   例外：对方有两点血以上的进攻子时，士的第二点血很要紧——二级士攻击 2，是唯一砍得死“贴脸将军的两血子”的守子
   const KD = (typeof process !== 'undefined' && process.env && process.env.BFAI_KD ? process.env.BFAI_KD.split(',').map(Number) : [2.0, 1.0, 0.4, 0.9, 1.2, 0.6]);   // 砍不死的子贴近对方主帅的加分：车贴身 / 隔一格 / 同线，马，兵贴身 / 隔一格
-  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1' };   // 候选：开关写死（网页里没有环境变量）
+  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1' };   // 开关写死（网页里没有环境变量）：r1 的开关 + 预想接口 ponderStart / ponderMove / ponderStop
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
@@ -30,7 +30,10 @@
   let candLv = true;
   const UPX0 = ENV.BFAI_UPX === '1'; let UPX = UPX0;
   const DEFUP0 = ENV.BFAI_DEFUP === '1' || ENV.BFAI_DEFUP === '2'; let DEFUP = DEFUP0;
-  const CHKUP0 = ENV.BFAI_CHKUP === '1'; let CHKUP = CHKUP0;   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
+  const CHKUP0 = ENV.BFAI_CHKUP === '1'; let CHKUP = CHKUP0;
+  const ATKUP0 = ENV.BFAI_ATKUP === '1'; let ATKUP = ATKUP0;
+  const CAPUP0 = ENV.BFAI_CAPUP === '1' || ENV.BFAI_CAPUP === '2'; let CAPUP = CAPUP0;
+  const CAPUP20 = ENV.BFAI_CAPUP2 === '1'; let CAPUP2 = CAPUP20;   // 对方：升了多血、能打到大子的升级留名额   // 根上：能吃子、升了多血的子留名额   // 升级后攻击力够一下吃掉原来打不死的子：留名额   // 被将军：能吃将军子的升级也留名额   // 根上：被筛掉的守子升级也留一个名额   // 对方升级名额：解锁技能的升级也算
   const PFC = +(ENV.BFAI_PFC || 0), PFA = +(ENV.BFAI_PFA || 0), PFD = +(ENV.BFAI_PFD || 0);
   const HPF = [0, 1, 1.5, 1.9, 2.2], HPF_DEF = [0, 1, 1.15, 1.28, 1.36], HPF_ADV = [0, 1, 1.55, 1.75, 1.85];
   // 两点血以上的进攻子逼到了对方家门口：过了河，或者是占着九宫那三条竖线的车（它来贴脸将军，一级的士、帅砍不死它）
@@ -164,6 +167,8 @@
     if (EW.heavy && hvR !== hvB) { const u = (me === 'r' ? 1 : -1) * EW.heavy * (hvR ? 1 : -1); v += u; if (P) P['贴脸'] += u; }
     const mt = EW.merit * (S.merit[me] - S.merit[other(me)]);   // 军功能换成血量和等级
     v += mt; if (P) P['军功'] += mt;
+    // BFAI_MCAP：军功顶在上限（差 1 以内）再挣就白挣了，扣分逼它花掉（升级或终极兵法）。g29：楚 30 个回合顶在 30、终极兵法憋到第 234 条才放
+    if (MCAPW) { const cap = CFG.merit.cap, at = s => (S.merit[s] >= cap - 1 ? MCAPW : 0), u = at(other(me)) - at(me); v += u; if (P) P['军功'] += u; }
     if (EPOT) { const u = (me === 'r' ? 1 : -1) * potW(S); v += u; if (P) P['军功'] += u; }
     // 还没用的主帅兵法留着有价值（免得为了一个兵就把「召回良将」用掉）
     const art = s => (S.used.art[s] ? 0 : (s === 'r' ? EW.art_r : EW.art_b) + (EART && artOpenW(S, s) ? (s === 'r' ? EW.art_r_open : EW.art_b_open) : 0));
@@ -176,7 +181,24 @@
     const pf = Math.max(0, (S.fx.pf || 0) - S.cnt.b);
     if (pf && (PFC || PFA)) { const u = (me === 'r' ? 1 : -1) * Math.min(1, pf / CFG.generalArts.pofu.skillLockRounds) * (PFC + PFA * Math.min(4, attR)); v += u; if (P) P['兵法'] += u; }
     if (fin && S.occ) { const u = EW.occ * ((S.occ[me] || 0) - (S.occ[other(me)] || 0)); v += u; if (P) P['决战'] += u; }
+    if (T6W && !fin) { const u = T6W * (t6(S, me, me === 'r' ? kb : kr) - t6(S, other(me), me === 'r' ? kr : kb)); v += u; if (P) P['贴脸'] += u; }
     return v;
+  }
+  // BFAI_T6（战术部门 T6 规格 v0.1）：side 有三级兵、军功够升四级（或四级兵神速营冷却好了），神速营 1～2 格能落到紧挨对方帅将的空格
+  const D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  function t6(S, s, ek) {
+    if (!ek) return 0;
+    const b = S.board;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = b[r][f]; if (!p || p.s !== s || p.t !== 'p' || Math.max(Math.abs(f - ek[0]), Math.abs(r - ek[1])) > 3) continue;
+      if (!(p.lv === 4 ? S.cnt[s] >= (p.c_shensu || 0) : p.lv === 3 && (A.upCost(p) ?? Infinity) <= S.merit[s])) continue;
+      for (const [df, dr] of D8) for (let k = 1; k <= 2; k++) {
+        const tf = f + df * k, tr = r + dr * k;
+        if (tf < 0 || tf > 8 || tr < 0 || tr > 9 || b[tr][tf]) continue;
+        if (Math.max(Math.abs(tf - ek[0]), Math.abs(tr - ek[1])) === 1) return 1;
+      }
+    }
+    return 0;
   }
   // 估值拆分（给复盘工具用，C62 B2）：子力 / 位置 / 贴脸 / 帅 / 军功 / 兵法 / 终极兵法 / 决战，和 score 是同一段代码算出来的；
   //   各项相加和 合计（= score）只差浮点舍入（< 1e-9）
@@ -209,7 +231,7 @@
   const fewPieces = S => { let n = 0; for (const row of S.board) for (const p of row) if (p && p.s === S.turn) n++; return n <= 4; };
 
   // ---------- 搜索 ----------
-  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false;
+  let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false, T6W = 0, MCAPW = 0, SPEND = false;
   let nodeCap = Infinity;   // 测试用的“按搜索量收手”：搜过这么多节点就停（LEVELS.<档>.nodes），不看时间，结果可复现
   const TIMEOUT = { timeout: true };
   const hist = new Map();                     // 历史启发：哪些安静着法以前造成过剪枝
@@ -255,9 +277,9 @@
   let upAll = false;   // 裁判开关 LEVELS.<档>.upAll（只给复盘工具用，默认关）：对方“先升级再走”所有升法都看，第 1、第 3 层都看
   // 自己下一回合也可能先升级（第 38 题：下回合进账就够升车绝杀，原来只在对方那一层考虑升级，这笔账看不到）
   const UP20 = ENV.BFAI_UP2 === '1'; let UP2 = UP20; const UP2N = +(ENV.BFAI_UP2N || 9), UP2R = +(ENV.BFAI_UP2R || 0);   // BFAI_UP3：对方第 3 层也考虑先升级，和 UP2 对称（只给己方第 2 层会太乐观：g22 第 44 条以为马被吃了能升级吃回车，K11-1）
-  let pfEval = false, pfNoUp2 = false;   // BFAI_PFNOUP2：评估破釜沉舟时不加 UP2 那层（和线上一样估破釜；UP2 会把杀车之后的局面估得太好，策略测试 P4）
+  let pfEval = false, pfNoUp2 = false, up2Line = false; const UP3L = ENV.BFAI_UP3L === '1';   // BFAI_PFNOUP2：评估破釜沉舟时不加 UP2 那层（和线上一样估破釜；UP2 会把杀车之后的局面估得太好，策略测试 P4）
     // BFAI_PFUP3：只在根上评估破釜沉舟的那几次搜索里，对方第 3 层也可以先升级（UP2 只给己方第 2 层会把破釜估得太好：P4、K11-1；全局开 UP3 太贵）
-  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval) && ply === 3)) && upPly >= 0)) && !S.upgraded;
+  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval || (UP3L && up2Line)) && ply === 3)) && upPly >= 0)) && !S.upgraded;
   let pfPly = -1;   // 在第几层考虑“对方（楚）用破釜沉舟连走两步”（-1 = 不考虑）
   const pfCache = new Map();   // 每个局面的破釜沉舟组合只算一次（逐层加深时重复用）
   const upCache = new Map();   // “对方先升级再走”的那几个局面，同样每个局面只生成一次
@@ -282,6 +304,17 @@
         if (ck.size) for (const u of ups.slice(3)) { if (n >= 2) break; if (top.includes(u)) continue;
           let at = null; for (let r = 0; r < 10 && !at; r++) for (let f = 0; f < 9; f++) { const q = u.S.board[r][f]; if (q && q.id === u.id) { at = [f, r]; break; } }
           if (at && A.moveTargets(u.S, at[0], at[1]).some(m => { const q = u.S.board[m.to[1]][m.to[0]]; return q && ck.has(q.id); })) { top.push(u); n++; } } }
+      // 升了级攻击力变大、原来打不死的子现在能一下吃掉的，也留名额，最多两个（Ham 标 g25 第 13 条：楚升炮吃炮，以为两血炮挨相一下会弹回，没看到汉先升相、相攻击 2 一下吃掉）
+      if (ATKUP) { let n = 0;
+        for (const u of ups.slice(3)) { if (n >= 2) break; if (top.includes(u)) continue;
+          let at = null; for (let r = 0; r < 10 && !at; r++) for (let f = 0; f < 9; f++) { const q = u.S.board[r][f]; if (q && q.id === u.id) { at = [f, r]; break; } }
+          if (!at) continue; const q1 = u.S.board[at[1]][at[0]], q0 = S.board[at[1]][at[0]], a1 = A.atk(q1), a0 = A.atk(q0);
+          if (a1 > a0 && A.moveTargets(u.S, at[0], at[1]).some(m => { const t = u.S.board[m.to[1]][m.to[0]]; return t && t.s !== side && t.hp <= a1 && t.hp > a0; })) { top.push(u); n++; } } }
+      // BFAI_CAPUP2：对方升了多一点血、能打到我方大子的，也留一个名额：打完站得住、不会被一换一（K12-1，g25 第 13 条：汉升炮再炮吃炮，二血炮挨兵一下弹回）
+      if (CAPUP2) for (const u of ups.slice(3)) { if (top.includes(u)) continue;
+        let at = null; for (let r = 0; r < 10 && !at; r++) for (let f = 0; f < 9; f++) { const q = u.S.board[r][f]; if (q && q.id === u.id) { at = [f, r]; break; } }
+        if (!at) continue; const q1 = u.S.board[at[1]][at[0]], q0 = S.board[at[1]][at[0]];
+        if (q1.hp > q0.hp && A.moveTargets(u.S, at[0], at[1]).some(m => { const t = u.S.board[m.to[1]][m.to[0]]; return t && t.s !== side && t.t !== 'p' && t.t !== 'k'; })) { top.push(u); break; } }
       ups = top; }
     if (side === 'b' && PFX) for (const u of ups) { pfAlias.set(u.S, S); pfUp.set(u.S, u.id); }
     upCache.set(S, ups);
@@ -363,7 +396,7 @@
     return false;
   }
   // 局面指纹（两个 32 位散列拼成 53 位的数）
-  const TTB = new Map(), wasNull = [];
+  const TTB = new Map(), wasNull = [], BMT = new Map();
   function fp(S) {
     let h1 = 2166136261, h2 = 5381;
     const mix = x => { h1 = Math.imul(h1 ^ x, 16777619); h2 = (Math.imul(h2, 33) ^ x) | 0; };
@@ -390,8 +423,10 @@
     }
     if (fewPieces(S) && stuck(S)) return -WIN + ply;
     // 查表——同一局面、同样剩余层数、同样的延伸次数和“这层要不要考虑对方升级 / 破釜”
-    const tkey = fp(S) + ':' + depth + ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), tte = TTB.get(tkey), a0 = alpha;
+    const tsuf = ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), fpS = fp(S), tkey = fpS + ':' + depth + tsuf, tte = TTB.get(tkey), a0 = alpha;
     if (tte) { const v = fromTT(tte.v, ply); if (tte.f === 0 || (tte.f === 1 && v >= beta) || (tte.f === 2 && v <= alpha)) return v; }
+    if (TTD) for (let dd = depth + 1; dd <= depth + 2; dd++) { const e = TTB.get(fpS + ':' + dd + tsuf); if (!e) continue;   // BFAI_TTD：算得更深的表项也能直接用
+      const v = fromTT(e.v, ply); if (e.f === 0 || (e.f === 1 && v >= beta) || (e.f === 2 && v <= alpha)) return v; }
     // 让一步试试（只在霸王，C65）：没被将军、还剩至少 3 层、自己还有车马炮时，先假装停一手让对方连走，少算 3 层；这样对方都翻不过来，这条线就不细算了。
     //   本回合升过级、决战里不试（升级不换手、决战规则不同）；连着两手都“停”也不试
     if (lmrOn && ply >= 1 && depth >= 3 && !inChk && !wasNull[ply] && beta < WIN / 2 && !S.upgraded && !S.final) {
@@ -407,14 +442,17 @@
       // BFAI_UP2N / UP2R：UP2 加出来的那层（不是对方应着的那层）只留前几个升级、少算几层——每个升级都是整棵子树，全留会少算两层（K11-1，g22 第 44 条）
       if (UP2 && ply !== upPly && !upAll) { ups = ups.slice(0, UP2N); dr = UP2R; }
       for (const u of ups) {
-        const v = ab(u.S, Math.max(0, depth - extd - dr), alpha, beta, ply, ext - extd);
+        const isU2 = UP2 && ply === 2 && ply !== upPly && !upAll, was = up2Line;   // BFAI_UP3L：己方第 2 层先升了级的那条线，对方第 3 层也可以先升级（只在这条线上，比全局 UP3 便宜）
+        if (isU2) up2Line = true;
+        let v; try { v = ab(u.S, Math.max(0, depth - extd - dr), alpha, beta, ply, ext - extd); } finally { up2Line = was; }
         if (v > best) { best = v; bm = null; }
         if (v > alpha) alpha = v;
         if (alpha >= beta) { if (TTB.size < 300000) TTB.set(tkey, { v: toTT(best, ply), f: 1, m: null }); return best; }
       }
     }
     const list = order(A.gen(S, false), killers[ply]); let mi = 0;
-    if (tte && tte.m != null) { const i = list.findIndex(it => mkey(it.a) === tte.m); if (i > 0) { const x = list[i]; list.splice(i, 1); list.unshift(x); } }   // 上次最好的一步先算
+    const hm = tte && tte.m != null ? tte.m : BMH ? BMT.get(fpS) : null;   // BFAI_BMH：同样剩余层数的表项没有时，用上一轮（浅一层）记下的最好一步排序
+    if (hm != null) { const i = list.findIndex(it => mkey(it.a) === hm); if (i > 0) { const x = list[i]; list.splice(i, 1); list.unshift(x); } }   // 上次最好的一步先算
     for (const it of list) {
       const r = BF.attempt(S, it.a); if (!r || r.free) continue;
       legal++; mi++;
@@ -423,6 +461,7 @@
       if (w) v = w === side ? WIN - ply : -WIN + ply;
       // 排第 7 个以后、还剩至少 4 层的安静着法少算两层（C65；原来从第 3 个起少算一层）
       else if (lmrOn && ply >= 1 && depth >= 2 && mi > 2 && !inChk && it.a.k === 'mv' && !it.q && !A.inCheck(r.S, r.S.turn)) { v = -ab(r.S, depth - 2 - (mi > 6 && depth >= 4 ? 1 : 0), -alpha - 0.01, -alpha, ply + 1, ext); if (v > alpha) v = -ab(r.S, depth - 1, -beta, -alpha, ply + 1, ext); }
+      else if (PVS && mi > 1 && beta - alpha > 0.011) { v = -ab(r.S, depth - 1, -alpha - 0.01, -alpha, ply + 1, ext); if (v > alpha && v < beta) v = -ab(r.S, depth - 1, -beta, -alpha, ply + 1, ext); }   // BFAI_PVS：第一步之后先用窄窗口试，比 alpha 好再细算
       else v = -ab(r.S, depth - 1, -beta, -alpha, ply + 1, ext);
       if (v > best) { best = v; bm = it.a; }
       if (v > alpha) alpha = v;
@@ -463,6 +502,7 @@
       return -ab(r.S, depth - 1, -beta, -alpha, ply + 1, ext);
     }
     if (TTB.size < 300000) TTB.set(tkey, { v: toTT(best, ply), f: best <= a0 ? 2 : best >= beta ? 1 : 0, m: bm ? mkey(bm) : null });   // 记下来
+    if (BMH && bm && BMT.size < 300000) BMT.set(fpS, mkey(bm));
     return best;
   }
 
@@ -470,7 +510,7 @@
   const LEVELS = {
     easy: { depth: 1, q: 2, noise: 1.3, top: 3, up: 0.5, budget: 500 },
     mid: { depth: 3, q: 3, noise: 0.3, top: 1, up: 1, budget: 2500 },
-    hard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 5000, minNodes: 20000, dyn: 2.7 },   // dyn：难走的局面最多放宽到几倍预算（C66，Ham 拍板单 ai_time1 = a：平时不变、关键时刻多想）
+    hard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 3000, minNodes: 20000, dyn: 2.7 },   // dyn：难走的局面最多放宽到几倍预算（C66，Ham 拍板单 ai_time1 = a：平时不变、关键时刻多想）
     xhard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 9000, minNodes: 60000, dyn: 2.7 },   // 比霸王更强的一档（C70，Ham 拍板单 ai_time2 = a）：和霸王一样，只是想 3 倍久——平时约 9 秒，难走时最多约 24 秒；对霸王 58.8%（600 局）
     ana: { depth: 3, q: 3, noise: 0, top: 1, up: 1, budget: 1200 },   // 对局分析用（TD，Ham 10-09）：不加噪声，每个局面限时 1.2 秒
   };
@@ -564,6 +604,10 @@
           for (const mv of A.moveTargets(S, f, r)) { const q = S.board[mv.to[1]][mv.to[0]]; if (q && q.s !== me && (q.hp <= a0 || q.t === 'k')) before.add(q.id); }
           for (const mv of A.moveTargets(c.S, f, r)) { const q = c.S.board[mv.to[1]][mv.to[0]]; if (q && q.s !== me && (q.hp <= a1 || q.t === 'k') && !before.has(q.id)) { rel = true; break; } } }
         if (rel && A.atk(p1) > A.atk(p0)) { top.push(c); added++; } } }
+    // BFAI_CAPUP：根上“能打到对方大子、升了多一点血”的那枚子也留一个名额：吃完站在那儿，多一点血就不会被吃回去（实25，g7 第 39 回合：先升相再相吃马，守子筛子把它挡了）
+    if (CAPUP) { const rest = skipped.concat(cand).filter(c => !top.includes(c)).sort((x, y) => y.gain - x.gain);
+      for (const c of rest) { const f = c.at[0], r = c.at[1], p0 = S.board[r][f], p1 = c.S.board[r][f]; if (!p0 || !p1 || p1.hp <= p0.hp) continue;
+        if (A.moveTargets(c.S, f, r).some(mv => { const q = c.S.board[mv.to[1]][mv.to[0]]; return q && q.s !== me && q.t !== 'p' && q.t !== 'k' && (ENV.BFAI_CAPUP !== '2' || q.hp <= A.atk(p1)); })) { top.push(c); break; } } }   // 打得死打不死都算：打完站得住才是要点；BFAI_CAPUP=2 只算升完真打得死的（K8-75：升底线炮去打三血士打不动，白花 5 军功、断了连将）
     return top;
   }
   // 裁判开关 rootUpAll：根上自己的每一种升法都进搜索，不筛
@@ -618,7 +662,8 @@
   // 根节点：返回一串要依次执行的行动（升级 → 拒马 → 主行动）
   async function think(S0, level, tick, opt) {
     const L0 = LEVELS[level] || LEVELS.mid, t0 = now(), me = S0.turn, seq = [];
-    let L = tick ? { ...L0, budget: Math.min(L0.budget, 1400) } : L0;   // 在主线程里算（开不了 Worker）时少想一会儿，免得卡画面
+    const ctl = opt && opt.ctl;   // 预想（ponderStart）：不按预算收手，算到 ctl.end（外面可以随时改）为止
+    let L = tick && !ctl ? { ...L0, budget: Math.min(L0.budget, 1400) } : L0;   // 在主线程里算（开不了 Worker）时少想一会儿，免得卡画面
     // 看钟（C71）：opt.maxMs = 这一步最多能用多少毫秒（房间计时剩下的，由界面算好传进来）。最坏情况约是预算的 3.5 倍
     //   （难走时放宽 dyn 倍、第 3 层兜底两倍、最后补算破釜 / 一步杀），所以预算按 1/3.5 缩；不传就和原来一样
     if (opt && opt.maxMs > 0 && !L.nodes && !L.fixedDepth) { const b = Math.max(150, Math.min(L.budget, opt.maxMs / 3.5)); if (b < L.budget) L = { ...L, budget: b, minNodes: Math.round((L.minNodes || 0) * b / L.budget) }; }
@@ -630,8 +675,8 @@
     if (L.fixedDepth) L = { ...L, depth: L.fixedDepth };   // 裁判开关：固定层数，不看时间也不看节点
     let S = S0, last = now();
     const breathe = async () => { if (tick && now() - last > 12) { await tick(); last = now(); } };
-    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; UP2 = UP20 && candLv;
-    lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
+    candLv = L.depth >= 5 || ENV.BFAI_ALLLV === '1'; UPX = UPX0 && candLv; DEFUP = DEFUP0 && candLv; CHKUP = CHKUP0 && candLv; ATKUP = ATKUP0 && candLv; CAPUP = CAPUP0 && candLv; CAPUP2 = CAPUP20 && candLv; UP2 = UP20 && candLv; BMH = ENV.BFAI_BMH === '1' && candLv; PVS = ENV.BFAI_PVS === '1' && candLv; TTD = ENV.BFAI_TTD === '1' && candLv; T6W = candLv ? +(ENV.BFAI_T6 || 0) : 0; MCAPW = candLv ? +(ENV.BFAI_MCAP || 0) : 0; SPEND = ENV.BFAI_SPEND === '1' && candLv;
+    lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); BMT.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
     const byNodes = L.nodes > 0;   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
@@ -724,7 +769,8 @@
     for (let d = 1; d <= L.depth; d++) {
       if (d > 1 && now() > hardEnd) { why = 'time'; break; }
       let soft = t0 + dynB;
-      if (L.fixedDepth) { deadline = Infinity; nodeCap = Infinity; }
+      if (ctl) { if (d > 1 && now() > ctl.end) { why = 'time'; break; } deadline = d < 2 ? Infinity : ctl.end; nodeCap = Infinity; }
+      else if (L.fixedDepth) { deadline = Infinity; nodeCap = Infinity; }
       else if (byNodes) {
         // 前两层一定算完（保证有着可走）；再往下每一层开始前看剩下的搜索量够不够，算到上限就停
         if (dynX && !dynOn && d > 2 && nodes - n0 > L.nodes * 0.5 && (crit || depthDone <= 3)) { dynOn = true; dynN = Math.round(L.nodes * dynX); if (TR) TR.dyn = d; }
@@ -760,7 +806,7 @@
           if (k.nv > alpha) alpha = k.nv;
           n++;
           await breathe();
-          if (!L.fixedDepth && !byNodes && d > 3 && now() > soft && (!(L.minNodes > 0 && nodes - n0 < L.minNodes) || now() > t0 + L.budget * 1.5)) { cut = true; break; }
+          if (ctl ? d > 1 && now() > ctl.end : !L.fixedDepth && !byNodes && d > 3 && now() > soft && (!(L.minNodes > 0 && nodes - n0 < L.minNodes) || now() > t0 + L.budget * 1.5)) { cut = true; break; }
         }
       } catch (e) { if (e !== TIMEOUT) throw e; cut = true; }
       deadline = Infinity; nodeCap = Infinity;
@@ -801,6 +847,17 @@
     let pick = pool[0];
     if (L.top > 1 && pool.length > 1 && Math.random() < 0.3) { const c = pool.slice(0, L.top).filter(k => k.w > -50), i = Math.floor(Math.random() * c.length); if (c.length) pick = c[i]; }   // 前几名全是输棋（一个都不剩）时就用第一名，别挑出个空的
     const pick0 = pick;
+    // BFAI_SPEND（战术部门，g29：楚军功顶在 30 憋了 30 个回合、终极兵法到第 234 条才放）：军功离上限 2 以内、
+    //   有花钱的走法（终极兵法 / 先升级）分数不比选中的差 0.3 以上，就花掉。上界在 0.3 内的先补算一次准分（限时）再比
+    if (SPEND && !fin0 && pick && S0.merit[me] >= CFG.merit.cap - 2 && !(pick.a.k === 'ult' || pick.up)) {
+      const sp = kids.filter(k => k !== pick && (k.a.k === 'ult' || k.up) && !k.off && k.v != null && k.v >= pick.v - 0.3).sort((x, y) => y.v - x.v)[0];
+      if (sp) {
+        let v = sp.done ? sp.q : null;
+        if (v == null) { deadline = Math.min(hardEnd2, now() + Math.max(400, L.budget * 0.3)); try { v = -ab(sp.S, Math.max(1, depthDone - 1), -INF, INF, 1); } catch (e) { if (e !== TIMEOUT) throw e; } finally { deadline = Infinity; nodeCap = Infinity; } }
+        if (TR) TR.spendTry = { a: actOf(sp), bound: +sp.v.toFixed(3), v: v == null ? null : +v.toFixed(3), pick: +pick.v.toFixed(3) };
+        if (v != null && v >= pick.v - 0.3) { if (TR) TR.spend = { from: actOf(pick), to: actOf(sp), v: +v.toFixed(3) }; pick = sp; }
+      }
+    }
     // 破釜沉舟每局只有一次：留着杀车这样的大子——同样的深度下，比最好的普通走法多赚不到一个大子的量就先不用
     //   （对方的召回良将还在手里时，杀了车也会被救回来，搜索里算得到，自然就不急着用）
     if (pofu.length && bestV < WIN / 2) {
@@ -910,6 +967,52 @@
   }
   // apiVersion：这份电脑用到的 BF.ai 接口版本（BF.ai.version）；工具拉历史版本对打时拿它核对
   // obsVersion：观察接口（trace 思考记录、scoreParts、裁判开关 upAll / rootUpAll / fixedDepth）的版本，复盘工具按它判断能不能用（C62 B4）
-  const BFAI = { think, score, scoreParts, LEVELS, apiVersion: 1, obsVersion: 1, trace: false };
+  // ---------- 预想（tac-008 ②，和象棋TD 对齐的接口）：人想棋的时候电脑接着算 ----------
+  //   ponderStart(S, level, tick)：电脑刚走完、轮到人。先用 3 万节点猜人这一步，再对“猜的那步走完”的局面往深里算（最多 PONDER_MAX 毫秒）。
+  //     tick 必须给（Worker 里 () => new Promise(r => setTimeout(r, 0))），算的时候让出线程，才收得到 move / stop。只在霸王、兵仙（depth ≥ 5）起作用。
+  //   ponderMove(S2, level, tick, opt)：人走完了，代替 think。猜中：再算一个正常预算就交；没猜中：停掉预想、照常 think。think.last.ponder = { hit, ms }
+  //   ponderStop()：悔棋、认输、退出、切后台、换局时停掉并丢弃预想
+  const PONDER_MAX = 60000;
+  let pond = null;
+  const applySeq = (S, seq) => { try { const G = new BF.Game(); G.reset(BF.cloneState(S)); for (const a of seq) if (!G.apply(a)) return null; return G.result ? null : G.S; } catch (e) { return null; } };
+  function ponderStart(S, level, tick) {
+    const prev = ponderStop();
+    const L = LEVELS[level]; if (!L || !(L.depth >= 5) || !tick) return false;
+    const ctl = { end: Infinity, stop: false }, p = { ctl, key: null, t0: now(), level };
+    pond = p;
+    p.promise = (async () => {
+      if (prev) await prev;   // 上一次预想先收完（think 用的是同一套模块级状态，不能两个一起算）
+      if (ctl.stop) return null;
+      LEVELS.__pq = { ...L, nodes: 30000, budget: 1e9, noise: 0, dyn: 0 };
+      let pred; try { pred = await think(BF.cloneState(S), '__pq', tick); } finally { delete LEVELS.__pq; }
+      if (ctl.stop || !pred || !pred.length) return null;
+      const S1 = applySeq(S, pred); if (!S1) return null;
+      p.key = fp(S1); p.pred = pred; p.t1 = now(); ctl.end = Math.min(ctl.end, p.t0 + PONDER_MAX);
+      const seq = await think(BF.cloneState(S1), level, tick, { ctl });
+      return ctl.stop ? null : { seq, last: think.last };
+    })().catch(() => null);
+    return true;
+  }
+  function ponderStop() {
+    const p = pond; pond = null; if (!p) return null;
+    p.ctl.stop = true; p.ctl.end = -Infinity; deadline = -Infinity;   // 正在算的那一层马上收手
+    return p.promise;
+  }
+  async function ponderMove(S2, level, tick, opt) {
+    const p = pond; pond = null;
+    if (p) {
+      const hit = p.key != null && !p.ctl.stop && p.level === level && fp(S2) === p.key;
+      if (hit) {
+        const L = LEVELS[level] || LEVELS.mid, extra = Math.max(150, Math.min(L.budget, opt && opt.maxMs > 0 ? opt.maxMs / 3.5 : Infinity));
+        p.ctl.end = Math.min(p.ctl.end, now() + extra); deadline = Math.min(deadline, p.ctl.end);
+        const r = await p.promise;
+        if (r && r.seq && r.seq.length) { think.last = { ...r.last, ponder: { hit: true, ms: Math.round(now() - p.t1) } }; return r.seq; }
+      } else { p.ctl.stop = true; p.ctl.end = -Infinity; deadline = -Infinity; await p.promise; }
+    }
+    const seq = await think(S2, level, undefined, opt);
+    if (think.last) think.last.ponder = { hit: false };
+    return seq;
+  }
+  const BFAI = { think, score, scoreParts, LEVELS, ponderStart, ponderMove, ponderStop, ponderInfo: () => pond && { pred: pond.pred || null, ready: pond.key != null }, apiVersion: 1, obsVersion: 1, trace: false };
   if (typeof module !== 'undefined' && module.exports) module.exports = BFAI; else global.BFAI = BFAI;
 })(typeof window !== 'undefined' ? window : globalThis);
