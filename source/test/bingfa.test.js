@@ -399,6 +399,27 @@ for (const bsOn of [false, true]) {
   }
   console.log('终极兵法开关 OK');
 }
+// 军功回血（bal-010）：默认关；开着时 20 功给己方半场受伤的子回 1 滴、占这一步、不影响升级；帅将不回、不超满血、对方半场不行
+{
+  assert.strictEqual(BF.CFG.heal.on, false, '默认应关掉军功回血');
+  BF.CFG.r6.on = false;
+  const mk = () => setup([[4, 0, K('r')], [3, 9, K('b')], [0, 3, P('r', 'r', 2, { hp: 1 })], [8, 6, P('r', 'n', 2, { hp: 1 })], [1, 2, P('r', 'c', 2)], [8, 9, P('b', 'p')]], { turn: 'r', merit: { r: 25, b: 0 } });
+  let g = mk();
+  ok(!BF.attempt(g.S, { k: 'heal', at: [0, 3] }), '关着时不能回血');
+  BF.CFG.heal.on = true;
+  try {
+    g = mk();
+    const r = BF.attempt(g.S, { k: 'heal', at: [0, 3] });
+    ok(r && r.S.board[3][0].hp === 2 && r.S.merit.r === 5 && r.S.turn === 'b', '己方半场受伤的车回 1 滴、扣 20 功、换手');
+    ok(!BF.attempt(g.S, { k: 'heal', at: [8, 6] }), '对方半场的马不能回');
+    ok(!BF.attempt(g.S, { k: 'heal', at: [1, 2] }), '满血的炮不能回');
+    ok(!BF.attempt(g.S, { k: 'heal', at: [4, 0] }), '帅不能回');
+    ok(BF.ai.expand(g.S).filter(k => k.a.k === 'heal').length === 1, 'expand 只列出能回的那一枚');
+    g.S.merit.r = 19; ok(!BF.attempt(g.S, { k: 'heal', at: [0, 3] }), '不够 20 功不能回');
+    g = mk(); g.S.merit.r = 30; const c0 = g.S.merit.r; ok(g.apply({ k: 'up', at: [1, 2] }), '先升级'); ok(c0 - g.S.merit.r <= 10, '升级花费应不超过 10'); ok(g.apply({ k: 'heal', at: [0, 3] }), '同一回合升完级还能回血（不影响升级）');
+  } finally { BF.CFG.heal.on = false; }
+  console.log('军功回血 OK');
+}
 BF.CFG.beishui.on = true;
 require('./turn-review.test.js');
 console.log('BINGFA ALL OK');

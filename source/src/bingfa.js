@@ -39,6 +39,7 @@
     },
     generalArts: { fromRound: 1, xiaohe: { usesPerGame: 1 }, pofu: { usesPerGame: 1, steps: 2, mayEndInCheck: false, skillLockRounds: 3 } },
     ultimates: { on: false, cost: 20, hongmen: { usesPerGame: 1, rounds: 3 }, simian: { usesPerGame: 1, rounds: 2, radius: 2, minPiecesInRadius: 3 } },   // on：终极兵法（汉四面楚歌 / 楚鸿门宴）开关。Ham 10-22："先去掉鸿门宴和大招，简单一些"——默认关，代码留给以后 PVE
+    heal: { on: false, cost: 20, amount: 1 },   // 军功回血（bal-010，Ham 10-22 方向）：20 功给己方半场一枚受伤的子回 1 滴，占这一步、不影响升级；帅将不回、不超过本级满血。默认关，上线另挂卡
     longCheckLimit: 3,
     // 背水一战（on = true 时代替楚方的破釜沉舟；2026-10-05 起默认开，on = false 回到破釜沉舟）。开着时两边的主帅兵法都只给弱势方用：
     //   轮到自己时，己方车马炮最多还剩 maxLeft 枚、而且比对方的车马炮少，才能用——楚方的背水一战、汉方的召回良将都看这一条（每局一次照旧）；
@@ -507,6 +508,14 @@
       S.merit[side] -= U.cost;
       S.used.ult[side]++;
       ev.push({ e: 'ult', s: side });
+    } else if (a.k === 'heal') {
+      // 军功回血（bal-010）：占这一步；只给站在己方半场、受了伤的子（不含帅将）回 amount 滴，不超过本级满血
+      const H = CFG_CUR.heal; if (!H || H.on !== true) return null;
+      if (side === 'b' && smActive(S)) return null;   // 四面楚歌：楚军涣散、什么都不能做（鸿门宴只是汉帅不能动，回血照常）
+      const p = own(a.at[0], a.at[1]); if (!p || p.t === 'k' || !ownHalf(side, a.at[1])) return null;
+      const max = hpOf(p.t, p.lv); if (!(p.hp < max) || S.merit[side] < H.cost) return null;
+      S.merit[side] -= H.cost; p.hp = Math.min(max, p.hp + H.amount);
+      extra.heal = { at: a.at.slice(), hp: p.hp }; ev.push({ e: 'heal', id: p.id, at: a.at.slice(), hp: p.hp, s: side });
     } else if (a.k === 'pass') {
       // 四面楚歌期间的楚军：没被将军就可以停着（也可以走将）；鸿门宴期间的汉军：无子可走才停着
       if (side === 'b' && smActive(S)) { if (inCheckF(S, 'b')) return null; }
@@ -612,6 +621,13 @@
     }
     return out;
   }
+  // 军功回血能回的格子（bal-010）：开关开着、军功够、己方半场、受伤、不是帅将。合不合法最终以 resolve 为准
+  function healTargets(S) {
+    const H = CFG_CUR.heal, side = S.turn, out = [];
+    if (!H || H.on !== true || S.merit[side] < H.cost) return out;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.s === side && p.t !== 'k' && ownHalf(side, r) && p.hp < hpOf(p.t, p.lv)) out.push([f, r]); }
+    return out;
+  }
   // —— 电脑用：枚举当前走子方的全部主行动（走子、主动技能、召回良将、终极兵法、停着），连同结算后的状态 ——
   //   不含升级和不占行动的拒马（那两样由电脑另行决定），也不含破釜沉舟（组合太多，见 pofuPairs）
   function expand(S) {
@@ -637,6 +653,7 @@
       if (side === 'r' && artOpen(S) && S.used.art.r < CFG_CUR.generalArts.xiaohe.usesPerGame) { const up = R6() && R6().reviveUp; for (const { t, ...a } of reviveActs(S)) { push(a); if (up) push({ ...a, up: true }); } }   // r6：召回 + 当回合升级
       const U = CFG_CUR.ultimates;
       if (U.on !== false && S.merit[side] >= U.cost && S.used.ult[side] < U[side === 'r' ? 'simian' : 'hongmen'].usesPerGame) push({ k: 'ult' });
+      for (const at of healTargets(S)) push({ k: 'heal', at });
     }
     if (!out.length) push({ k: 'pass' });
     return out;
@@ -667,6 +684,7 @@
       if (side === 'r' && artOpen(S) && S.used.art.r < CFG_CUR.generalArts.xiaohe.usesPerGame) { const up = R6() && R6().reviveUp && !S.upgraded; for (const { t, ...a } of reviveActs(S)) { out.push({ a, p: null, q: null, art: t }); if (up) out.push({ a: { ...a, up: true }, p: null, q: null, art: t }); } }   // r6：召回 + 当回合升级
       const U = CFG_CUR.ultimates;
       if (U.on !== false && S.merit[side] >= U.cost && S.used.ult[side] < U[side === 'r' ? 'simian' : 'hongmen'].usesPerGame) out.push({ a: { k: 'ult' }, p: null, q: null, ult: true });
+      for (const at of healTargets(S)) out.push({ a: { k: 'heal', at }, p: S.board[at[1]][at[0]], q: null, heal: true });
     }
     return out;
   }
