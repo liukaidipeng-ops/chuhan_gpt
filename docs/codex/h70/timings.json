@@ -1,0 +1,443 @@
+[
+  {
+    "rep": 0,
+    "state": 0,
+    "version": "baseline",
+    "ms": 756.8892129999999,
+    "nodes": 9509
+  },
+  {
+    "rep": 0,
+    "state": 0,
+    "version": "v1",
+    "ms": 544.569851,
+    "nodes": 9509
+  },
+  {
+    "rep": 0,
+    "state": 0,
+    "version": "candidate",
+    "ms": 453.1490689999998,
+    "nodes": 9509
+  },
+  {
+    "rep": 0,
+    "state": 1,
+    "version": "baseline",
+    "ms": 284.6711729999997,
+    "nodes": 5886
+  },
+  {
+    "rep": 0,
+    "state": 1,
+    "version": "v1",
+    "ms": 303.1235150000002,
+    "nodes": 5886
+  },
+  {
+    "rep": 0,
+    "state": 1,
+    "version": "candidate",
+    "ms": 295.555871,
+    "nodes": 5886
+  },
+  {
+    "rep": 0,
+    "state": 2,
+    "version": "baseline",
+    "ms": 320.7500180000002,
+    "nodes": 6734
+  },
+  {
+    "rep": 0,
+    "state": 2,
+    "version": "v1",
+    "ms": 353.7737269999998,
+    "nodes": 6635
+  },
+  {
+    "rep": 0,
+    "state": 2,
+    "version": "candidate",
+    "ms": 333.02143999999953,
+    "nodes": 6635
+  },
+  {
+    "rep": 1,
+    "state": 0,
+    "version": "candidate",
+    "ms": 384.09808299999986,
+    "nodes": 9509
+  },
+  {
+    "rep": 1,
+    "state": 0,
+    "version": "v1",
+    "ms": 390.9389570000003,
+    "nodes": 9509
+  },
+  {
+    "rep": 1,
+    "state": 0,
+    "version": "baseline",
+    "ms": 343.2619110000005,
+    "nodes": 9509
+  },
+  {
+    "rep": 1,
+    "state": 1,
+    "version": "candidate",
+    "ms": 278.3196969999999,
+    "nodes": 5886
+  },
+  {
+    "rep": 1,
+    "state": 1,
+    "version": "v1",
+    "ms": 279.373775,
+    "nodes": 5886
+  },
+  {
+    "rep": 1,
+    "state": 1,
+    "version": "baseline",
+    "ms": 243.49248499999976,
+    "nodes": 5886
+  },
+  {
+    "rep": 1,
+    "state": 2,
+    "version": "candidate",
+    "ms": 283.9067589999995,
+    "nodes": 6635
+  },
+  {
+    "rep": 1,
+    "state": 2,
+    "version": "v1",
+    "ms": 324.0230440000005,
+    "nodes": 6635
+  },
+  {
+    "rep": 1,
+    "state": 2,
+    "version": "baseline",
+    "ms": 233.36152799999945,
+    "nodes": 6734
+  },
+  {
+    "rep": 2,
+    "state": 0,
+    "version": "baseline",
+    "ms": 396.5956990000004,
+    "nodes": 9509
+  },
+  {
+    "rep": 2,
+    "state": 0,
+    "version": "v1",
+    "ms": 652.8208909999994,
+    "nodes": 9509
+  },
+  {
+    "rep": 2,
+    "state": 0,
+    "version": "candidate",
+    "ms": 678.4304169999996,
+    "nodes": 9509
+  },
+  {
+    "rep": 2,
+    "state": 1,
+    "version": "baseline",
+    "ms": 439.4032220000008,
+    "nodes": 5886
+  },
+  {
+    "rep": 2,
+    "state": 1,
+    "version": "v1",
+    "ms": 498.52181200000086,
+    "nodes": 5886
+  },
+  {
+    "rep": 2,
+    "state": 1,
+    "version": "candidate",
+    "ms": 492.68430199999966,
+    "nodes": 5886
+  },
+  {
+    "rep": 2,
+    "state": 2,
+    "version": "baseline",
+    "ms": 383.87149900000077,
+    "nodes": 6734
+  },
+  {
+    "rep": 2,
+    "state": 2,
+    "version": "v1",
+    "ms": 502.9295149999998,
+    "nodes": 6635
+  },
+  {
+    "rep": 2,
+    "state": 2,
+    "version": "candidate",
+    "ms": 497.8107799999998,
+    "nodes": 6635
+  },
+  {
+    "rep": 3,
+    "state": 0,
+    "version": "candidate",
+    "ms": 678.2478499999997,
+    "nodes": 9509
+  },
+  {
+    "rep": 3,
+    "state": 0,
+    "version": "v1",
+    "ms": 671.9020330000003,
+    "nodes": 9509
+  },
+  {
+    "rep": 3,
+    "state": 0,
+    "version": "baseline",
+    "ms": 344.15222299999914,
+    "nodes": 9509
+  },
+  {
+    "rep": 3,
+    "state": 1,
+    "version": "candidate",
+    "ms": 277.0172739999998,
+    "nodes": 5886
+  },
+  {
+    "rep": 3,
+    "state": 1,
+    "version": "v1",
+    "ms": 278.6059120000009,
+    "nodes": 5886
+  },
+  {
+    "rep": 3,
+    "state": 1,
+    "version": "baseline",
+    "ms": 243.53099199999997,
+    "nodes": 5886
+  },
+  {
+    "rep": 3,
+    "state": 2,
+    "version": "candidate",
+    "ms": 286.06527800000003,
+    "nodes": 6635
+  },
+  {
+    "rep": 3,
+    "state": 2,
+    "version": "v1",
+    "ms": 280.8159919999998,
+    "nodes": 6635
+  },
+  {
+    "rep": 3,
+    "state": 2,
+    "version": "baseline",
+    "ms": 218.9374029999999,
+    "nodes": 6734
+  },
+  {
+    "rep": 4,
+    "state": 0,
+    "version": "baseline",
+    "ms": 344.15673100000095,
+    "nodes": 9509
+  },
+  {
+    "rep": 4,
+    "state": 0,
+    "version": "v1",
+    "ms": 393.65949700000056,
+    "nodes": 9509
+  },
+  {
+    "rep": 4,
+    "state": 0,
+    "version": "candidate",
+    "ms": 385.8154949999989,
+    "nodes": 9509
+  },
+  {
+    "rep": 4,
+    "state": 1,
+    "version": "baseline",
+    "ms": 255.93517999999858,
+    "nodes": 5886
+  },
+  {
+    "rep": 4,
+    "state": 1,
+    "version": "v1",
+    "ms": 279.9429540000001,
+    "nodes": 5886
+  },
+  {
+    "rep": 4,
+    "state": 1,
+    "version": "candidate",
+    "ms": 278.7805609999996,
+    "nodes": 5886
+  },
+  {
+    "rep": 4,
+    "state": 2,
+    "version": "baseline",
+    "ms": 220.48781800000143,
+    "nodes": 6734
+  },
+  {
+    "rep": 4,
+    "state": 2,
+    "version": "v1",
+    "ms": 284.91673100000116,
+    "nodes": 6635
+  },
+  {
+    "rep": 4,
+    "state": 2,
+    "version": "candidate",
+    "ms": 286.1752450000022,
+    "nodes": 6635
+  },
+  {
+    "rep": 5,
+    "state": 0,
+    "version": "candidate",
+    "ms": 384.1380190000018,
+    "nodes": 9509
+  },
+  {
+    "rep": 5,
+    "state": 0,
+    "version": "v1",
+    "ms": 391.8466960000005,
+    "nodes": 9509
+  },
+  {
+    "rep": 5,
+    "state": 0,
+    "version": "baseline",
+    "ms": 346.6099899999972,
+    "nodes": 9509
+  },
+  {
+    "rep": 5,
+    "state": 1,
+    "version": "candidate",
+    "ms": 277.7523170000022,
+    "nodes": 5886
+  },
+  {
+    "rep": 5,
+    "state": 1,
+    "version": "v1",
+    "ms": 280.5364339999978,
+    "nodes": 5886
+  },
+  {
+    "rep": 5,
+    "state": 1,
+    "version": "baseline",
+    "ms": 244.16512299999886,
+    "nodes": 5886
+  },
+  {
+    "rep": 5,
+    "state": 2,
+    "version": "candidate",
+    "ms": 287.2584080000015,
+    "nodes": 6635
+  },
+  {
+    "rep": 5,
+    "state": 2,
+    "version": "v1",
+    "ms": 286.33581200000117,
+    "nodes": 6635
+  },
+  {
+    "rep": 5,
+    "state": 2,
+    "version": "baseline",
+    "ms": 219.96103500000027,
+    "nodes": 6734
+  },
+  {
+    "rep": 6,
+    "state": 0,
+    "version": "baseline",
+    "ms": 344.2609339999981,
+    "nodes": 9509
+  },
+  {
+    "rep": 6,
+    "state": 0,
+    "version": "v1",
+    "ms": 387.2273079999977,
+    "nodes": 9509
+  },
+  {
+    "rep": 6,
+    "state": 0,
+    "version": "candidate",
+    "ms": 383.9272120000023,
+    "nodes": 9509
+  },
+  {
+    "rep": 6,
+    "state": 1,
+    "version": "baseline",
+    "ms": 245.98373199999696,
+    "nodes": 5886
+  },
+  {
+    "rep": 6,
+    "state": 1,
+    "version": "v1",
+    "ms": 279.985729,
+    "nodes": 5886
+  },
+  {
+    "rep": 6,
+    "state": 1,
+    "version": "candidate",
+    "ms": 277.7728509999979,
+    "nodes": 5886
+  },
+  {
+    "rep": 6,
+    "state": 2,
+    "version": "baseline",
+    "ms": 219.18558900000062,
+    "nodes": 6734
+  },
+  {
+    "rep": 6,
+    "state": 2,
+    "version": "v1",
+    "ms": 283.7685029999993,
+    "nodes": 6635
+  },
+  {
+    "rep": 6,
+    "state": 2,
+    "version": "candidate",
+    "ms": 281.7155960000018,
+    "nodes": 6635
+  }
+]

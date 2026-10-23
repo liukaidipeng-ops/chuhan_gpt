@@ -215,20 +215,20 @@
     if (S.occ) { if (S.occ.r >= N) return 'r'; if (S.occ.b >= N) return 'b'; }
     return null;
   }
-  // 走子方已经无路可走（将死或困毙；引擎里“只剩打不死的攻击”也算困毙）。只在子很少的残局里细查
-  function stuck(S) {
-    const kids = A.expand(S);
-    if (!kids.length) return true;
-    if (kids.length === 1 && kids[0].a.k === 'pass') return false;
-    if (A.inCheck(S, S.turn)) return false;
-    for (const k of kids) {
-      if (k.a.k !== 'mv') continue;
-      const q = S.board[k.a.to[1]][k.a.to[0]], q2 = k.S.board[k.a.to[1]][k.a.to[0]];
-      if (!q || !q2 || q2.s === S.turn) return false;
+  // 先确认普通走子能否移动或杀死目标；没有时由规则引擎裁定困毙、将死或允许停着。
+  // 搜索末端、升级后和免费行动后的状态也必须遵守同一规则。
+  function terminalWinner(S, inChk) {
+    if (S.final || inChk) return BF.evaluate(S).result?.winner || null;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f]; if (!p || p.s !== S.turn) continue;
+      for (const m of A.moveTargets(S, f, r)) {
+        const q = S.board[m.to[1]][m.to[0]];
+        if (q && q.hp > A.atk(p)) continue;
+        if (BF.attempt(S, { k: 'mv', from: m.from, to: m.to })) return null;
+      }
     }
-    return !kids.some(k => k.a.k === 'pass');
+    return BF.evaluate(S).result?.winner || null;
   }
-  const fewPieces = S => { let n = 0; for (const row of S.board) for (const p of row) if (p && p.s === S.turn) n++; return n <= 4; };
 
   // ---------- 搜索 ----------
   let nodes = 0, deadline = Infinity, qMax = 3, lmrOn = false, BMH = false, PVS = false, TTD = false, T6W = 0, MCAPW = 0, SPEND = false;
@@ -253,6 +253,8 @@
   function qs(S, alpha, beta, ply, qd) {
     if (++nodes > nodeCap || ((nodes & 63) === 0 && now() > deadline)) throw TIMEOUT;
     const side = S.turn;
+    const winner = terminalWinner(S, A.inCheck(S, side));
+    if (winner) return winner === side ? WIN - ply : -WIN + ply;
     const stand = score(S, side);
     if (qd >= qMax) return stand;
     if (stand >= beta) return stand;
@@ -421,7 +423,10 @@
       if (inChk && ply < 8) depth = 1;          // 被将军时不能“站着不动”估值：再往下应一步
       else return qs(S, alpha, beta, ply, 0);
     }
-    if (fewPieces(S) && stuck(S)) return -WIN + ply;
+    if (!inChk) {
+      const winner = terminalWinner(S, false);
+      if (winner) return winner === side ? WIN - ply : -WIN + ply;
+    }
     // 查表——同一局面、同样剩余层数、同样的延伸次数和“这层要不要考虑对方升级 / 破釜”
     const tsuf = ':' + ext + ':' + (upAt(S, ply) ? 1 : 0) + (ply === pfPly ? 2 : 0), fpS = fp(S), tkey = fpS + ':' + depth + tsuf, tte = TTB.get(tkey), a0 = alpha;
     if (tte) { const v = fromTT(tte.v, ply); if (tte.f === 0 || (tte.f === 1 && v >= beta) || (tte.f === 2 && v <= alpha)) return v; }

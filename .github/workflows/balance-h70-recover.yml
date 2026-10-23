@@ -1,0 +1,153 @@
+name: Balance H70 missing-pair recovery
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SOURCE_COMMIT: ecdb26ec9029563a06a393423b923cc89ff65468
+  ORIGINAL_RUN_ID: "38268266763"
+
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download all completed original chunks
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.ORIGINAL_RUN_ID }}
+          pattern: h70-chunk-*
+          path: original-parts
+      - name: Verify the 36 completed original chunks and their payloads
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const required=[0,2,3,4,6,7,8,9,10,11,12,14,15,16,17,19,20,22,23,24,25,27,29,31,33,34,35,36,37,38,39,40,44,45,46,47];
+          const candidate='97a43005662ab923cd5dd0f4fea6fa5d83477a5b';
+          const baseline='11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5';
+          const files=[];
+          const walk=d=>{for(const n of fs.readdirSync(d)){const p=path.join(d,n),s=fs.statSync(p);s.isDirectory()?walk(p):files.push(p)}};
+          walk('original-parts');
+          const assert=(ok,msg)=>{if(!ok)throw Error(msg)};
+          for(const chunk of required){
+            const matches=files.filter(f=>f.endsWith('chunk-'+chunk+'.json'));
+            assert(matches.length===1,'expected one JSON for chunk '+chunk+', got '+matches.length);
+            const x=JSON.parse(fs.readFileSync(matches[0],'utf8')), args=x.args||{}, rs=x.results||[], es=x.errors||[];
+            assert(JSON.stringify(args.match)===JSON.stringify(['git:'+candidate,'git:'+baseline]),'candidate/baseline mismatch in chunk '+chunk);
+            assert(args.level==='hard'&&String(args.nodes).includes('hard=100000'),'search settings mismatch in chunk '+chunk);
+            assert(args.open===10&&args.openAI==='tools/variants/bfai_t3p.js'&&args.openNodes===60000&&args.fixed===true,'opening/fixed settings mismatch in chunk '+chunk);
+            assert(es.length===0&&rs.length===12,'incomplete/error payload in chunk '+chunk);
+            const got=new Set(rs.map(r=>r.seed+'|'+String(!!r.flip)));
+            const expected=new Set();
+            for(let seed=500000+chunk*6;seed<500000+chunk*6+6;seed++){expected.add(seed+'|false');expected.add(seed+'|true')}
+            assert(got.size===12&&[...expected].every(k=>got.has(k)),'seed/flip mismatch in chunk '+chunk);
+          }
+          console.log('verified original chunks:',required.length);
+          NODE
+      - name: Preserve original artifacts for 90 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: h70-original-parts-preserved
+          path: original-parts/
+          retention-days: 90
+
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        chunk: [1,5,13,18,21,26,28,30,32,41,42,43,48,49]
+        pair: [0,1,2,3,4,5]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_COMMIT }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Reproduce exactly one missing swapped pair
+        working-directory: source
+        run: |
+          mkdir -p ../match-recovery
+          seed=$((500000 + ${{ matrix.chunk }} * 6 + ${{ matrix.pair }}))
+          node tools/bfsim.js --match git:97a43005662ab923cd5dd0f4fea6fa5d83477a5b,git:11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5 --games 2 --seed "$seed" --level hard --nodes hard=100000 --open 10 --open-ai tools/variants/bfai_t3p.js --open-nodes 60000 --fixed --jobs 4 --quiet --json "../match-recovery/chunk-${{ matrix.chunk }}-pair-${{ matrix.pair }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: h70-recovery-chunk-${{ matrix.chunk }}-pair-${{ matrix.pair }}
+          path: match-recovery/
+          retention-days: 90
+
+  collect:
+    needs: [preserve, recover]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Download successful original chunks
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.ORIGINAL_RUN_ID }}
+          pattern: h70-chunk-*
+          path: match-parts
+          merge-multiple: true
+      - name: Download recovered pairs from this run
+        uses: actions/download-artifact@v4
+        with:
+          pattern: h70-recovery-chunk-*
+          path: match-parts
+          merge-multiple: true
+      - name: Validate every JSON before aggregation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const candidate='97a43005662ab923cd5dd0f4fea6fa5d83477a5b';
+          const baseline='11738bf7e5ffdb0234da370adb5e3c6c0fcb0ee5';
+          const files=[];
+          const walk=d=>{for(const n of fs.readdirSync(d)){const p=path.join(d,n),s=fs.statSync(p);s.isDirectory()?walk(p):files.push(p)}};
+          walk('match-parts');
+          const jsons=files.filter(f=>f.endsWith('.json'));
+          const seen=new Set(), errors=[];
+          const assert=(ok,msg)=>{if(!ok)throw Error(msg)};
+          for(const file of jsons){
+            const x=JSON.parse(fs.readFileSync(file,'utf8')), args=x.args||{}, rs=x.results||[], es=x.errors||[];
+            assert(JSON.stringify(args.match)===JSON.stringify(['git:'+candidate,'git:'+baseline]),'candidate/baseline mismatch: '+file);
+            assert(args.level==='hard'&&String(args.nodes).includes('hard=100000'),'search settings mismatch: '+file);
+            assert(args.open===10&&args.openAI==='tools/variants/bfai_t3p.js'&&args.openNodes===60000&&args.fixed===true,'opening/fixed settings mismatch: '+file);
+            errors.push(...es.map(e=>({file,error:e})));
+            for(const r of rs){
+              assert(Number.isInteger(r.seed)&&r.seed>=500000&&r.seed<=500299,'unexpected seed in '+file);
+              const key=r.seed+'|'+String(!!r.flip);
+              assert(!seen.has(key),'duplicate seed/flip '+key);
+              seen.add(key);
+            }
+          }
+          const expected=[];
+          for(let seed=500000;seed<=500299;seed++)for(const flip of [false,true])expected.push(seed+'|'+flip);
+          const missing=expected.filter(k=>!seen.has(k));
+          assert(errors.length===0,'game errors: '+errors.length);
+          assert(seen.size===600&&missing.length===0,'coverage mismatch: unique='+seen.size+' missing='+missing.slice(0,20).join(','));
+          console.log('validated JSON files:',jsons.length,'unique games:',seen.size);
+          NODE
+      - name: Aggregate and require all 600 unique seed/side games
+        run: node source/tools/h70_match_collect.js match-parts h70-match-results
+      - uses: actions/upload-artifact@v4
+        with:
+          name: h70-600-game-gate-recovered
+          path: h70-match-results/
+          retention-days: 90
