@@ -1,8 +1,8 @@
 {
   "question": "tools/exam_plan/K19-1-plan-user19-r8.json",
-  "candidate": "tools/variants/ci/release_r10.js",
+  "candidate": "tools/variants/ci/release_r11.js",
   "reference": "tools/variants/ci/release_r1.js",
   "seeds": 10,
   "nodes": 250000,
-  "note": "K19-1 正式复核（r10 冻版 87824B / SHA256 0FDDB174…AD269）：被考 = r10 产品候选，参照 = release_r1（战术部门要求），对手 = src/bfai.js，10 种子 × 250k，metric=both。2026-10-24 ops 排。"
+  "note": "K19-1 正式复核（r11 产品候选，r10-lite）：被考 = release_r11，参照 = release_r1，对手 = src/bfai.js，10 种子 × 250k，metric=both。2026-10-25 ops 排（替换 r10 后按 GO 重排）。"
 }
