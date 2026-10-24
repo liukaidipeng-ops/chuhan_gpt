@@ -15,7 +15,7 @@
   //   士、相 / 象是守家的子，多一点血用处不大（平时出不了九宫、过不了河）；到决战解禁之后才和进攻子一样算
   //   例外：对方有两点血以上的进攻子时，士的第二点血很要紧——二级士攻击 2，是唯一砍得死“贴脸将军的两血子”的守子
   const KD = (typeof process !== 'undefined' && process.env && process.env.BFAI_KD ? process.env.BFAI_KD.split(',').map(Number) : [2.0, 1.0, 0.4, 0.9, 1.2, 0.6]);   // 砍不死的子贴近对方主帅的加分：车贴身 / 隔一格 / 同线，马，兵贴身 / 隔一格
-  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1' };   // 开关写死（网页里没有环境变量）：r1 的开关 + 预想接口 ponderStart / ponderMove / ponderStop
+const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1' };   // 开关写死（网页里没有环境变量）：r1 的开关 + 本回合修法 + 预想接口 ponderStart / ponderMove / ponderStop
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
@@ -279,7 +279,7 @@
   const UP20 = ENV.BFAI_UP2 === '1'; let UP2 = UP20; const UP2N = +(ENV.BFAI_UP2N || 9), UP2R = +(ENV.BFAI_UP2R || 0);   // BFAI_UP3：对方第 3 层也考虑先升级，和 UP2 对称（只给己方第 2 层会太乐观：g22 第 44 条以为马被吃了能升级吃回车，K11-1）
   let pfEval = false, pfNoUp2 = false, up2Line = false; const UP3L = ENV.BFAI_UP3L === '1';   // BFAI_PFNOUP2：评估破釜沉舟时不加 UP2 那层（和线上一样估破釜；UP2 会把杀车之后的局面估得太好，策略测试 P4）
     // BFAI_PFUP3：只在根上评估破釜沉舟的那几次搜索里，对方第 3 层也可以先升级（UP2 只给己方第 2 层会把破釜估得太好：P4、K11-1；全局开 UP3 太贵）
-  const upAt = (S, ply) => (ply === upPly || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval || (UP3L && up2Line)) && ply === 3)) && upPly >= 0)) && !S.upgraded;
+  const upAt = (S, ply) => (ply === upPly || (ALLOW && ply === 3 && ALLOW()) || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval || (UP3L && up2Line)) && ply === 3)) && upPly >= 0)) && !S.upgraded;
   let pfPly = -1;   // 在第几层考虑“对方（楚）用破釜沉舟连走两步”（-1 = 不考虑）
   const pfCache = new Map();   // 每个局面的破釜沉舟组合只算一次（逐层加深时重复用）
   const upCache = new Map();   // “对方先升级再走”的那几个局面，同样每个局面只生成一次
@@ -376,6 +376,68 @@
   //   对方有砍不死的进攻子（血 > side 的帅、士里最高攻击）离帅不超过 2 步、而且那枚子下一步就能走到 / 吃到帅身边正将着帅。
   //   这种局面里贴脸杀常常在第 5～6 层，三层的校尉看不到（实3：挡马和炮回中路三层同分，随机挑中挡马）；ab() 里这时多算一层。
   //   只管电脑自己的帅（kdMe），去逼对方的帅时不延伸——两边都管、多算两层的版本网页里偶尔一步要 4～5 秒
+  // BFAI_SPD：敌方四级兵（神速营）离我方帅 Manhattan ≤4 格 → 局面危险（用户 19 回合盘：兵离帅 3 格，AI 只搜 2~3 层、两步被杀）
+  //   只看“有威胁的兵”：过河（对楚方兵：adv>=7；对汉方兵：adv>=2 从楚侧算）由调用处保证 side 是走子方，这里只看相对帅的位置。
+  let ntFlag = false;   // r10-lite：窄档危险（敌 lv≥2 兵进我方半场、离帅≤3）
+  let rootTurn = null;  // 根上走子方（ab 里判断“第 3 层是不是对方”）
+  let ALLOW = null;    // r10-lite：只有 threatFace（敌兵 2 步内能进帅邻格）才允许对方 ply3 初始升级
+  // 窄档危险：敌 lv≥2 兵、已进我方半场、离我方帅 Manhattan ≤3
+  function spdDangerNear(S, side) {
+    if (S.final || !S || !S.board) return false;
+    let kp = null;
+    for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.t === 'k' && p.s === side) { kp = [f, r]; break; } }
+    if (!kp) return false;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f];
+      if (!p || p.s === side || p.t !== 'p' || p.lv < 2) continue;
+      const inOurHalf = side === 'b' ? r >= 5 : r <= 4;
+      if (inOurHalf && Math.abs(f - kp[0]) + Math.abs(r - kp[1]) <= 3) return true;
+    }
+    return false;
+  }
+  // 贴脸威胁：敌兵（lv≥2）2 步内能进“帅的邻格”（下一手就把将军子贴到帅旁）
+  function threatFace(S, side) {
+    if (S.final || !S || !S.board) return false;
+    let kp = null;
+    for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.t === 'k' && p.s === side) { kp = [f, r]; break; } }
+    if (!kp) return false;
+    const adj = [[kp[0] - 1, kp[1]], [kp[0] + 1, kp[1]], [kp[0], kp[1] - 1], [kp[0], kp[1] + 1]];
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f];
+      if (!p || p.s === side || p.t !== 'p' || p.lv < 2) continue;
+      for (const q of adj) if (q[0] >= 0 && q[0] < 9 && q[1] >= 0 && q[1] < 10 && Math.abs(f - q[0]) + Math.abs(r - q[1]) <= 2) return true;
+    }
+    return false;
+  }
+  // r10-lite：敌方“已进我方半场、离帅 ≤3、lv≥2”的兵升级（最多 2 个）
+  function nearKingPawnUps(S, side) {
+    let kp = null;
+    for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.t === 'k' && p.s !== side) { kp = [f, r]; break; } }
+    if (!kp) return [];
+    const out = [], base = score(S, side);
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f];
+      if (!p || p.s !== side || p.t !== 'p' || p.lv < 2) continue;
+      if (Math.abs(f - kp[0]) + Math.abs(r - kp[1]) > 3) continue;
+      const T = A.upgradeState(S, [f, r]); if (!T) continue;
+      out.push({ S: T, g: score(T, side) - base, id: p.id, at: [f, r] });
+    }
+    out.sort((x, y) => y.g - x.g);
+    return out.slice(0, 2);
+  }
+
+  function spdDanger(S, side) {
+    if (S.final || !S || !S.board) return false;
+    let kp = null;
+    for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.t === 'k' && p.s === side) { kp = [f, r]; break; } }
+    if (!kp) return false;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f];
+      if (p && p.s !== side && p.t === 'p' && p.lv >= 4 && Math.abs(f - kp[0]) + Math.abs(r - kp[1]) <= 4) return true;
+    }
+    return false;
+  }
+
   function kdDanger(S, side) {
     if (S.final) return false;
     let k = null, dmax = 1; const near = [];
@@ -439,6 +501,8 @@
     // 对方应这一步时，也可能先花军功给某枚子升一级再走（多一点血：我方本来能吃掉的子就吃不掉了，打上去还会被弹回）
     if (upAt(S, ply)) {
       let ups = upsOf(S, side), dr = 0;
+      // r10-lite：只有 threatFace（敌兵 2 步内能贴脸）时，第 3 层才补“贴近帅的敌兵升级”
+      if (ALLOW && ply === 3 && side !== rootTurn) { const ex = nearKingPawnUps(S, side); if (ex.length) ups = ups.concat(ex.filter(u => !ups.some(v => v.id === u.id))); }
       // BFAI_UP2N / UP2R：UP2 加出来的那层（不是对方应着的那层）只留前几个升级、少算几层——每个升级都是整棵子树，全留会少算两层（K11-1，g22 第 44 条）
       if (UP2 && ply !== upPly && !upAll) { ups = ups.slice(0, UP2N); dr = UP2R; }
       for (const u of ups) {
@@ -510,7 +574,7 @@
   const LEVELS = {
     easy: { depth: 1, q: 2, noise: 1.3, top: 3, up: 0.5, budget: 500 },
     mid: { depth: 3, q: 3, noise: 0.3, top: 1, up: 1, budget: 2500 },
-    hard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 3000, minNodes: 20000, dyn: 2.7 },   // dyn：难走的局面最多放宽到几倍预算（C66，Ham 拍板单 ai_time1 = a：平时不变、关键时刻多想）
+    hard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 6500, minNodes: 20000, dyn: 2.7 },   // dyn：难走的局面最多放宽到几倍预算（C66，Ham 拍板单 ai_time1 = a：平时不变、关键时刻多想）
     xhard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 9000, minNodes: 60000, dyn: 2.7 },   // 比霸王更强的一档（C70，Ham 拍板单 ai_time2 = a）：和霸王一样，只是想 3 倍久——平时约 9 秒，难走时最多约 24 秒；对霸王 58.8%（600 局）
     ana: { depth: 3, q: 3, noise: 0, top: 1, up: 1, budget: 1200 },   // 对局分析用（TD，Ham 10-09）：不加噪声，每个局面限时 1.2 秒
   };
@@ -584,7 +648,7 @@
     //   不受压也给的话，电脑没事就升士相（K8 第 71 条计划题：连将收钱的汉方把钱花在升士上，局面分 6.3 → 2.8）
     const press = () => { let n = 0; for (let r = 0; r < 10; r++) for (let f = 2; f <= 6; f++) { const p = S.board[r][f];
       if (p && p.s !== me && 'rncp'.includes(p.t) && (me === 'r' ? r <= 3 : r >= 6)) n++; } return n >= 2; };
-    if (DEFUP && (ENV.BFAI_DEFUP !== '2' || press())) { const d = skipped.filter(c => { const p = S.board[c.at[1]][c.at[0]]; return p && (p.t === 'a' || p.t === 'e') && !c.must; }).sort((x, y) => y.gain - x.gain)[0]; if (d) top.push(d); }
+    if (DEFUP && (ENV.BFAI_DEFUP !== '2' || press() || ntFlag)) { const d = skipped.filter(c => { const p = S.board[c.at[1]][c.at[0]]; return p && (p.t === 'a' || p.t === 'e') && !c.must; }).sort((x, y) => y.gain - x.gain)[0]; if (d) top.push(d); }   // r10-lite：窄档危险时根上补升士/相防守候选
     // BFAI_RUPX：根上“升完解锁技能”的升级也留名额，最多两个（Ham 试玩 g21 第 78 条：升三级兵到四级再兵 3,3→3,2，汉 270 种应着全被一步杀；静态分排不进前三被筛掉）
     if (ENV.BFAI_RUPX === '1') { let n = 0;
       const lvOf = c => { const q = c.S.board[c.at[1]][c.at[0]]; return q && potInfo(me, q.t, q.lv - 1).sk ? q.lv : 0; };   // 升到的级别越高、解锁的技能越狠，先给
@@ -660,6 +724,7 @@
   }
   const actOf = k => JSON.parse(JSON.stringify(k.up ? { up: k.up.at, ...k.a } : k.a));
   // 根节点：返回一串要依次执行的行动（升级 → 拒马 → 主行动）
+  let upqM = 0, upqPen = 0;   // BFAI_UPQ：实9 修法用（M 放大 / 升+静着降权），默认关
   async function think(S0, level, tick, opt) {
     const L0 = LEVELS[level] || LEVELS.mid, t0 = now(), me = S0.turn, seq = [];
     const ctl = opt && opt.ctl;   // 预想（ponderStart）：不按预算收手，算到 ctl.end（外面可以随时改）为止
@@ -680,6 +745,19 @@
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
     const byNodes = L.nodes > 0;   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
+    // BFAI_SPD：敌方四级兵（神速营）逼近我方帅（≤4 格）→ 这一手按“危险局面”多给搜索量（等价于提前触发 dyn）。
+    //   实测：用户 19 回合盘第 17 回合，250k 只到 2~3 层选败着；1.5M 能到 5 层改走安全着。
+    //   时间制下乘 2 后封顶 5000ms（实测 r17 12.1s→约 10s 量级；配合界面 maxMs 的 hardEnd 0.75 上限，不会拖到 20s+）。
+    rootTurn = me;
+    ntFlag = ENV.BFAI_DPNT === '1' && spdDangerNear(S0, me);
+    ALLOW = (ENV.BFAI_DPNT === '1' && ntFlag && threatFace(S0, me)) ? () => true : null;
+    if (ENV.BFAI_SPD === '1' && spdDanger(S0, me)) {     // 旧档（敌 lv4 离帅≤4）：×6/×2，但只放大不砍基础预算
+      if (byNodes) L = { ...L, nodes: Math.round(L.nodes * 6) };
+      else { const b = L.budget; L = { ...L, budget: Math.max(b, Math.min(Math.round(b * 2), 5000)) }; }
+    } else if (ntFlag) {                                   // 新窄档只 ×1.25（普通局面零开销），不设 cap
+      if (byNodes) L = { ...L, nodes: Math.round(L.nodes * 1.25) };
+      else { const b = L.budget; L = { ...L, budget: Math.max(b, Math.round(b * 1.25)) }; }
+    }
     // 新兵：凭眼前的局面分决定升不升（一半的时候懒得升）。校尉、霸王：把几种升法都放进搜索里比
     let ups = L.rootUpAll ? upgradeAll(S) : upgradeCands(S, L, TR ? (TR.upOff = []) : null);
     if (TR) TR.ups = ups.map(c => ({ at: c.at, gain: +c.gain.toFixed(2), must: !!c.must }));
@@ -757,6 +835,22 @@
         return seq;
       }
     }
+    // BFAI_UPQ（r9，实9）：大优局面 + 根上有“升+静着”候选时：① 精确评估窗口 M 放大到 3.0（让正解浮上来）；
+    //   ② 对“升+非吃子主行动”的根候选扣 1.1（≈一次升级的军功价值）；“升+吃”豁免（K12 正解）。
+    upqM = 0; upqPen = 0;
+    if (ENV.BFAI_UPQ === '1' && !S.upgraded) {
+      const isCapKid = k => {
+        if (!k.a || k.a.k !== 'mv' || !k.a.to) return false;
+        const base = k.up ? k.up.S : S0;
+        const q0 = base.board[k.a.to[1]] && base.board[k.a.to[1]][k.a.to[0]];
+        const q1 = k.S && k.S.board[k.a.to[1]] && k.S.board[k.a.to[1]][k.a.to[0]];
+        return !!(q0 && q0.s !== S0.turn && q1 && q1.s === S0.turn);
+      };
+      const isUpQuiet = k => k.up && !isCapKid(k) && !'ae'.includes(((S0.board[k.up.at[1]] || [])[k.up.at[0]] || {}).t);
+      const bigAdv = score(S, me) >= 11;   // 只在“几乎已赢”的局面启用（实9 静态 +11.8；实20 +10.2 不触发，避免误伤）
+      const hasUpQuiet = kids.some(isUpQuiet);   // 只对“升的是进攻子（车马炮兵）”的候选启用；士/相（守子）豁免（实20 正解是升相+马走）
+      if (bigAdv && hasUpQuiet) { upqM = 2.0; upqPen = 1.4; }
+    }
     for (const k of kids) { const w = decided(k.S, k.ev); k.done = !!w; k.q = w ? (w === me ? WIN : -WIN) : score(k.S, me); k.v = k.q; }
     kids.sort((x, y) => y.q - x.q);
     let depthDone = 0, why = 'depth';
@@ -784,7 +878,7 @@
         deadline = Math.min(hardEnd, d < 3 ? Infinity : d === 3 ? t0 + L.budget * 2 : thin ? t0 + L.budget * 1.5 : soft + L.budget * 0.3);   // 第 3 层也设个兜底（两倍预算）：个别局面枚举破釜组合特别慢，慢手机上别让一步拖到十秒
       }
       let alpha = -INF, n = 0, cut = false;
-      const M = L.noise * 1.6 + 0.02;                          // 比当前最好的差不到 M 的着法也算出准确分数（最后要在它们之间挑）；更差的只要个上界
+      const M = upqM || (L.noise * 1.6 + 0.02);                          // 比当前最好的差不到 M 的着法也算出准确分数（最后要在它们之间挑）；更差的只要个上界
       // “先升级再走”的走法太多（每种升法都是一整套着法）：第 1 层全算（只是静态搜索，便宜），
       //   第 2 层起每种升法只接着算——升的那枚子自己出手的、上一层里它自己排前 UPK 的、以及“不升”时排前 UPK 的那几步；被将军时全算
       if (UPK > 0 && d >= 2 && ups.length) {
@@ -834,6 +928,27 @@
       if (TR) TR.iter.push({ d, best: actOf(kids[0]), v: +kids[0].v.toFixed(3), nodes: nodes - n0, ms: Math.round(now() - t0) });
       if (kids[0].v > WIN / 2 || kids[0].v < -WIN / 2) { why = 'mate'; break; } // 已经看到杀棋 / 必败，不用再深
     }
+    // BFAI_PUPD（r8，实27）：根上“顺手升兵、但不是这枚兵出手”的候选轻微降权。升级不占行动，容易白花军功；
+    //   只动“兵”且只动“非 own”的组合；兵自己走（战K1-1/实16）、升别的兵种+吃（K12 的升马+吃）、K18-1 的升车+马吃都不受影响。
+    if (ENV.BFAI_PUPD === '1') {
+      for (const k of kids) {
+        if (!k.up || k.own) continue;
+        const at = k.up.at, pp = S0.board[at[1]] && S0.board[at[1]][at[0]];
+        if (pp && pp.t === 'p') k.v -= 0.3;
+      }
+      kids.sort((x, y) => y.v - x.v);
+    }
+    if (upqPen > 0) {
+      const isCapKid = k => {
+        if (!k.a || k.a.k !== 'mv' || !k.a.to) return false;
+        const base = k.up ? k.up.S : S0;
+        const q0 = base.board[k.a.to[1]] && base.board[k.a.to[1]][k.a.to[0]];
+        const q1 = k.S && k.S.board[k.a.to[1]] && k.S.board[k.a.to[1]][k.a.to[0]];
+        return !!(q0 && q0.s !== S0.turn && q1 && q1.s === S0.turn);
+      };
+      for (const k of kids) if (k.up && !isCapKid(k) && !'ae'.includes(((S0.board[k.up.at[1]] || [])[k.up.at[0]] || {}).t)) k.v -= upqPen;
+      kids.sort((x, y) => y.v - x.v);
+    }
     const bestV = kids[0].v;
     for (const k of kids) {
       // 只在分数算准了的那几步（和最好的差不到 M）之间加一点随机；其余的分数只是上界，不能拿来比
@@ -843,6 +958,26 @@
     // 给士、相 / 象升级的走法：要比“不升”里最好的明显强才选（差不多的时候别让随机数挑中它，白花军功）
     const plainBest = kids.reduce((m, k) => (!k.up && k.v > m ? k.v : m), -INF);
     for (const k of kids) { if (!k.up || fin0) continue; const t = S0.board[k.up.at[1]][k.up.at[0]].t; if ((t === 'a' || t === 'e') && k.v < plainBest + 0.4) k.w = k.v - 100; }
+    // BFAI_CAPTIE（K12-1）：噪声带内的等价着法原来纯随机。带内优先“本手真吃子”，其次优先“不升级”；带外不动。
+    //   用“走完后落点是自己的子”判断真吃子（打不死弹回的落点仍是对方的子，不算）。
+    if (ENV.BFAI_CAPTIE === '1' && L.top === 1) {
+      const bandV = bestV - (L.noise * 1.6 + 0.02) * 0.95;
+      const band = kids.filter(k => !k.done && k.v > bandV && k.w > -50);
+      let nCap = 0;
+      for (const k of band) {
+        k.cap = false;
+        if (k.a && k.a.k === 'mv' && k.a.to) {
+          const base = k.up ? k.up.S : S;
+          const q0 = base.board[k.a.to[1]][k.a.to[0]], q1 = k.S ? k.S.board[k.a.to[1]][k.a.to[0]] : null;
+          k.cap = !!(q0 && q0.s !== me && q1 && q1.s === me);
+        }
+        if (k.cap) nCap++;
+      }
+      if (nCap) {
+        const capW = band.filter(k => k.cap).reduce((m, k) => Math.max(m, k.w), -INF);
+        for (const k of band) if (!k.cap) k.w = Math.min(k.w, capW - 0.01);   // 带内非吃子排到吃子后面（带外本来 w 就低）
+      }
+    }
     const pool = kids.slice().sort((x, y) => y.w - x.w);
     let pick = pool[0];
     if (L.top > 1 && pool.length > 1 && Math.random() < 0.3) { const c = pool.slice(0, L.top).filter(k => k.w > -50), i = Math.floor(Math.random() * c.length); if (c.length) pick = c[i]; }   // 前几名全是输棋（一个都不剩）时就用第一名，别挑出个空的
