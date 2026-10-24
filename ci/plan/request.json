@@ -1,0 +1,8 @@
+{
+  "question": "tools/exam_plan/K19-1-plan-user19-r8.json",
+  "candidate": "tools/variants/ci/release_r8.js",
+  "reference": "src/bfai.js",
+  "seeds": 10,
+  "nodes": 250000,
+  "note": "K19-1 新版（第 8 回合起点、horizon 10）云端复核：被考 r8（产品候选）对参照 src/bfai.js（现线上），10 种子 × 250k 节点。2026-10-24 ops 排。"
+}

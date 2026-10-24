@@ -1,0 +1,38 @@
+# 云端“计划题”复核（plan_exam）：往 ci/plan/request.json 推新内容就触发一次。
+# 用途：K19-1 这类需要 10 种子 × 250k 节点、本地 4 核跑太久/跨回合会被清掉的任务。
+# 结果：plan-out.txt（artifact + 日志）；由 ops 用 `node gh.js artifacts/log` 拉回。
+# 说明：本 workflow 加在 feature 分支 ai/train-20261024 上，push 事件自触发；不碰 main。
+name: 计划题复核（plan_exam）
+on:
+  push:
+    branches: [ai/train-20261024]
+    paths: ['ci/plan/**']
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 读请求并跑 plan_exam
+        run: |
+          set -euo pipefail
+          Q=$(node -p "require('./ci/plan/request.json').question")
+          C=$(node -p "require('./ci/plan/request.json').candidate")
+          R=$(node -p "require('./ci/plan/request.json').reference")
+          S=$(node -p "require('./ci/plan/request.json').seeds")
+          N=$(node -p "require('./ci/plan/request.json').nodes")
+          echo "question=$Q candidate=$C reference=$R seeds=$S nodes=$N"
+          cd source
+          node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --nodes "$N" | tee ../plan-out.txt
+      - name: 上传结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan-exam-out
+          path: plan-out.txt
+          retention-days: 14
