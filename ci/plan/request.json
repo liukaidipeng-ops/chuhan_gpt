@@ -1,9 +1,9 @@
 {
   "question": "tools/exam_plan/K23-1-plan-issue25-def8.json",
-  "candidate": "tools/variants/ci/release_r13b.js",
+  "candidate": "tools/variants/ci/release_r14.js",
   "reference": "tools/variants/ci/release_r1.js",
   "seeds": 10,
   "nodes": 250000,
   "time": 3000,
-  "note": "K23-1 计划题（issue25 真局第8–14回合防守序列，side=楚/horizon6/material，time:3000 口径）云端复核：被考先用 release_r13b（预期不过，验证区分度），参照 release_r1，对手 src/bfai.js；时间制 --time 3000；10 种子。"
+  "note": "K23-1 区分度复核（第 2 轮）：被考 release_r14（预期过，10/10 或 ≥7/10），参照 release_r1，对手 src/bfai.js；时间制 --time 3000；10 种子；题面 K23-1-plan-issue25-def8.json。"
 }
