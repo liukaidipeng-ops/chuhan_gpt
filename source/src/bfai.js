@@ -15,7 +15,9 @@
   //   士、相 / 象是守家的子，多一点血用处不大（平时出不了九宫、过不了河）；到决战解禁之后才和进攻子一样算
   //   例外：对方有两点血以上的进攻子时，士的第二点血很要紧——二级士攻击 2，是唯一砍得死“贴脸将军的两血子”的守子
   const KD = (typeof process !== 'undefined' && process.env && process.env.BFAI_KD ? process.env.BFAI_KD.split(',').map(Number) : [2.0, 1.0, 0.4, 0.9, 1.2, 0.6]);   // 砍不死的子贴近对方主帅的加分：车贴身 / 隔一格 / 同线，马，兵贴身 / 隔一格
-  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1' };
+  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1', BFAI_R14: '1' };
+  let r14dp = false;   // r14：时间制 + 敌 lv≥2 兵进我方半场距帅≤7（第5回合起）→ 危险兵局面
+  //   置 true 时：score 里加“兵逼近帅”威胁项、迭代加深保证跑到 depth5、窄档预算 ×1.8（早段≥5400ms）。节点制永远 false（考卷不变）。
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
@@ -150,6 +152,8 @@
           case 'p': x += (adv >= 5 ? EW.p_cross + (adv - 5) * EW.p_deep + EW.p_near * Math.max(0, 5 - dk) : adv === 4 ? EW.p_adv4 : 0) + (f === 4 ? EW.p_mid : 0); break;
           default: if (fin) x += adv * EW.fin_def_adv + EW.fin_def_near * Math.max(0, 8 - dk);   // 决战里士象也要压上去
         }
+        // r14（issue25）：敌 lv≥2 兵逼近帅的额外威胁项（只时间制危险局面；距帅 ≤7 才计）
+        if (r14dp && p.t === 'p' && p.lv >= 2) x += (0.28 * (p.lv - 1)) * Math.max(0, 7 - dk);
         if (p.jm && p.jm > S.cnt[other(s)]) x += EW.jm;
         if (dk <= 4 && (p.t === 'r' || p.t === 'c' || p.t === 'n' || (p.t === 'p' && adv >= 5))) { if (s === 'r') attR++; else attB++; x += EW.att4; if (dk <= 2) x += EW.att2; }
         if (ESK && p.lv >= skInfo(s, p.t) && S.cnt[s] >= (p.cd || 0)) x += ESKR[p.t];   // 主技能冷却好了
@@ -382,7 +386,7 @@
   let rootTurn = null;  // 根上走子方（ab 里判断“第 3 层是不是对方”）
   let ALLOW = null;    // r10-lite：只有 threatFace（敌兵 2 步内能进帅邻格）才允许对方 ply3 初始升级
   // 窄档危险：敌 lv≥2 兵、已进我方半场、离我方帅 Manhattan ≤3
-  function spdDangerNear(S, side) {
+  function spdDangerNear(S, side, RD) {
     if (S.final || !S || !S.board) return false;
     let kp = null;
     for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.t === 'k' && p.s === side) { kp = [f, r]; break; } }
@@ -391,12 +395,12 @@
       const p = S.board[r][f];
       if (!p || p.s === side || p.t !== 'p' || p.lv < 2) continue;
       const inOurHalf = side === 'b' ? r >= 5 : r <= 4;
-      if (inOurHalf && Math.abs(f - kp[0]) + Math.abs(r - kp[1]) <= 3) return true;
+      if (inOurHalf && Math.abs(f - kp[0]) + Math.abs(r - kp[1]) <= (RD || 3)) return true;
     }
     return false;
   }
   // 贴脸威胁：敌兵（lv≥2）2 步内能进“帅的邻格”（下一手就把将军子贴到帅旁）
-  function threatFace(S, side) {
+  function threatFace(S, side, RD) {
     if (S.final || !S || !S.board) return false;
     let kp = null;
     for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.t === 'k' && p.s === side) { kp = [f, r]; break; } }
@@ -405,9 +409,24 @@
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
       const p = S.board[r][f];
       if (!p || p.s === side || p.t !== 'p' || p.lv < 2) continue;
-      for (const q of adj) if (q[0] >= 0 && q[0] < 9 && q[1] >= 0 && q[1] < 10 && Math.abs(f - q[0]) + Math.abs(r - q[1]) <= 2) return true;
+      for (const q of adj) if (q[0] >= 0 && q[0] < 9 && q[1] >= 0 && q[1] < 10 && Math.abs(f - q[0]) + Math.abs(r - q[1]) <= (RD || 2)) return true;
     }
     return false;
+  }
+  // r14（issue25）：危险兵列表——敌 lv≥2 兵、已进我方半场、距我帅 ≤7（空 = 没有危险兵）
+  function dangerPawnList(S, side) {
+    const out = [];
+    if (S.final || !S || !S.board) return out;
+    let kp = null;
+    for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.t === 'k' && p.s === side) { kp = [f, r]; break; } }
+    if (!kp) return out;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f];
+      if (!p || p.s === side || p.t !== 'p' || p.lv < 2) continue;
+      const half = side === 'b' ? r >= 5 : r <= 4;
+      if (half && Math.abs(f - kp[0]) + Math.abs(r - kp[1]) <= 7) out.push([f, r]);
+    }
+    return out;
   }
   // r10-lite：敌方“已进我方半场、离帅 ≤3、lv≥2”的兵升级（最多 2 个）
   function nearKingPawnUps(S, side) {
@@ -776,14 +795,19 @@
     //   实测：用户 19 回合盘第 17 回合，250k 只到 2~3 层选败着；1.5M 能到 5 层改走安全着。
     //   时间制下乘 2 后封顶 5000ms（实测 r17 12.1s→约 10s 量级；配合界面 maxMs 的 hardEnd 0.75 上限，不会拖到 20s+）。
     rootTurn = me;
-    ntFlag = ENV.BFAI_DPNT === '1' && spdDangerNear(S0, me);
-    ALLOW = (ENV.BFAI_DPNT === '1' && ntFlag && threatFace(S0, me)) ? () => true : null;
+    // r14（issue25）：预警提前——时间制下窄档半径 3→7、threatFace 2→3、第 5 回合起；节点制保持 r13b 原档（考卷不变）
+    const rnd14 = Math.floor((((S0.cnt && S0.cnt.r) || 0) + ((S0.cnt && S0.cnt.b) || 0)) / 2) + 1;
+    const nearOld = ENV.BFAI_DPNT === '1' && spdDangerNear(S0, me, 3);
+    const nearWide = ENV.BFAI_DPNT === '1' && !byNodes && rnd14 >= 5 && spdDangerNear(S0, me, 7);
+    ntFlag = nearOld || nearWide;
+    ALLOW = (ENV.BFAI_DPNT === '1' && ntFlag && (threatFace(S0, me, 2) || (!byNodes && threatFace(S0, me, 3)))) ? () => true : null;
+    r14dp = ENV.BFAI_R14 === '1' && !byNodes && !L.fixedDepth && L.depth >= 7 && rnd14 >= 5 && ntFlag;
     if (ENV.BFAI_SPD === '1' && spdDanger(S0, me)) {     // 旧档（敌 lv4 离帅≤4）：×6/×2，但只放大不砍基础预算
       if (byNodes) L = { ...L, nodes: Math.round(L.nodes * 6) };
       else { const b = L.budget; L = { ...L, budget: Math.max(b, Math.min(Math.round(b * 2), 5000)) }; }
-    } else if (ntFlag) {                                   // 新窄档只 ×1.25（普通局面零开销），不设 cap
+    } else if (ntFlag) {                                   // r14：危险兵窄档 ×2.0，时间制早段升到 ≥6000ms（够跑到 depth5）；只放大，不砍基础预算
       if (byNodes) L = { ...L, nodes: Math.round(L.nodes * 1.25) };
-      else { const b = L.budget; L = { ...L, budget: Math.max(b, Math.round(b * 1.25)) }; }
+      else { const b = L.budget; const nb = Math.max(b, Math.min(Math.round(b * (r14dp ? 2.0 : 1.25)), Math.max(b, r14dp ? 6000 : b))); L = { ...L, budget: nb }; }
     }
     // 新兵：凭眼前的局面分决定升不升（一半的时候懒得升）。校尉、霸王：把几种升法都放进搜索里比
     let ups = L.rootUpAll ? upgradeAll(S) : upgradeCands(S, L, TR ? (TR.upOff = []) : null);
@@ -901,7 +925,8 @@
         // 慢的设备上按时间收手会算得太浅：没搜够 minNodes 之前不因为时间到了就停（最多拖到 1.5 倍时间）
         const thin = L.minNodes > 0 && nodes - n0 < L.minNodes;
         if (dynX && !dynOn && d > 3 && now() - t0 > L.budget * 0.3 && (crit || depthDone <= 3)) { dynOn = true; dynB = L.budget * dynX; soft = t0 + dynB; if (TR) TR.dyn = d; }   // 难走：放宽预算
-        if (d > 3 && !thin && now() - t0 > (L.deep2 ? L.budget * 0.5 : dynB * 0.3)) { why = 'time'; break; }       // r13b：动态深度档放宽到 50% budget
+        const needDeep14 = r14dp && depthDone < 5;   // r14（issue25）：危险兵局面强制跑到 depth5（depth4 会把“吃兵”低估 0.19 排到第16）
+        if (!needDeep14 && d > 3 && !thin && now() - t0 > (L.deep2 ? L.budget * 0.5 : dynB * 0.3)) { why = 'time'; break; }       // r13b：动态深度档放宽到 50% budget
         deadline = Math.min(hardEnd, d < 3 ? Infinity : d === 3 ? t0 + L.budget * 2 : thin ? t0 + L.budget * 1.5 : soft + L.budget * 0.3);   // 第 3 层也设个兜底（两倍预算）：个别局面枚举破釜组合特别慢，慢手机上别让一步拖到十秒
       }
       let alpha = -INF, n = 0, cut = false;
@@ -975,6 +1000,27 @@
       };
       for (const k of kids) if (k.up && !isCapKid(k) && !'ae'.includes(((S0.board[k.up.at[1]] || [])[k.up.at[0]] || {}).t)) k.v -= upqPen;
       kids.sort((x, y) => y.v - x.v);
+    }
+    // r14（issue25）①兜底：危险兵局面若 depth5 没跑完（慢机/时间被吃），把“吃该兵/贴住该兵”的候选单独补算到 depth5（硬截止，超时保留原分）
+    if (r14dp && !byNodes && !fin0 && depthDone < 5) {
+      const dp = dangerPawnList(S0, me);
+      if (dp.length) {
+        const cand = kids.filter(k => {
+          if (k.done || !k.S || !k.a) return false;
+          const a = k.a, to = a.k === 'mv' ? a.to : (a.k === 'sk' ? a.to : null);
+          if (!to) return false;
+          for (const p of dp) if (p[0] === to[0] && p[1] === to[1]) return true;
+          for (const p of dp) if (Math.abs(to[0] - p[0]) + Math.abs(to[1] - p[1]) <= 1) return true;
+          return false;
+        }).slice(0, 4);
+        if (cand.length) {
+          deadline = Math.min(hardEnd, now() + Math.max(600, L.budget * 0.4)); nodeCap = Infinity;
+          try { for (const k of cand) { k.v = -ab(k.S, 4, -INF, INF, 1); await breathe(); } } catch (e) { if (e !== TIMEOUT) throw e; }
+          deadline = Infinity; nodeCap = Infinity;
+          if (TR) TR.r14ext = cand.map(k => ({ a: actOf(k), v: +k.v.toFixed(3) }));
+          kids.sort((x, y) => y.v - x.v);
+        }
+      }
     }
     const bestV = kids[0].v;
     for (const k of kids) {

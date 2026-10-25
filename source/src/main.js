@@ -4724,8 +4724,17 @@
     if (a === 'view') openSaved(rec);
     else if (a === 'open') { if (rec.issue && rec.issue.url) window.open(rec.issue.url, '_blank', 'noopener'); }
     else if (a === 'copy') {
-      let ok = false; try { await navigator.clipboard.writeText(mgText(rec)); ok = true; } catch (err) { }
-      toast(ok ? '已复制（和「导出本局」一样的格式）' : '没能复制：浏览器不让', 2000);
+      const txt = mgText(rec);
+      let ok = false;
+      try { await navigator.clipboard.writeText(txt); ok = true; } catch (err) { }
+      if (!ok) {
+        try { const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.left = '-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) { }
+      }
+      if (ok) { toast('已复制（和「导出本局」一样的格式）', 2000); }
+      else {
+        // 浏览器拦了自动复制：把文本放进「导出」弹窗，让用户手动全选 / 截图（Ham 10-25 预览反馈）
+        try { $('exportText').value = txt; $('exportNote').textContent = '浏览器不许自动复制：点「复制」或手动全选下面的文字，或截图发给 Claude。'; $('mExport').classList.remove('hidden'); } catch (e3) { toast('没能复制：浏览器不让', 2500); }
+      }
     } else if (a === 'del') {
       if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '再点一次删除'; setTimeout(() => { if (b.isConnected) { b.dataset.sure = ''; b.textContent = '删除'; } }, 3000); return; }
       mgSave(mgLoad().filter(r => r.id !== id)); paintGames();
