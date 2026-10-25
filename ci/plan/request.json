@@ -1,8 +1,9 @@
 {
-  "question": "tools/exam_plan/K19-1-plan-user19-r8.json",
-  "candidate": "tools/variants/ci/release_r11.js",
+  "question": "tools/exam_plan/K21-1-plan-issue25-r5h4.json",
+  "candidate": "tools/variants/ci/release_r14.js",
   "reference": "tools/variants/ci/release_r1.js",
   "seeds": 10,
   "nodes": 250000,
-  "note": "K19-1 正式复核（r11 产品候选，r10-lite）：被考 = release_r11，参照 = release_r1，对手 = src/bfai.js，10 种子 × 250k，metric=both。2026-10-25 ops 排（替换 r10 后按 GO 重排）。"
+  "time": 3000,
+  "note": "K21-1 定稿（horizon 4 / material）云端复核：被考 r14，参照 release_r1，对手 src/bfai.js；时间制 --time 3000（与 nodes 互斥）；10 种子。判定：metric 均值严格好于参照 + ≥70% 种子不差于参照。"
 }
