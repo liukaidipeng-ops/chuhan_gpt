@@ -1,9 +1,9 @@
 {
   "question": "tools/exam_plan/K23-1-plan-issue25-def8.json",
   "candidate": "tools/variants/ci/release_r14.js",
-  "reference": "tools/variants/ci/release_r1.js",
+  "reference": "src/bfai.js",
   "seeds": 10,
   "nodes": 250000,
   "time": 3000,
-  "note": "K23-1 区分度复核（第 2 轮）：被考 release_r14（预期过，10/10 或 ≥7/10），参照 release_r1，对手 src/bfai.js；时间制 --time 3000；10 种子；题面 K23-1-plan-issue25-def8.json。"
+  "note": "K23-1 main 参照确认（战术定版口径）：题面 K23-1-plan-issue25-def8.json（h6 版 + 起点第 8 回合），被考 release_r14，参照 main src/bfai.js，对手 src/bfai.js，seeds=10，time=3000。预期 r14 过（本地同参数 10/10）。"
 }
