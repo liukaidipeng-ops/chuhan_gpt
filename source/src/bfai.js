@@ -767,7 +767,7 @@
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
     const byNodes = L.nodes > 0;   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
     // BFAI_DYN2（r12）：动态预算，只作用于时间制；节点制（考卷/按节点对打）跳过 → 结果不变
-    if (ENV.BFAI_DYN2 === '1' && !byNodes && !L.fixedDepth && L.depth >= 7) {
+    if (ENV.BFAI_DYN2 === '1' && !byNodes && !L.fixedDepth && L.depth >= 7 && level === 'hard') {
       const info = dyn2Scale(S0);
       // 动态曲线就代表“难局多想”的全部：关掉原 dyn（否则 3000→6500 之上再乘 2.7 会飙到 17s+，手感不可控）
       L = { ...L, budget: Math.round(L.budget * info.scale), dyn: 0, depth: Math.max(L.depth, info.depth), deep2: info.depth };
