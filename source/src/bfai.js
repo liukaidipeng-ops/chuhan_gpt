@@ -723,6 +723,36 @@
     return line;
   }
   const actOf = k => JSON.parse(JSON.stringify(k.up ? { up: k.up.at, ...k.a } : k.a));
+  // R15：背水一战“冻结罚分”——按被移动（= 本回合后进入冷却/冻结）的棋子类型扣分
+  //   帅/将 −1.5、车 −0.8、炮/马 −0.3、士/象/兵 −0.1；同一枚子两步连走只罚一次
+  const FREEZE_W = { k: 1.5, r: 0.8, c: 0.3, n: 0.3, a: 0.1, e: 0.1, p: 0.1 };
+  function freezeCost(S0, k) {
+    const steps = k && k.a && k.a.steps;
+    if (!steps || !steps.length) return 0;
+    const seenId = new Set(), seenType = new Map();
+    let cost = 0;
+    const idOf = (st, prevId) => {
+      const p = S0.board[st.from[1]] && S0.board[st.from[1]][st.from[0]];
+      if (p) return p.id;
+      if (prevId != null && steps.some(x => x.to[0] === st.from[0] && x.to[1] === st.from[1])) return prevId;   // 同一枚子连走
+      const q = k.S && k.S.board[st.to[1]] && k.S.board[st.to[1]][st.to[0]];
+      return q ? q.id : null;
+    };
+    let prevId = null;
+    for (const st of steps) {
+      const id = idOf(st, prevId);
+      let type = null;
+      const p = S0.board[st.from[1]] && S0.board[st.from[1]][st.from[0]];
+      if (p) type = p.t;
+      else if (k.S && k.S.board[st.to[1]] && k.S.board[st.to[1]][st.to[0]]) type = k.S.board[st.to[1]][st.to[0]].t;
+      else if (prevId != null) { const pt = seenType.get(prevId); type = pt || null; }
+      if (id != null) { if (seenId.has(id)) { prevId = id; continue; } seenId.add(id); }
+      if (type) seenType.set(id != null ? id : 'x' + cost, type);
+      cost += (FREEZE_W[type] != null ? FREEZE_W[type] : 0.1);
+      prevId = id;
+    }
+    return cost;
+  }
   // BFAI_DYN2：动态预算曲线（r12，用户 10-25 拍板“最大 2.17×、开局不变慢、随局面逐步加”）
   //   回合 r = floor((cnt.r+cnt.b)/2)+1；1–5 回合 1.0×，6→13 回合线性升到 2.1667×，≥13 回合封顶（≈6500ms）。
   //   复杂度修正：残子 ≤20 / 双方军功和 ≥30 / 已有 lv≥3 子 → 各 +4%（总 ×≤1.12），最终夹在 [1, 2.1667]。
@@ -842,8 +872,29 @@
       if (TR && (kids.length || pofu.length)) TR.upEscape = true;
     }
     if (!kids.length) {
-      // 普通着法一步都没有（被将死的样子），但背水一战还能解：就用它
-      if (pofu.length) { const k = pofu[0]; if (k.up) seq.push({ k: 'up', at: k.up.at }); seq.push(k.a); }
+      // 普通着法一步都没有（被将死的样子），但背水一战还能解：
+      //   R15：对每个解将组合深搜 4 层（合 6 层），再按“冻结罚分”挑最优；全都算不完时退回第一个
+      if (pofu.length) {
+        let bp = null; const cart = []; const dEval = 4;
+        if (byNodes) nodeCap = nodes + Math.round(L.nodes * 0.5);
+        else deadline = Math.min(hardEnd2, now() + Math.max(800, L.budget * 0.5));
+        try {
+          for (const k of pofu) {
+            const w = decided(k.S, k.ev);
+            const raw = w ? (w === me ? WIN : -WIN) : -ab(k.S, dEval, -INF, INF, 1);
+            const fc = freezeCost(S0, k);
+            k.freeze = fc; k.v = raw - fc;
+            cart.push({ a: actOf(k), raw: +raw.toFixed(3), freeze: +fc.toFixed(2), v: +k.v.toFixed(3) });
+            if (!bp || k.v > bp.v) bp = k;
+            await breathe();
+          }
+        } catch (e) { if (e !== TIMEOUT) throw e; }
+        deadline = Infinity; nodeCap = Infinity;
+        if (TR) { TR.artAll = cart; TR.artPick = bp ? actOf(bp) : null; TR.artWhy = 'forced'; }
+        if (!bp) bp = pofu[0];
+        if (bp.up) seq.push({ k: 'up', at: bp.up.at });
+        seq.push(bp.a);
+      }
       think.last = { nodes, ms: now() - t0, v: 0, n: 0, depth: 0, top: [] };   // 没有着可走（将死 / 困毙）时也换一份，别留着上一步的
       if (TR) { TR.why = pofu.length ? 'only-art' : 'no-move'; TR.seq = JSON.parse(JSON.stringify(seq)); think.last.trace = TR; }
       return seq;
@@ -1028,12 +1079,17 @@
       if (byNodes) nodeCap = nodes + Math.round(L.nodes * 0.4); else deadline = Math.min(hardEnd2, now() + Math.max(400, L.budget * 0.4));
       try {
         pfEval = ENV.BFAI_PFUP3 === '1'; pfNoUp2 = ENV.BFAI_PFNOUP2 === '1';
+        const cart = [];
         for (const k of pofu) {
           const w = decided(k.S, k.ev);
-          k.v = w ? (w === me ? WIN : -WIN) : -ab(k.S, d1, -INF, -need + 0.01, 1);
+          const raw = w ? (w === me ? WIN : -WIN) : -ab(k.S, d1, -INF, -need + 0.01, 1);
+          const fc = freezeCost(S0, k);
+          k.freeze = fc; k.v = raw - fc;
+          cart.push({ a: actOf(k), raw: +raw.toFixed(3), freeze: +fc.toFixed(2), v: +k.v.toFixed(3) });
           if (k.v >= need && (!bp || k.v > bp.v)) bp = k;
           await breathe();
         }
+        if (TR) { TR.artAll = cart; TR.artPick = bp ? actOf(bp) : null; TR.artWhy = 'normal'; }
       } catch (e) { if (e !== TIMEOUT) throw e; }
       pfEval = false; pfNoUp2 = false;
       deadline = Infinity; nodeCap = Infinity;
