@@ -1,15 +1,16 @@
 // 九级“计划题”判卷（十级认证表第七节）：从一个局面开始，被考的电脑执 side、线上霸王执另一方，下 horizon 回合 × 若干种子，
 //   量 metric（win 胜负 / material 中立局面分 / merit 军功差），和参照电脑在同一局面、同样种子下的结果比。
-// 用法：node tools/plan_exam.js <题目.json> <被考电脑.js> [参照电脑.js=src/bfai.js] [--seeds 10] [--nodes 100000]
+// 用法：node tools/plan_exam.js <题目.json> <被考电脑.js> [参照电脑.js=src/bfai.js] [--seeds 10] [--nodes 100000] [--time 3000]
+//   --time <ms>：时间制判卷（LEVELS.hard.budget=ms、nodes=0），用于复现“3 秒浅搜”类缺陷（如 K21-1 issue25 计划题）；与 --nodes 互斥
 //   题目 { src, opts:{bs,r6}, S, name, side, horizon, metric, intent }
 'use strict';
 const fs = require('fs'), path = require('path'), Module = require('module');
 global.XQ = require('../src/rules.js');
 const BF = global.BF = require('../src/bingfa.js');
-const argv = process.argv.slice(2), opt = { seeds: 10, nodes: 100000 }, files = [];
-for (let i = 0; i < argv.length; i++) { if (argv[i] === '--seeds') opt.seeds = +argv[++i]; else if (argv[i] === '--nodes') opt.nodes = +argv[++i]; else files.push(argv[i]); }
+const argv = process.argv.slice(2), opt = { seeds: 10, nodes: 100000, time: 0 }, files = [];
+for (let i = 0; i < argv.length; i++) { if (argv[i] === '--seeds') opt.seeds = +argv[++i]; else if (argv[i] === '--nodes') opt.nodes = +argv[++i]; else if (argv[i] === '--time') opt.time = +argv[++i]; else files.push(argv[i]); }
 const [qFile, candFile, refFile = 'src/bfai.js'] = files;
-const loadAI = f => { const file = path.resolve(__dirname, '..', f), m = new Module(file + '#plan' + Math.random(), module); m.filename = file; m.paths = Module._nodeModulePaths(path.dirname(file)); m._compile(fs.readFileSync(file, 'utf8'), file); const X = m.exports; X.LEVELS.hard.nodes = opt.nodes; X.LEVELS.hard.budget = 1e9; return X; };
+const loadAI = f => { const file = path.resolve(__dirname, '..', f), m = new Module(file + '#plan' + Math.random(), module); m.filename = file; m.paths = Module._nodeModulePaths(path.dirname(file)); m._compile(fs.readFileSync(file, 'utf8'), file); const X = m.exports; if (opt.time > 0) { X.LEVELS.hard.nodes = 0; X.LEVELS.hard.budget = opt.time; } else { X.LEVELS.hard.nodes = opt.nodes; X.LEVELS.hard.budget = 1e9; } return X; };
 const Q = JSON.parse(fs.readFileSync(qFile, 'utf8'));
 BF.CFG.beishui.on = !!(Q.opts || {}).bs; BF.CFG.r6.on = !!(Q.opts || {}).r6;
 const VAL = { r: 9, c: 4.5, n: 4, e: 2, a: 2, p: 1, k: 0 };
