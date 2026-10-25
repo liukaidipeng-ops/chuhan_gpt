@@ -726,7 +726,7 @@
   // BFAI_DYN2：动态预算曲线（r12，用户 10-25 拍板“最大 2.17×、开局不变慢、随局面逐步加”）
   //   回合 r = floor((cnt.r+cnt.b)/2)+1；1–5 回合 1.0×，6→13 回合线性升到 2.1667×，≥13 回合封顶（≈6500ms）。
   //   复杂度修正：残子 ≤20 / 双方军功和 ≥30 / 已有 lv≥3 子 → 各 +4%（总 ×≤1.12），最终夹在 [1, 2.1667]。
-  const DYN2_MAX = 2.1666667;
+  const DYN2_MAX = 2.0;   // r13b：6000 / 3000
   function dyn2Scale(S0) {
     const cnt = S0.cnt || { r: 0, b: 0 };
     const rnd = Math.floor(((cnt.r || 0) + (cnt.b || 0)) / 2) + 1;
@@ -740,7 +740,9 @@
     if (meritSum >= 30) tense++;
     if (hi > 0) tense++;
     sc *= 1 + 0.04 * tense;
-    return { scale: Math.max(1, Math.min(DYN2_MAX, sc)), round: rnd };
+    // r13b：6 回合起 depth 8（不再上 9），预算上限 6000
+    const dep = rnd <= 5 ? 7 : 8;
+    return { scale: Math.max(1, Math.min(DYN2_MAX, sc)), round: rnd, depth: dep };
   }
   // 根节点：返回一串要依次执行的行动（升级 → 拒马 → 主行动）
   let upqM = 0, upqPen = 0;   // BFAI_UPQ：实9 修法用（M 放大 / 升+静着降权），默认关
@@ -765,10 +767,10 @@
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
     const byNodes = L.nodes > 0;   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
     // BFAI_DYN2（r12）：动态预算，只作用于时间制；节点制（考卷/按节点对打）跳过 → 结果不变
-    if (ENV.BFAI_DYN2 === '1' && !byNodes && !L.fixedDepth) {
+    if (ENV.BFAI_DYN2 === '1' && !byNodes && !L.fixedDepth && L.depth >= 7) {
       const info = dyn2Scale(S0);
       // 动态曲线就代表“难局多想”的全部：关掉原 dyn（否则 3000→6500 之上再乘 2.7 会飙到 17s+，手感不可控）
-      L = { ...L, budget: Math.round(L.budget * info.scale), dyn: 0 };
+      L = { ...L, budget: Math.round(L.budget * info.scale), dyn: 0, depth: Math.max(L.depth, info.depth), deep2: info.depth };
     }
     // BFAI_SPD：敌方四级兵（神速营）逼近我方帅（≤4 格）→ 这一手按“危险局面”多给搜索量（等价于提前触发 dyn）。
     //   实测：用户 19 回合盘第 17 回合，250k 只到 2~3 层选败着；1.5M 能到 5 层改走安全着。
@@ -899,7 +901,7 @@
         // 慢的设备上按时间收手会算得太浅：没搜够 minNodes 之前不因为时间到了就停（最多拖到 1.5 倍时间）
         const thin = L.minNodes > 0 && nodes - n0 < L.minNodes;
         if (dynX && !dynOn && d > 3 && now() - t0 > L.budget * 0.3 && (crit || depthDone <= 3)) { dynOn = true; dynB = L.budget * dynX; soft = t0 + dynB; if (TR) TR.dyn = d; }   // 难走：放宽预算
-        if (d > 3 && !thin && now() - t0 > dynB * 0.3) { why = 'time'; break; }       // 剩下的时间不够再深一层了
+        if (d > 3 && !thin && now() - t0 > (L.deep2 ? L.budget * 0.5 : dynB * 0.3)) { why = 'time'; break; }       // r13b：动态深度档放宽到 50% budget
         deadline = Math.min(hardEnd, d < 3 ? Infinity : d === 3 ? t0 + L.budget * 2 : thin ? t0 + L.budget * 1.5 : soft + L.budget * 0.3);   // 第 3 层也设个兜底（两倍预算）：个别局面枚举破釜组合特别慢，慢手机上别让一步拖到十秒
       }
       let alpha = -INF, n = 0, cut = false;
