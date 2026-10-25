@@ -15,7 +15,7 @@
   //   士、相 / 象是守家的子，多一点血用处不大（平时出不了九宫、过不了河）；到决战解禁之后才和进攻子一样算
   //   例外：对方有两点血以上的进攻子时，士的第二点血很要紧——二级士攻击 2，是唯一砍得死“贴脸将军的两血子”的守子
   const KD = (typeof process !== 'undefined' && process.env && process.env.BFAI_KD ? process.env.BFAI_KD.split(',').map(Number) : [2.0, 1.0, 0.4, 0.9, 1.2, 0.6]);   // 砍不死的子贴近对方主帅的加分：车贴身 / 隔一格 / 同线，马，兵贴身 / 隔一格
-const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1' };   // 开关写死（网页里没有环境变量）：r1 的开关 + 本回合修法 + 预想接口 ponderStart / ponderMove / ponderStop
+  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1' };
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
@@ -574,7 +574,7 @@ const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BF
   const LEVELS = {
     easy: { depth: 1, q: 2, noise: 1.3, top: 3, up: 0.5, budget: 500 },
     mid: { depth: 3, q: 3, noise: 0.3, top: 1, up: 1, budget: 2500 },
-    hard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 6500, minNodes: 20000, dyn: 2.7 },   // dyn：难走的局面最多放宽到几倍预算（C66，Ham 拍板单 ai_time1 = a：平时不变、关键时刻多想）
+    hard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 3000, minNodes: 20000, dyn: 2.7 },   // dyn：难走的局面最多放宽到几倍预算（C66，Ham 拍板单 ai_time1 = a：平时不变、关键时刻多想）
     xhard: { depth: 7, q: 4, noise: 0.05, top: 1, up: 1, budget: 9000, minNodes: 60000, dyn: 2.7 },   // 比霸王更强的一档（C70，Ham 拍板单 ai_time2 = a）：和霸王一样，只是想 3 倍久——平时约 9 秒，难走时最多约 24 秒；对霸王 58.8%（600 局）
     ana: { depth: 3, q: 3, noise: 0, top: 1, up: 1, budget: 1200 },   // 对局分析用（TD，Ham 10-09）：不加噪声，每个局面限时 1.2 秒
   };
@@ -723,6 +723,25 @@ const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BF
     return line;
   }
   const actOf = k => JSON.parse(JSON.stringify(k.up ? { up: k.up.at, ...k.a } : k.a));
+  // BFAI_DYN2：动态预算曲线（r12，用户 10-25 拍板“最大 2.17×、开局不变慢、随局面逐步加”）
+  //   回合 r = floor((cnt.r+cnt.b)/2)+1；1–5 回合 1.0×，6→13 回合线性升到 2.1667×，≥13 回合封顶（≈6500ms）。
+  //   复杂度修正：残子 ≤20 / 双方军功和 ≥30 / 已有 lv≥3 子 → 各 +4%（总 ×≤1.12），最终夹在 [1, 2.1667]。
+  const DYN2_MAX = 2.1666667;
+  function dyn2Scale(S0) {
+    const cnt = S0.cnt || { r: 0, b: 0 };
+    const rnd = Math.floor(((cnt.r || 0) + (cnt.b || 0)) / 2) + 1;
+    const t = Math.min(1, Math.max(0, (rnd - 5) / 8));
+    let sc = 1 + (DYN2_MAX - 1) * t;
+    let nP = 0, hi = 0;
+    for (const row of S0.board) for (const p of row) if (p) { nP++; if (p.lv >= 3) hi++; }
+    const meritSum = (S0.merit ? (S0.merit.r || 0) + (S0.merit.b || 0) : 0);
+    let tense = 0;
+    if (nP <= 20) tense++;
+    if (meritSum >= 30) tense++;
+    if (hi > 0) tense++;
+    sc *= 1 + 0.04 * tense;
+    return { scale: Math.max(1, Math.min(DYN2_MAX, sc)), round: rnd };
+  }
   // 根节点：返回一串要依次执行的行动（升级 → 拒马 → 主行动）
   let upqM = 0, upqPen = 0;   // BFAI_UPQ：实9 修法用（M 放大 / 升+静着降权），默认关
   async function think(S0, level, tick, opt) {
@@ -745,6 +764,12 @@ const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BF
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
     const byNodes = L.nodes > 0;   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
+    // BFAI_DYN2（r12）：动态预算，只作用于时间制；节点制（考卷/按节点对打）跳过 → 结果不变
+    if (ENV.BFAI_DYN2 === '1' && !byNodes && !L.fixedDepth) {
+      const info = dyn2Scale(S0);
+      // 动态曲线就代表“难局多想”的全部：关掉原 dyn（否则 3000→6500 之上再乘 2.7 会飙到 17s+，手感不可控）
+      L = { ...L, budget: Math.round(L.budget * info.scale), dyn: 0 };
+    }
     // BFAI_SPD：敌方四级兵（神速营）逼近我方帅（≤4 格）→ 这一手按“危险局面”多给搜索量（等价于提前触发 dyn）。
     //   实测：用户 19 回合盘第 17 回合，250k 只到 2~3 层选败着；1.5M 能到 5 层改走安全着。
     //   时间制下乘 2 后封顶 5000ms（实测 r17 12.1s→约 10s 量级；配合界面 maxMs 的 hardEnd 0.75 上限，不会拖到 20s+）。
