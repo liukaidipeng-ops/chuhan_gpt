@@ -1,5 +1,6 @@
 # 云端“计划题”复核（plan_exam）：往 ci/plan/request.json 推新内容就触发一次。
-# 用途：K19-1 这类需要 10 种子 × 250k 节点、本地 4 核跑太久/跨回合会被清掉的任务。
+# 用途：K19-1/K21-1 这类需要多子 × 高搜量、本地 4 核跑太久/跨回合会被清掉的任务。
+# 判卷方式二选一：节点制（nodes>0，默认 250000）或时间制（time>0，如 3000ms；与 nodes 互斥）。
 # 结果：plan-out.txt（artifact + 日志）；由 ops 用 `node gh.js artifacts/log` 拉回。
 # 说明：本 workflow 加在 feature 分支 ai/train-20261024 上，push 事件自触发；不碰 main。
 name: 计划题复核（plan_exam）
@@ -25,10 +26,15 @@ jobs:
           C=$(node -p "require('./ci/plan/request.json').candidate")
           R=$(node -p "require('./ci/plan/request.json').reference")
           S=$(node -p "require('./ci/plan/request.json').seeds")
-          N=$(node -p "require('./ci/plan/request.json').nodes")
-          echo "question=$Q candidate=$C reference=$R seeds=$S nodes=$N"
+          N=$(node -p "require('./ci/plan/request.json').nodes || 250000")
+          T=$(node -p "require('./ci/plan/request.json').time || 0")
+          echo "question=$Q candidate=$C reference=$R seeds=$S nodes=$N time=$T"
           cd source
-          node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --nodes "$N" | tee ../plan-out.txt
+          if [ "$T" -gt 0 ]; then
+            node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --time "$T" | tee ../plan-out.txt
+          else
+            node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --nodes "$N" | tee ../plan-out.txt
+          fi
       - name: 上传结果
         if: always()
         uses: actions/upload-artifact@v4
