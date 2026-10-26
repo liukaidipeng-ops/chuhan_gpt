@@ -28,12 +28,13 @@ jobs:
           S=$(node -p "require('./ci/plan/request.json').seeds")
           N=$(node -p "require('./ci/plan/request.json').nodes || 250000")
           T=$(node -p "require('./ci/plan/request.json').time || 0")
-          echo "question=$Q candidate=$C reference=$R seeds=$S nodes=$N time=$T"
+          O=$(node -p "require('./ci/plan/request.json').opp || 'src/bfai.js'")
+          echo "question=$Q candidate=$C reference=$R seeds=$S nodes=$N time=$T opp=$O"
           cd source
           if [ "$T" -gt 0 ]; then
-            node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --time "$T" | tee ../plan-out.txt
+            node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --time "$T" --opp "$O" | tee ../plan-out.txt
           else
-            node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --nodes "$N" | tee ../plan-out.txt
+            node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --nodes "$N" --opp "$O" | tee ../plan-out.txt
           fi
       - name: 上传结果
         if: always()
