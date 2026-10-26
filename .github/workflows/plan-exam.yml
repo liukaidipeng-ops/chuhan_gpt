@@ -1,13 +1,16 @@
-# 云端“计划题”复核（plan_exam）：往 ci/plan/request.json 推新内容就触发一次。
+# 云端“计划题”复核（plan_exam）：往 ci/plan/request.json 推新内容就触发一次；也可手动 workflow_dispatch。
 # 用途：K19-1/K21-1 这类需要多子 × 高搜量、本地 4 核跑太久/跨回合会被清掉的任务。
 # 判卷方式二选一：节点制（nodes>0，默认 250000）或时间制（time>0，如 3000ms；与 nodes 互斥）。
 # 结果：plan-out.txt（artifact + 日志）；由 ops 用 `node gh.js artifacts/log` 拉回。
+# 守卫（2026-10-27）：若 request 指向的题面/候选/参照/对手文件不存在（如已撤下的题），
+#   打印说明后 exit 0 跳过（不产生失败 run）；复活 K24 等题时一次性更新 request 再推。
 # 说明：本 workflow 加在 feature 分支 ai/train-20261024 上，push 事件自触发；不碰 main。
 name: 计划题复核（plan_exam）
 on:
   push:
     branches: [ai/train-20261024]
     paths: ['ci/plan/**']
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -31,6 +34,18 @@ jobs:
           O=$(node -p "require('./ci/plan/request.json').opp || 'src/bfai.js'")
           echo "question=$Q candidate=$C reference=$R seeds=$S nodes=$N time=$T opp=$O"
           cd source
+          # 前置守卫（2026-10-27，lead 拍板）：题面/被考/参照/对手文件缺失 → 打印提示并跳过（exit 0），不产生红 run；
+          #   K24 未复活期间 ci/plan 保持“惰性”，复活时一次性更新 request.json 再推。
+          miss=""
+          for pair in "question:$Q" "candidate:$C" "reference:$R" "opp:$O"; do
+            label=${pair%%:*}; f=${pair#*:}
+            [ -f "$f" ] || { echo "::warning::plan-exam 跳过：${label} 文件不存在：$f"; miss="1"; }
+          done
+          if [ -n "$miss" ]; then
+            echo "跳过原因：ci/plan/request.json 指向的文件缺失（可能题目已撤；K24 复活时一次性更新 request）"
+            echo "plan-exam skipped (inert)" > ../plan-out.txt
+            exit 0
+          fi
           if [ "$T" -gt 0 ]; then
             node tools/plan_exam.js "$Q" "$C" "$R" --seeds "$S" --time "$T" --opp "$O" | tee ../plan-out.txt
           else
