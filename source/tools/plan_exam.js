@@ -1,14 +1,22 @@
 // 九级“计划题”判卷（十级认证表第七节）：从一个局面开始，被考的电脑执 side、线上霸王执另一方，下 horizon 回合 × 若干种子，
 //   量 metric（win 胜负 / material 中立局面分 / merit 军功差），和参照电脑在同一局面、同样种子下的结果比。
-// 用法：node tools/plan_exam.js <题目.json> <被考电脑.js> [参照电脑.js=src/bfai.js] [--seeds 10] [--nodes 100000] [--time 3000]
+// 用法：node tools/plan_exam.js <题目.json> <被考电脑.js> [参照电脑.js=src/bfai.js] [--seeds 10] [--nodes 100000] [--time 3000] [--opp=<对手电脑.js>=src/bfai.js]
 //   --time <ms>：时间制判卷（LEVELS.hard.budget=ms、nodes=0），用于复现“3 秒浅搜”类缺陷（如 K21-1 issue25 计划题）；与 --nodes 互斥
+//   --opp <f> / --opp=<f>：指定“执另一方的对手电脑”（默认 src/bfai.js=线上霸王）；用于用攻击型/用户模拟对手判卷（如 K24 类“连续升兵”打法复现）
 //   题目 { src, opts:{bs,r6}, S, name, side, horizon, metric, intent }
 'use strict';
 const fs = require('fs'), path = require('path'), Module = require('module');
 global.XQ = require('../src/rules.js');
 const BF = global.BF = require('../src/bingfa.js');
-const argv = process.argv.slice(2), opt = { seeds: 10, nodes: 100000, time: 0 }, files = [];
-for (let i = 0; i < argv.length; i++) { if (argv[i] === '--seeds') opt.seeds = +argv[++i]; else if (argv[i] === '--nodes') opt.nodes = +argv[++i]; else if (argv[i] === '--time') opt.time = +argv[++i]; else files.push(argv[i]); }
+const argv = process.argv.slice(2), opt = { seeds: 10, nodes: 100000, time: 0, opp: 'src/bfai.js' }, files = [];
+for (let i = 0; i < argv.length; i++) {
+  if (argv[i] === '--seeds') opt.seeds = +argv[++i];
+  else if (argv[i] === '--nodes') opt.nodes = +argv[++i];
+  else if (argv[i] === '--time') opt.time = +argv[++i];
+  else if (argv[i] === '--opp') opt.opp = argv[++i];
+  else if (argv[i].startsWith('--opp=')) opt.opp = argv[i].slice(6);
+  else files.push(argv[i]);
+}
 const [qFile, candFile, refFile = 'src/bfai.js'] = files;
 const loadAI = f => { const file = path.resolve(__dirname, '..', f), m = new Module(file + '#plan' + Math.random(), module); m.filename = file; m.paths = Module._nodeModulePaths(path.dirname(file)); m._compile(fs.readFileSync(file, 'utf8'), file); const X = m.exports; if (opt.time > 0) { X.LEVELS.hard.nodes = 0; X.LEVELS.hard.budget = opt.time; } else { X.LEVELS.hard.nodes = opt.nodes; X.LEVELS.hard.budget = 1e9; } return X; };
 const Q = JSON.parse(fs.readFileSync(qFile, 'utf8'));
@@ -35,10 +43,11 @@ async function playOut(me, opp, seed) {
   return sg * neutral(g.S);   // material
 }
 (async () => {
-  const opp = loadAI('src/bfai.js'), cand = loadAI(candFile), ref = loadAI(refFile);
+  const opp = loadAI(opt.opp), cand = loadAI(candFile), ref = loadAI(refFile);
   const rc = [], rr = [];
   for (let s = 1; s <= opt.seeds; s++) { rc.push(await playOut(cand, opp, s)); rr.push(await playOut(ref, opp, s)); }
   const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+  if (process.env.PLAN_EXAM_VERBOSE) console.log(`  （对手 ${opt.opp}，参照 ${refFile}，${opt.time > 0 ? 'time:' + opt.time : 'nodes:' + opt.nodes}）`);
   if (Q.metric === 'both') {
     const part = (j, label) => { const c = rc.map(v => v[j]), r = rr.map(v => v[j]), nw = c.filter((v, i) => v >= r[i]).length, ok = avg(c) >= avg(r) && nw >= Math.ceil(opt.seeds * 0.7);
       console.log(`  ${label}：被考 ${avg(c).toFixed(2)}，参照 ${avg(r).toFixed(2)}；不差于参照 ${nw}/${opt.seeds}；逐种子 被考 [${c.map(v => +v.toFixed(2))}] 参照 [${r.map(v => +v.toFixed(2))}]`); return ok; };
