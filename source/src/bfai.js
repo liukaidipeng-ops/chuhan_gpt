@@ -15,7 +15,7 @@
   //   士、相 / 象是守家的子，多一点血用处不大（平时出不了九宫、过不了河）；到决战解禁之后才和进攻子一样算
   //   例外：对方有两点血以上的进攻子时，士的第二点血很要紧——二级士攻击 2，是唯一砍得死“贴脸将军的两血子”的守子
   const KD = (typeof process !== 'undefined' && process.env && process.env.BFAI_KD ? process.env.BFAI_KD.split(',').map(Number) : [2.0, 1.0, 0.4, 0.9, 1.2, 0.6]);   // 砍不死的子贴近对方主帅的加分：车贴身 / 隔一格 / 同线，马，兵贴身 / 隔一格
-  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1' };
+  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1', BFAI_R16: '1' };
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
@@ -795,7 +795,8 @@
     lmrOn = L.depth > 3; kdMe = S0.turn; nodes = 0; qMax = L.q; hist.clear(); killers.length = 0; potC = null; skC = null; upPly = -1; pfPly = -1; pfCache.clear(); upCache.clear(); TTB.clear(); BMT.clear(); pfAlias.clear(); pfUp.clear(); deadline = Infinity; nodeCap = Infinity;
     const fin0 = !!S0.final, chk0 = A.inCheck(S0, me);
     if (PFD && me === 'r' && L.depth >= 3 && S0.cnt.b < (S0.fx.pf || 0)) L = { ...L, depth: L.depth + PFD };   // 楚方技能被封的反击窗口：多算一层
-    const byNodes = L.nodes > 0;   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
+    const byNodes = L.nodes > 0;
+    let r16dp = false;   // r16 T5 窄修：第5–7回合、敌 lv≥2 兵进我方半场距帅6–7   // 设了 nodes：按搜索量收手，完全不看时间（对打、考卷、漏着率用，机器快慢不影响结果）
     // BFAI_DYN2（r12）：动态预算，只作用于时间制；节点制（考卷/按节点对打）跳过 → 结果不变
     if (ENV.BFAI_DYN2 === '1' && !byNodes && !L.fixedDepth && L.depth >= 7 && level === 'hard') {
       const info = dyn2Scale(S0);
@@ -814,6 +815,23 @@
     } else if (ntFlag) {                                   // 新窄档只 ×1.25（普通局面零开销），不设 cap
       if (byNodes) L = { ...L, nodes: Math.round(L.nodes * 1.25) };
       else { const b = L.budget; L = { ...L, budget: Math.max(b, Math.round(b * 1.25)) }; }
+    }
+    // r16 T5 窄修：只在“第5–7回合、敌 lv≥2 兵进我方半场、距帅 6–7”的窄场面（时间制·霸王档）多给搜索量
+    if (ENV.BFAI_R16 === '1' && !byNodes && !L.fixedDepth && level === 'hard') {
+      const c16 = S0.cnt || { r: 0, b: 0 };
+      const rnd16 = Math.floor(((c16.r || 0) + (c16.b || 0)) / 2) + 1;
+      if (rnd16 >= 5 && rnd16 <= 7) {
+        let kp = null;
+        for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S0.board[r][f]; if (p && p.t === 'k' && p.s === me) { kp = [f, r]; break; } }
+        if (kp) for (let r = 0; r < 10 && !r16dp; r++) for (let f = 0; f < 9; f++) {
+          const p = S0.board[r][f];
+          if (!p || p.s === me || p.t !== 'p' || p.lv < 2) continue;
+          const half = me === 'b' ? r >= 5 : r <= 4;
+          const dist = Math.abs(f - kp[0]) + Math.abs(r - kp[1]);
+          if (half && dist >= 6 && dist <= 7) { r16dp = true; break; }
+        }
+      }
+      if (r16dp) { const b = L.budget; L = { ...L, budget: Math.max(b, Math.min(Math.round(b * 2), Math.max(b, 6000))) }; }
     }
     // 新兵：凭眼前的局面分决定升不升（一半的时候懒得升）。校尉、霸王：把几种升法都放进搜索里比
     let ups = L.rootUpAll ? upgradeAll(S) : upgradeCands(S, L, TR ? (TR.upOff = []) : null);
@@ -952,7 +970,8 @@
         // 慢的设备上按时间收手会算得太浅：没搜够 minNodes 之前不因为时间到了就停（最多拖到 1.5 倍时间）
         const thin = L.minNodes > 0 && nodes - n0 < L.minNodes;
         if (dynX && !dynOn && d > 3 && now() - t0 > L.budget * 0.3 && (crit || depthDone <= 3)) { dynOn = true; dynB = L.budget * dynX; soft = t0 + dynB; if (TR) TR.dyn = d; }   // 难走：放宽预算
-        if (d > 3 && !thin && now() - t0 > (L.deep2 ? L.budget * 0.5 : dynB * 0.3)) { why = 'time'; break; }       // r13b：动态深度档放宽到 50% budget
+        const needDeep16 = r16dp && depthDone < 5;   // r16：T5 窄修局面至少跑到 depth5
+        if (!needDeep16 && d > 3 && !thin && now() - t0 > (L.deep2 ? L.budget * 0.5 : dynB * 0.3)) { why = 'time'; break; }       // r13b：动态深度档放宽到 50% budget
         deadline = Math.min(hardEnd, d < 3 ? Infinity : d === 3 ? t0 + L.budget * 2 : thin ? t0 + L.budget * 1.5 : soft + L.budget * 0.3);   // 第 3 层也设个兜底（两倍预算）：个别局面枚举破釜组合特别慢，慢手机上别让一步拖到十秒
       }
       let alpha = -INF, n = 0, cut = false;
@@ -978,7 +997,7 @@
           if (k.nv > alpha) alpha = k.nv;
           n++;
           await breathe();
-          if (ctl ? d > 1 && now() > ctl.end : !L.fixedDepth && !byNodes && d > 3 && now() > soft && (!(L.minNodes > 0 && nodes - n0 < L.minNodes) || now() > t0 + L.budget * 1.5)) { cut = true; break; }
+          if (ctl ? d > 1 && now() > ctl.end : !(r16dp && depthDone < 5) && !L.fixedDepth && !byNodes && d > 3 && now() > soft && (!(L.minNodes > 0 && nodes - n0 < L.minNodes) || now() > t0 + L.budget * 1.5)) { cut = true; break; }
         }
       } catch (e) { if (e !== TIMEOUT) throw e; cut = true; }
       deadline = Infinity; nodeCap = Infinity;
