@@ -4474,6 +4474,13 @@
       o.entries = G.entries;
       // 调试摆过子的局：起始局面不是标准开局，一并带上
       try { if (JSON.stringify(G.base) !== JSON.stringify(BF.newState(BF.CFG))) o.base = G.base; } catch (e) { }
+      // 2026-10-27（用户 29 回合局导出后无法回放）：base 可能被污染（那局 base 里汉兵 id15 在 [7,3]、标准初始在 [8,3]，
+      //   base+entries 重放第 25 条非法；entries 从标准初始 71/71 全部合法）。写进导出前先本地重放校验：
+      //   base+entries 走不通、而标准初始能走通 → 省略 base 并标 baseIgnored（复盘工具/数值工具会自动按标准初始重放）。
+      if (o.base) {
+        const replayOk = (base, es) => { try { const t = new BF.Game(); if (base) t.reset(base); for (const e of es) if (!t.apply(e)) return false; return true; } catch (e) { return false; } };
+        if (!replayOk(o.base, o.entries) && replayOk(null, o.entries)) { delete o.base; o.baseIgnored = true; }
+      }
     } else {
       o.moves = G.history.map(h => { const m = { from: h.from, to: h.to }; if (h.rv != null) m.rv = h.rv; if (h.cj != null) m.cj = h.cj; return m; });
       if (G.jq && G.opts && G.opts.layout) o.layout = G.opts.layout;
