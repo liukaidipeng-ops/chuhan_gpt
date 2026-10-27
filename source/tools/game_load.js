@@ -42,9 +42,9 @@ function applyRules(r) {
   if (x.era && x.era !== 'now' && J0) ERAS[x.era](BF.CFG.skills.juma);
   return x;
 }
-function replayBF(data, n) {
+function replayBF(data, n, ignoreBase) {
   const game = new BF.Game();
-  if (data.base) game.reset(data.base);
+  if (data.base && !ignoreBase) game.reset(data.base);
   const es = data.entries || [];
   for (let k = 0; k < (n == null ? es.length : Math.min(n, es.length)); k++) if (!game.apply(es[k])) throw new Error('第 ' + (k + 1) + ' 条行动重放失败：' + JSON.stringify(es[k]));
   return game;
@@ -54,18 +54,33 @@ function detectRules(data) {
   const base = ('bs' in o || 'r6' in o) ? [{ bs: !!o.bs, r6: !!o.r6 }] : [{}, { bs: false }].concat(BF.CFG.r6 ? [{ r6: true }] : []);
   const ult = (data.entries || []).some(e => e && e.k === 'ult');   // 棋谱里放过终极兵法：按当时开着的规则重放
   const tries = []; for (const era of Object.keys(ERAS)) for (const b of base) tries.push({ ...b, era, ult });
-  let err = null, loose = null;
-  for (const r of tries) {
+  let err = null, loose = null, looseBaseIgnored = false;
+  const tryOne = (r, ignoreBase) => {
     applyRules(r);
+    const g = replayBF(data, null, ignoreBase);
+    const want = data.result, got = g.result;
+    return { g, match: !want || (got && got.winner === want.winner && got.reason === want.reason) };
+  };
+  for (const r of tries) {
+    // ① 先按导出里的 base 重放（正常情况）
     try {
-      const g = replayBF(data);
-      const want = data.result, got = g.result;
-      if (want && (!got || got.winner !== want.winner || got.reason !== want.reason)) { err = new Error('结局对不上'); if (!loose) loose = r; continue; }
-      return { ...DEFAULT_RULES, ...r };   // 写成明确的值：以后默认规则变了（比如 r6 默认打开），存下来的题照旧按当时的规则出
-    } catch (e) { err = e; }
+      const { match } = tryOne(r, false);
+      if (match) return { ...DEFAULT_RULES, ...r };   // 写成明确的值：以后默认规则变了（比如 r6 默认打开），存下来的题照旧按当时的规则出
+      err = new Error('结局对不上'); if (!loose) { loose = r; looseBaseIgnored = false; } continue;
+    } catch (e) {
+      err = e;
+      // ② base 可能是被污染的（2026-10-27 用户 29 回合局：base 里汉兵 id15 在 [7,3]，标准初始在 [8,3]，entries 从标准局面能完整重放）
+      //    再试“忽略 base、从标准初始局面重放”；成功则记 data.baseIgnored，供 load()/调用方提示
+      if (!data.base) continue;
+      try {
+        const { match } = tryOne(r, true);
+        if (match) { data.baseIgnored = true; data.baseIgnoreReason = String(e.message || e); return { ...DEFAULT_RULES, ...r }; }
+        if (!loose) { loose = r; looseBaseIgnored = true; }
+      } catch (e2) { err = e2; }
+    }
   }
   // 整局重放得完、只是结局对不上（多半是 H52“升了级能解将”：当年判了将死，现在的引擎不判）：也能用，局面都是对的
-  if (loose) { applyRules(loose); return { ...DEFAULT_RULES, ...loose }; }
+  if (loose) { applyRules(loose); if (looseBaseIgnored) { data.baseIgnored = true; data.baseIgnoreReason = data.baseIgnoreReason || 'base 重放失败'; } return { ...DEFAULT_RULES, ...loose }; }
   applyRules(null);
   throw err || new Error('哪套规则都重放不了');
 }
@@ -76,7 +91,7 @@ function load(text, n, rules) {
   if (data.kind === 'bf') {
     used = rules || detectRules(data);
     applyRules(used);
-    game = replayBF(data, n);
+    game = replayBF(data, n, !!data.baseIgnored);
   } else {
     game = data.kind === 'jq' ? new XQ.Game({ jq: 1, layout: data.layout }) : new XQ.Game();
     const ms = data.moves || [];
