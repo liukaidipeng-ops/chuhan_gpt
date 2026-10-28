@@ -15,7 +15,7 @@
   //   士、相 / 象是守家的子，多一点血用处不大（平时出不了九宫、过不了河）；到决战解禁之后才和进攻子一样算
   //   例外：对方有两点血以上的进攻子时，士的第二点血很要紧——二级士攻击 2，是唯一砍得死“贴脸将军的两血子”的守子
   const KD = (typeof process !== 'undefined' && process.env && process.env.BFAI_KD ? process.env.BFAI_KD.split(',').map(Number) : [2.0, 1.0, 0.4, 0.9, 1.2, 0.6]);   // 砍不死的子贴近对方主帅的加分：车贴身 / 隔一格 / 同线，马，兵贴身 / 隔一格
-  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1', BFAI_R16: '1' };
+  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1', BFAI_R16: '1', BFAI_R17UX: '1' };
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
@@ -835,6 +835,28 @@
     }
     // 新兵：凭眼前的局面分决定升不升（一半的时候懒得升）。校尉、霸王：把几种升法都放进搜索里比
     let ups = L.rootUpAll ? upgradeAll(S) : upgradeCands(S, L, TR ? (TR.upOff = []) : null);
+    // r17 体验窄修（2026-10-27）：劣势/帅危险时，免费升级只保留防守型（士/象/帅/近王兵）或必升，不再升远处炮/车/马
+    if (ENV.BFAI_R17UX === '1' && !byNodes && level === 'hard') {
+      let kpU = null;
+      for (let r = 0; r < 10 && !kpU; r++) for (let f = 0; f < 9; f++) { const p = S0.board[r][f]; if (p && p.t === 'k' && p.s === me) { kpU = [f, r]; break; } }
+      let dangerU = !!(kpU && A.inCheck(S0, me));
+      if (!dangerU && kpU) for (let r = 0; r < 10 && !dangerU; r++) for (let f = 0; f < 9; f++) {
+        const p = S0.board[r][f];
+        if (!p || p.s === me || p.t !== 'p' || p.lv < 2) continue;
+        const half = me === 'b' ? r >= 5 : r <= 4;
+        if (half && Math.abs(f - kpU[0]) + Math.abs(r - kpU[1]) <= 3) { dangerU = true; break; }
+      }
+      if (dangerU) {   // r17b：只在“帅区危险/被将军”时触发（去掉 score<-2 宽条件，减少对普通局面扰动）
+        ups = ups.filter(c => {
+          if (c.must) return true;   // 解将必须升（保留）
+          const p = S0.board[c.at[1]] && S0.board[c.at[1]][c.at[0]];
+          if (!p) return true;
+          if (p.t === 'a' || p.t === 'e' || p.t === 'k') return true;
+          if (p.t === 'p') return !!(kpU && Math.abs(c.at[0] - kpU[0]) + Math.abs(c.at[1] - kpU[1]) <= 4);
+          return false;   // 远处炮/车/马：劣势/危险时不再免费升
+        });
+      }
+    }
     if (TR) TR.ups = ups.map(c => ({ at: c.at, gain: +c.gain.toFixed(2), must: !!c.must }));
     if (L.depth < 2) {
       const c = Math.random() <= L.up ? ups.find(x => x.must || x.gain > 0.25) : null;
