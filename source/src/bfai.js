@@ -15,7 +15,7 @@
   //   士、相 / 象是守家的子，多一点血用处不大（平时出不了九宫、过不了河）；到决战解禁之后才和进攻子一样算
   //   例外：对方有两点血以上的进攻子时，士的第二点血很要紧——二级士攻击 2，是唯一砍得死“贴脸将军的两血子”的守子
   const KD = (typeof process !== 'undefined' && process.env && process.env.BFAI_KD ? process.env.BFAI_KD.split(',').map(Number) : [2.0, 1.0, 0.4, 0.9, 1.2, 0.6]);   // 砍不死的子贴近对方主帅的加分：车贴身 / 隔一格 / 同线，马，兵贴身 / 隔一格
-  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1', BFAI_R16: '1', BFAI_R17UX: '1' };
+  const ENV = { BFAI_UPX: '1', BFAI_DEFUP: '2', BFAI_CHKUP: '1', BFAI_UP2: '1', BFAI_MATE2: '1', BFAI_PFNOUP2: '1', BFAI_ATKUP: '1', BFAI_CAPUP: '1', BFAI_UP3L: '1', BFAI_CAPUP2: '1', BFAI_CAPTIE: '1', BFAI_SPD: '1', BFAI_PUPD: '1', BFAI_UPQ: '1', BFAI_DPNT: '1', BFAI_DYN2: '1', BFAI_R16: '1', BFAI_R17UX: '1', BFAI_R18: '1' };
   // 破釜沉舟之后楚方兵种技能被封的那几回合，对汉方值多少分（封锁走完线性退掉）；PFD：这几回合里汉方多算几层。数值待量，先默认 0
   const CX = ENV.BFAI_CX != null ? +ENV.BFAI_CX : 2;   // 将军延伸最多几次
   const PFX = ENV.BFAI_PFX != null ? +ENV.BFAI_PFX : 1;   // 升级后的局面沿用未升级局面的破釜组合（1 开 0 关）
@@ -279,7 +279,16 @@
   const UP20 = ENV.BFAI_UP2 === '1'; let UP2 = UP20; const UP2N = +(ENV.BFAI_UP2N || 9), UP2R = +(ENV.BFAI_UP2R || 0);   // BFAI_UP3：对方第 3 层也考虑先升级，和 UP2 对称（只给己方第 2 层会太乐观：g22 第 44 条以为马被吃了能升级吃回车，K11-1）
   let pfEval = false, pfNoUp2 = false, up2Line = false; const UP3L = ENV.BFAI_UP3L === '1';   // BFAI_PFNOUP2：评估破釜沉舟时不加 UP2 那层（和线上一样估破釜；UP2 会把杀车之后的局面估得太好，策略测试 P4）
     // BFAI_PFUP3：只在根上评估破釜沉舟的那几次搜索里，对方第 3 层也可以先升级（UP2 只给己方第 2 层会把破釜估得太好：P4、K11-1；全局开 UP3 太贵）
-  const upAt = (S, ply) => (ply === upPly || (ALLOW && ply === 3 && ALLOW()) || (upAll && ply === 3 && upPly >= 0) || (UP2 && !pfNoUp2 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval || (UP3L && up2Line)) && ply === 3)) && upPly >= 0)) && !S.upgraded;
+  // r19a：危险兵场面里，第 2/3 层的"先升级再走"枚举整段关掉（那是把分支撑爆、把有效深度压到 3 层的主因），
+  //   只保留 ply1 的"对方先升级再走"——和仓库现用引擎（game/source/src/bfai.js，无 UP2/ALLOW/UP3L）一致。
+  const upAt = (S, ply) => {
+    if (S.upgraded) return false;
+    if (ply === upPly) return true;
+    if (r18dp) return false;
+    if (ALLOW && ply === 3 && ALLOW()) return true;
+    if (upAll && ply === 3 && upPly >= 0) return true;
+    return !!(UP2 && !pfNoUp2 && upPly >= 0 && (ply === 2 || ((ENV.BFAI_UP3 === '1' || pfEval || (UP3L && up2Line)) && ply === 3)));
+  };
   let pfPly = -1;   // 在第几层考虑“对方（楚）用破釜沉舟连走两步”（-1 = 不考虑）
   const pfCache = new Map();   // 每个局面的破釜沉舟组合只算一次（逐层加深时重复用）
   const upCache = new Map();   // “对方先升级再走”的那几个局面，同样每个局面只生成一次
@@ -379,6 +388,22 @@
   // BFAI_SPD：敌方四级兵（神速营）离我方帅 Manhattan ≤4 格 → 局面危险（用户 19 回合盘：兵离帅 3 格，AI 只搜 2~3 层、两步被杀）
   //   只看“有威胁的兵”：过河（对楚方兵：adv>=7；对汉方兵：adv>=2 从楚侧算）由调用处保证 side 是走子方，这里只看相对帅的位置。
   let ntFlag = false;   // r10-lite：窄档危险（敌 lv≥2 兵进我方半场、离帅≤3）
+  let r18dp = false;    // r18 危险兵窄修（2026-11-05）：根上有没有"贴身危险兵"（任意回合）
+  const dpIds = new Set();   // 哪些兵算危险兵（按 id）
+  // r18：这一步之后，危险兵是否还贴在我方帅的圈里（被吃掉 / 走远了都算解决）
+  function dpStill(S, side) {
+    if (!S || S.final || !S.board) return false;
+    let kp = null;
+    for (let r = 0; r < 10 && !kp; r++) for (let f = 0; f < 9; f++) { const p = S.board[r][f]; if (p && p.t === 'k' && p.s === side) { kp = [f, r]; break; } }
+    if (!kp) return false;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = S.board[r][f];
+      if (!p || p.s === side || p.t !== 'p' || !dpIds.has(p.id)) continue;
+      const d = Math.abs(f - kp[0]) + Math.abs(r - kp[1]);
+      if ((p.lv >= 2 && d <= 3) || (p.lv >= 4 && d <= 4)) return true;
+    }
+    return false;
+  }
   let rootTurn = null;  // 根上走子方（ab 里判断“第 3 层是不是对方”）
   let ALLOW = null;    // r10-lite：只有 threatFace（敌兵 2 步内能进帅邻格）才允许对方 ply3 初始升级
   // 窄档危险：敌 lv≥2 兵、已进我方半场、离我方帅 Manhattan ≤3
@@ -833,6 +858,22 @@
       }
       if (r16dp) { const b = L.budget; L = { ...L, budget: Math.max(b, Math.min(Math.round(b * 2), Math.max(b, 6000))) }; }
     }
+    // r18 危险兵窄修（2026-11-05）：任意回合，敌方 lv≥2 兵距我帅 ≤3（或 lv≥4 兵距帅 ≤4，神速营能两格跳）就算"贴身危险兵"。
+    //   命中后：预算 ×2（上限 6000ms，和 r16 T5 同写法）+ 搜索第 2 层不再加 UP2 分支（见上，换深度）+ 根上近并列优先解决这枚兵。
+    //   只在时间制；节点制（考卷/对打）完全不动。不做全局威胁项、不做全局加深。
+    r18dp = false; dpIds.clear();
+    if (ENV.BFAI_R18 === '1' && !byNodes && !L.fixedDepth && level === 'hard') {
+      let kp18 = null;
+      for (let r = 0; r < 10 && !kp18; r++) for (let f = 0; f < 9; f++) { const p = S0.board[r][f]; if (p && p.t === 'k' && p.s === me) { kp18 = [f, r]; break; } }
+      if (kp18) for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+        const p = S0.board[r][f];
+        if (!p || p.s === me || p.t !== 'p') continue;
+        const d18 = Math.abs(f - kp18[0]) + Math.abs(r - kp18[1]);
+        if ((p.lv >= 2 && d18 <= 3) || (p.lv >= 4 && d18 <= 4)) { r18dp = true; dpIds.add(p.id); }
+      }
+      // 这个场面里深度比预算值钱：把 dyn/DYN2 放宽出来的预算收回到基础档（省下的时间换成 UP2 关掉后多出来的一层）
+      if (r18dp && L.budget > L0.budget) L = { ...L, budget: L0.budget, deep2: 0 };
+    }
     // 新兵：凭眼前的局面分决定升不升（一半的时候懒得升）。校尉、霸王：把几种升法都放进搜索里比
     let ups = L.rootUpAll ? upgradeAll(S) : upgradeCands(S, L, TR ? (TR.upOff = []) : null);
     // r17 体验窄修（2026-10-27）：劣势/帅危险时，免费升级只保留防守型（士/象/帅/近王兵）或必升，不再升远处炮/车/马
@@ -856,6 +897,13 @@
           return false;   // 远处炮/车/马：劣势/危险时不再免费升
         });
       }
+    }
+    // r19a：危险兵场面里根上也只留 1 个升级（must 例外）——仓库现用引擎在 T12 只给 1 个升级候选，实验室给了 3 个，
+    //   每个升级都是一整套着法子树，多出来的两个把深度吃掉了一层多。
+    if (r18dp && ups.length > 1) {
+      const musts = ups.filter(c => c.must), rest = ups.filter(c => !c.must).sort((x, y) => y.gain - x.gain);
+      ups = musts.concat(rest.slice(0, 1));
+      if (TR) TR.r19ups = ups.map(c => ({ at: c.at, gain: +c.gain.toFixed(2), must: !!c.must }));
     }
     if (TR) TR.ups = ups.map(c => ({ at: c.at, gain: +c.gain.toFixed(2), must: !!c.must }));
     if (L.depth < 2) {
@@ -1099,6 +1147,35 @@
     }
     const pool = kids.slice().sort((x, y) => y.w - x.w);
     let pick = pool[0];
+    // r18 危险兵窄修（2026-11-05）：贴身危险兵还在、而选中的这步没解决它时，把"吃掉/走远这枚兵"的候选
+    //   在已算到的层数上补算一次准分（根上其它候选只是窄窗口上界），差 ≤0.35 就改走它。
+    //   用户 2026-11-05 17 回合局 T14：楚只搜到 3 层、自评 +12.33 大优，实走车吃相把 [4,7] 的 lv3 兵留着，
+    //   汉下一手升四级 + 兵吃马，两次护驾后兵 5,8→3,8 将死（同局面 r17b 自己的吃兵候选只差 0.109）。
+    if (r18dp && kids.length > 1 && pick && !pick.done && dpStill(pick.S, me)) {
+      const R18M = 0.35, R18T = Math.max(400, L.budget * 0.25);
+      const cands = kids.filter(k => k !== pick && !k.done && k.S && k.v != null && k.v > -50 && k.v >= bestV - R18M - 1 && !dpStill(k.S, me));
+      if (cands.length) {
+        cands.sort((x, y) => y.v - x.v);
+        const t18 = now() + R18T;
+        deadline = Math.min(hardEnd2, t18);
+        try {
+          for (const k of cands.slice(0, 2)) {
+            let rv;
+            try { rv = -ab(k.S, Math.max(1, depthDone - 1), -INF, INF, 1); } catch (e) { if (e !== TIMEOUT) throw e; break; }
+            if (!(rv > -INF / 2)) break;
+            k.v = rv; k.vg = true; k.r18 = true;
+            if (TR) TR.r18try = (TR.r18try || []).concat([{ a: actOf(k), v: +rv.toFixed(3) }]);
+            if (rv >= pick.v - R18M) {
+              if (TR) TR.r18 = { from: actOf(pick), to: actOf(k), v: +rv.toFixed(3), best: +pick.v.toFixed(3) };
+              pick = k;
+              break;
+            }
+            if (now() > t18) break;
+          }
+        } catch (e) { if (e !== TIMEOUT) throw e; }
+        deadline = Infinity; nodeCap = Infinity;
+      }
+    }
     if (L.top > 1 && pool.length > 1 && Math.random() < 0.3) { const c = pool.slice(0, L.top).filter(k => k.w > -50), i = Math.floor(Math.random() * c.length); if (c.length) pick = c[i]; }   // 前几名全是输棋（一个都不剩）时就用第一名，别挑出个空的
     const pick0 = pick;
     // BFAI_SPEND（战术部门，g29：楚军功顶在 30 憋了 30 个回合、终极兵法到第 234 条才放）：军功离上限 2 以内、
